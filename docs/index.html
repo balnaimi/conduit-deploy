@@ -841,6 +841,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
   </div>
   <div class="nav-links" id="navLinks">
     <a href="#features">Features</a>
+    <a href="#stack">Tech Stack</a>
     <a href="#quickstart">Quick Start</a>
     <a href="#domain">Domain</a>
     <a href="#after">After Install</a>
@@ -926,6 +927,75 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
         <div class="feature-icon">🔧</div>
         <h3>One-Script Deploy</h3>
         <p>Interactive installer handles Docker, TLS, firewall, and configuration. Up and running in minutes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="section section-alt" id="stack">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">Under the Hood</div>
+      <h2 class="section-title">What's Inside</h2>
+      <p class="section-desc">No black boxes. Here's exactly what runs on your server and why each piece was chosen.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Conduit</h3>
+        <p><strong>The Matrix homeserver.</strong> Written in Rust, single binary, ~50MB RAM. Uses RocksDB as its embedded database — no external database needed. Implements the Matrix protocol for messaging, encryption, and federation.</p>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--card-border);font-size:0.82rem;color:var(--text-dim);">
+          <span style="color:var(--blue);font-weight:600;">Language:</span> Rust &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">DB:</span> RocksDB (embedded) &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">License:</span> Apache-2.0
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>Caddy</h3>
+        <p><strong>Reverse proxy & TLS.</strong> Handles all incoming traffic and terminates HTTPS. Automatically obtains and renews <strong>Let's Encrypt</strong> certificates — zero manual certificate management. Conduit never touches the internet directly.</p>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--card-border);font-size:0.82rem;color:var(--text-dim);">
+          <span style="color:var(--blue);font-weight:600;">Certificates:</span> Let's Encrypt (auto-renewed) &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">Ports:</span> 80, 443, 8448
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📞</div>
+        <h3>Coturn</h3>
+        <p><strong>TURN/STUN server for calls.</strong> Enables voice and video calls by relaying media traffic through NAT. Without it, calls between users on different networks would fail. Runs alongside Conduit automatically.</p>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--card-border);font-size:0.82rem;color:var(--text-dim);">
+          <span style="color:var(--blue);font-weight:600;">Protocols:</span> STUN + TURN &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">Ports:</span> 3478 (UDP), 5349 (TCP/TLS)
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🐳</div>
+        <h3>Docker & Compose</h3>
+        <p><strong>Container runtime.</strong> All three services (Conduit, Caddy, Coturn) run as isolated Docker containers on a shared internal network. No service exposes ports directly — everything goes through Caddy.</p>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--card-border);font-size:0.82rem;color:var(--text-dim);">
+          <span style="color:var(--blue);font-weight:600;">Containers:</span> 3 &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">Network:</span> Internal bridge (isolated)
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Olm / Megolm</h3>
+        <p><strong>End-to-end encryption.</strong> The same cryptographic protocol family used by Signal. Messages are encrypted on the sender's device and decrypted only on the recipient's — the server never sees plaintext.</p>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--card-border);font-size:0.82rem;color:var(--text-dim);">
+          <span style="color:var(--blue);font-weight:600;">Type:</span> Double Ratchet (per-session) &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">Groups:</span> Megolm (efficient group keys)
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>Matrix Federation</h3>
+        <p><strong>Server-to-server protocol.</strong> Your users can message anyone on any other Matrix server (matrix.org, etc.). Federation uses port 8448 with TLS verification between servers. Fully optional — you can disable it.</p>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--card-border);font-size:0.82rem;color:var(--text-dim);">
+          <span style="color:var(--blue);font-weight:600;">Port:</span> 8448 &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">Auth:</span> Server key signatures &nbsp;·&nbsp;
+          <span style="color:var(--blue);font-weight:600;">Optional:</span> Yes
+        </div>
       </div>
     </div>
   </div>
@@ -1348,6 +1418,7 @@ exit</pre>
     <a href="https://conduit.rs/" target="_blank">Conduit</a>
     <a href="https://matrix.org/" target="_blank">Matrix Protocol</a>
     <a href="https://caddyserver.com/" target="_blank">Caddy</a>
+    <a href="https://letsencrypt.org/" target="_blank">Let's Encrypt</a>
     <a href="https://github.com/coturn/coturn" target="_blank">Coturn</a>
   </div>
   <p style="font-size:0.88rem;">Built with 💜 for the Matrix community — Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></p>

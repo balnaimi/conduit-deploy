@@ -2,6 +2,10 @@
 
 > Deploy your own private Matrix messaging server in minutes.
 
+<p align="center">
+  <a href="https://balnaimi.github.io/conduit-deploy/"><strong>🌐 Visit the Website</strong></a>
+</p>
+
 One interactive script that sets up a complete, secure Matrix server with **end-to-end encryption**, **voice/video calls**, and **federation** — on any Debian/Ubuntu machine.
 
 <p align="center">

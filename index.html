@@ -1,590 +1,1148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conduit Deploy — Your Own Private Messaging Server</title>
-    <meta name="description" content="Deploy your own private Matrix messaging server in minutes. End-to-end encryption, voice/video calls, federation.">
-    <style>
-        :root {
-            --bg: #0a0a0f;
-            --bg2: #12121a;
-            --bg3: #1a1a2e;
-            --text: #e4e4ef;
-            --text2: #9999aa;
-            --accent: #6c63ff;
-            --accent2: #8b83ff;
-            --green: #4ade80;
-            --blue: #60a5fa;
-            --card: #16162a;
-            --border: #2a2a3e;
-            --radius: 12px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matrix Conduit Server — Self-Hosted Secure Chat</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --card: #12121a;
+  --card-hover: #1a1a25;
+  --border: #2a2a3a;
+  --accent: #6c63ff;
+  --accent-dim: #4a42c0;
+  --accent-glow: rgba(108,99,255,0.15);
+  --text: #e0ddd5;
+  --text-dim: #8a8780;
+  --text-bright: #fff;
+  --danger: #c44;
+  --success: #4a4;
+  --warning: #f39c12;
+  --section-bg: #0e0e16;
+}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.7;
-            overflow-x: hidden;
-        }
+html { scroll-behavior: smooth; }
 
-        /* Gradient background */
-        .gradient-bg {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(ellipse at 20% 20%, rgba(108, 99, 255, 0.08) 0%, transparent 50%),
-                        radial-gradient(ellipse at 80% 80%, rgba(96, 165, 250, 0.06) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 0 24px;
-            position: relative;
-            z-index: 1;
-        }
+/* ============================================
+   HERO SECTION
+   ============================================ */
+.hero {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0d0d15 0%, #1a1520 100%);
+}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,15,0.7) 0%, rgba(10,10,15,0.95) 100%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  padding: 2rem;
+}
+.hero-logo {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 0 40px var(--accent-glow), 0 4px 10px rgba(0,0,0,0.8);
+  margin-bottom: 0.5rem;
+  letter-spacing: 2px;
+}
+.hero-subtitle {
+  font-size: 1.5rem;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  font-weight: 300;
+}
+.hero-tagline {
+  font-size: 1.1rem;
+  color: var(--text);
+  font-weight: 500;
+}
 
-        /* Nav */
-        nav {
-            padding: 20px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .logo span { color: var(--accent); }
-        .nav-links { display: flex; gap: 24px; align-items: center; }
-        .nav-links a {
-            color: var(--text2);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.2s;
-        }
-        .nav-links a:hover { color: var(--text); }
+/* ============================================
+   TAB BAR
+   ============================================ */
+.tab-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tab-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+.tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
 
-        /* Hero */
-        .hero {
-            text-align: center;
-            padding: 100px 0 80px;
-        }
-        .hero-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            background: rgba(108, 99, 255, 0.1);
-            border: 1px solid rgba(108, 99, 255, 0.2);
-            border-radius: 100px;
-            font-size: 0.85rem;
-            color: var(--accent2);
-            margin-bottom: 24px;
-        }
-        .hero h1 {
-            font-size: clamp(2.5rem, 6vw, 4rem);
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, var(--text) 0%, var(--accent2) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .hero p {
-            font-size: 1.2rem;
-            color: var(--text2);
-            max-width: 600px;
-            margin: 0 auto 40px;
-        }
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 14px 32px;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-        .btn-primary:hover {
-            background: var(--accent2);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(108, 99, 255, 0.3);
-        }
-        .btn-secondary {
-            background: var(--bg3);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-        .btn-secondary:hover {
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
+/* ============================================
+   TAB CONTENT
+   ============================================ */
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
 
-        /* Terminal preview */
-        .terminal {
-            max-width: 650px;
-            margin: 60px auto 0;
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-        .terminal-header {
-            padding: 12px 16px;
-            background: var(--bg3);
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .terminal-dot {
-            width: 12px; height: 12px;
-            border-radius: 50%;
-        }
-        .terminal-dot.red { background: #ff5f57; }
-        .terminal-dot.yellow { background: #febc2e; }
-        .terminal-dot.green { background: #28c840; }
-        .terminal-title {
-            color: var(--text2);
-            font-size: 0.8rem;
-            margin-left: 8px;
-        }
-        .terminal-body {
-            padding: 20px;
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-            font-size: 0.85rem;
-            line-height: 1.8;
-        }
-        .terminal-body .prompt { color: var(--green); }
-        .terminal-body .cmd { color: var(--text); }
-        .terminal-body .comment { color: var(--text2); }
-        .terminal-body .output { color: var(--blue); }
+/* ============================================
+   FEATURES SECTION (for About tab)
+   ============================================ */
+.features {
+  padding: 5rem 2rem;
+  background: var(--section-bg);
+}
+.features-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.75rem;
+  transition: all 0.3s;
+}
+.feature-card:hover {
+  background: var(--card-hover);
+  border-color: var(--accent-dim);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+.feature-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.feature-desc {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
 
-        /* Features */
-        .features {
-            padding: 80px 0;
-        }
-        .section-title {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-        .section-subtitle {
-            text-align: center;
-            color: var(--text2);
-            margin-bottom: 50px;
-            font-size: 1.1rem;
-        }
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .feature-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 28px;
-            transition: all 0.2s;
-        }
-        .feature-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-3px);
-        }
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 14px;
-        }
-        .feature-card h3 {
-            font-size: 1.15rem;
-            margin-bottom: 8px;
-        }
-        .feature-card p {
-            color: var(--text2);
-            font-size: 0.95rem;
-        }
+/* ============================================
+   CONTENT SECTIONS
+   ============================================ */
+.content-section {
+  padding: 5rem 2rem;
+  background: var(--bg);
+}
+.content-section:nth-child(even) {
+  background: var(--section-bg);
+}
+.content-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.section-title {
+  font-size: 2.5rem;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 3rem;
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+.section-subtitle {
+  font-size: 1.5rem;
+  color: var(--accent);
+  margin: 2.5rem 0 1rem;
+}
 
-        /* How it works */
-        .how-it-works {
-            padding: 80px 0;
-        }
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 24px;
-            margin-top: 50px;
-        }
-        .step {
-            text-align: center;
-            padding: 24px;
-        }
-        .step-number {
-            width: 48px; height: 48px;
-            background: rgba(108, 99, 255, 0.1);
-            border: 2px solid var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-            font-weight: 700;
-            color: var(--accent);
-            font-size: 1.2rem;
-        }
-        .step h3 {
-            margin-bottom: 8px;
-            font-size: 1.1rem;
-        }
-        .step p {
-            color: var(--text2);
-            font-size: 0.9rem;
-        }
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+.code-block {
+  background: #0a0a0f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9rem;
+  color: var(--text);
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.7;
+  margin: 1rem 0;
+  position: relative;
+}
+.code-block .comment {
+  color: var(--text-dim);
+}
+.code-block .highlight {
+  color: var(--accent);
+  font-weight: 600;
+}
+.copy-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+}
+.code-block:hover .copy-btn {
+  opacity: 1;
+}
+.copy-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
 
-        /* Comparison */
-        .comparison {
-            padding: 80px 0;
-        }
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--card);
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-        .comparison-table th {
-            padding: 16px 20px;
-            background: var(--bg3);
-            text-align: left;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        .comparison-table td {
-            padding: 14px 20px;
-            border-top: 1px solid var(--border);
-            font-size: 0.9rem;
-            color: var(--text2);
-        }
-        .comparison-table tr:hover td {
-            background: rgba(108, 99, 255, 0.03);
-        }
-        .check { color: var(--green); }
-        .cross { color: #f87171; }
+/* ============================================
+   TABLES
+   ============================================ */
+.info-table {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+.info-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.info-table th {
+  background: var(--bg);
+  color: var(--accent);
+  padding: 0.9rem;
+  text-align: left;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+}
+.info-table td {
+  padding: 0.9rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--text);
+}
+.info-table tr:last-child td {
+  border-bottom: none;
+}
+.info-table code {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
 
-        /* Architecture */
-        .architecture {
-            padding: 80px 0;
-        }
-        .arch-diagram {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 40px;
-            text-align: center;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 0.85rem;
-            line-height: 1.6;
-            color: var(--text2);
-            overflow-x: auto;
-            white-space: pre;
-        }
+/* ============================================
+   INFO BOXES
+   ============================================ */
+.info-note {
+  background: var(--card);
+  border-left: 4px solid var(--accent);
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin: 1rem 0;
+}
+.info-warning {
+  background: var(--card);
+  border-left: 4px solid var(--warning);
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin: 1rem 0;
+}
+.info-warning strong {
+  color: var(--warning);
+}
+.info-danger {
+  background: var(--card);
+  border-left: 4px solid var(--danger);
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin: 1rem 0;
+}
+.info-danger strong {
+  color: var(--danger);
+}
 
-        /* CTA */
-        .cta {
-            padding: 100px 0;
-            text-align: center;
-        }
-        .cta h2 {
-            font-size: 2.2rem;
-            margin-bottom: 16px;
-        }
-        .cta p {
-            color: var(--text2);
-            margin-bottom: 32px;
-            font-size: 1.1rem;
-        }
+/* ============================================
+   OPTION CARDS
+   ============================================ */
+.option-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+.option-title {
+  font-size: 1.3rem;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+.option-desc {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+}
 
-        /* Footer */
-        footer {
-            padding: 40px 0;
-            border-top: 1px solid var(--border);
-            text-align: center;
-            color: var(--text2);
-            font-size: 0.85rem;
-        }
-        footer a {
-            color: var(--accent2);
-            text-decoration: none;
-        }
-        footer a:hover { text-decoration: underline; }
+/* ============================================
+   ASCII ART
+   ============================================ */
+.ascii-art {
+  background: #0a0a0f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.75rem;
+  color: var(--text);
+  overflow-x: auto;
+  line-height: 1.4;
+  margin: 1rem 0;
+}
 
-        /* Code inline */
-        code {
-            background: var(--bg3);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-        }
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  background: var(--section-bg);
+  border-top: 1px solid var(--border);
+}
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
 
-        @media (max-width: 768px) {
-            .hero { padding: 60px 0 40px; }
-            .nav-links { display: none; }
-            .features-grid { grid-template-columns: 1fr; }
-            .steps { grid-template-columns: 1fr 1fr; }
-            .comparison-table { font-size: 0.8rem; }
-            .comparison-table th, .comparison-table td { padding: 10px 12px; }
-        }
-    </style>
+/* ============================================
+   TOAST
+   ============================================ */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--accent);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 100;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .hero-logo { font-size: 2.5rem; }
+  .hero-subtitle { font-size: 1.2rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .tab-bar { justify-content: flex-start; flex-wrap: nowrap; }
+  .info-table { font-size: 0.85rem; }
+}
+</style>
 </head>
 <body>
-    <div class="gradient-bg"></div>
 
-    <div class="container">
-        <nav>
-            <a href="#" class="logo">🏠 <span>Conduit</span> Deploy</a>
-            <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="#comparison">Comparison</a>
-                <a href="https://github.com/balnaimi/conduit-deploy/blob/main/docs/getting-started.md">Docs</a>
-                <a href="https://github.com/balnaimi/conduit-deploy" class="btn btn-secondary" style="padding: 8px 18px; font-size: 0.85rem;">⭐ GitHub</a>
-            </div>
-        </nav>
+<!-- ============================================
+     HERO SECTION
+     ============================================ -->
+<section class="hero" id="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-logo">🔐 Matrix Conduit<br>Homeserver</div>
+    <div class="hero-subtitle">Self-Hosted Secure Chat</div>
+    <div class="hero-tagline">Lightweight, fast, and easy to deploy — own your conversations</div>
+  </div>
+</section>
 
-        <!-- Hero -->
-        <section class="hero">
-            <div class="hero-badge">🔒 End-to-end encrypted • Open source • Self-hosted</div>
-            <h1>Your own private messaging server</h1>
-            <p>Deploy a complete Matrix server in minutes. Own your conversations, make voice &amp; video calls, and chat with anyone on the Matrix network.</p>
-            <div class="hero-buttons">
-                <a href="https://github.com/balnaimi/conduit-deploy/blob/main/docs/getting-started.md" class="btn btn-primary">Get Started →</a>
-                <a href="#how-it-works" class="btn btn-secondary">See how it works</a>
-            </div>
+<!-- ============================================
+     TAB BAR
+     ============================================ -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('about')">📖 About</button>
+  <button class="tab-btn" onclick="switchTab('quick-start')">🚀 Quick Start</button>
+  <button class="tab-btn" onclick="switchTab('domain-setup')">🌐 Domain Setup</button>
+  <button class="tab-btn" onclick="switchTab('after-install')">✅ After Install</button>
+  <button class="tab-btn" onclick="switchTab('faq')">❓ FAQ</button>
+  <button class="tab-btn" onclick="switchTab('architecture')">🏗️ Architecture</button>
+</div>
 
-            <div class="terminal">
-                <div class="terminal-header">
-                    <div class="terminal-dot red"></div>
-                    <div class="terminal-dot yellow"></div>
-                    <div class="terminal-dot green"></div>
-                    <span class="terminal-title">Terminal</span>
-                </div>
-                <div class="terminal-body">
-                    <span class="comment"># Download and run — that's it</span><br>
-                    <span class="prompt">$</span> <span class="cmd">curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh -o install.sh</span><br>
-                    <span class="prompt">$</span> <span class="cmd">sudo bash install.sh</span><br>
-                    <br>
-                    <span class="output">╔═══════════════════════════════════════════╗</span><br>
-                    <span class="output">║   🏠 Matrix Conduit Server Manager        ║</span><br>
-                    <span class="output">╚═══════════════════════════════════════════╝</span><br>
-                    <br>
-                    <span class="output">  1) Prepare      — What you need before installing</span><br>
-                    <span class="output">  2) Install      — Deploy Matrix server</span><br>
-                    <span class="output">  3) Health Check — Verify services &amp; security</span><br>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features -->
-        <section class="features" id="features">
-            <h2 class="section-title">Everything you need</h2>
-            <p class="section-subtitle">One script sets up a production-ready messaging server</p>
-
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3>End-to-End Encryption</h3>
-                    <p>Messages are encrypted on your device. Nobody — not even the server — can read them.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📞</div>
-                    <h3>Voice & Video Calls</h3>
-                    <p>Built-in TURN/STUN server for calls that work across networks, NATs, and firewalls.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3>Federation</h3>
-                    <p>Talk to anyone on the Matrix network — millions of users on thousands of servers.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔐</div>
-                    <h3>Auto TLS</h3>
-                    <p>Let's Encrypt certificates handled automatically by Caddy. Zero maintenance.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Hardened by Default</h3>
-                    <p>Firewall, fail2ban, auto-updates, and Docker network isolation — all configured for you.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Lightweight</h3>
-                    <p>Conduit (Rust) uses ~50MB RAM. Runs great on a $5/month VPS with 512MB RAM.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- How it works -->
-        <section class="how-it-works" id="how-it-works">
-            <h2 class="section-title">Up and running in 4 steps</h2>
-            <p class="section-subtitle">From zero to messaging in about 30 minutes</p>
-
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Get a server</h3>
-                    <p>Any VPS with 512MB RAM. Hetzner, DigitalOcean, or even Oracle's free tier.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Point your domain</h3>
-                    <p>Add a DNS record pointing to your server. The script tells you exactly what to add.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Run the script</h3>
-                    <p>One command. Interactive menu guides you through everything. No config files to edit.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>Start chatting</h3>
-                    <p>Download Element (or any Matrix app), sign in, invite your people. Done!</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Comparison -->
-        <section class="comparison" id="comparison">
-            <h2 class="section-title">Why run your own?</h2>
-            <p class="section-subtitle">Compare with popular messaging platforms</p>
-
-            <table class="comparison-table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>WhatsApp</th>
-                        <th>Telegram</th>
-                        <th>Signal</th>
-                        <th style="color: var(--accent);">Your Server</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>You own the data</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="check">✓</td>
-                    </tr>
-                    <tr>
-                        <td>End-to-end encrypted</td>
-                        <td class="check">✓</td>
-                        <td class="cross">✗ opt-in</td>
-                        <td class="check">✓</td>
-                        <td class="check">✓</td>
-                    </tr>
-                    <tr>
-                        <td>Fully open source</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗ partial</td>
-                        <td class="check">✓</td>
-                        <td class="check">✓</td>
-                    </tr>
-                    <tr>
-                        <td>No phone number needed</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="check">✓</td>
-                    </tr>
-                    <tr>
-                        <td>Can't be shut down</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="check">✓</td>
-                    </tr>
-                    <tr>
-                        <td>Talk to other platforms</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="check">✓ federation</td>
-                    </tr>
-                    <tr>
-                        <td>Self-hostable</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="cross">✗</td>
-                        <td class="check">✓</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <!-- Architecture -->
-        <section class="architecture">
-            <h2 class="section-title">Under the hood</h2>
-            <p class="section-subtitle">Three lightweight services working together</p>
-
-            <div class="arch-diagram">
-                Internet
-                   │
-                   ▼
-            ┌─────────────┐     ┌─────────────┐
-            │    Caddy     │────▶│   Conduit    │
-            │  (gateway)   │     │   (chat)     │
-            │  :80/:443    │     │   :6167      │
-            │  :8448       │     │  no public   │
-            └─────────────┘     │   ports!     │
-                                └─────────────┘
-            ┌─────────────┐
-            │   Coturn     │
-            │  (calls)     │
-            │  :3478/:5349 │
-            └─────────────┘
-
-  🔒 Firewall   🛡️ Fail2ban   📜 Auto-updates   🔄 Cert auto-renewal</div>
-        </section>
-
-        <!-- CTA -->
-        <section class="cta">
-            <h2>Ready to take control of your messaging?</h2>
-            <p>It takes about 30 minutes. No experience required.</p>
-            <div class="hero-buttons">
-                <a href="https://github.com/balnaimi/conduit-deploy/blob/main/docs/getting-started.md" class="btn btn-primary">Get Started →</a>
-                <a href="https://github.com/balnaimi/conduit-deploy" class="btn btn-secondary">⭐ Star on GitHub</a>
-            </div>
-        </section>
+<!-- ============================================
+     TAB 1: ABOUT
+     ============================================ -->
+<div id="tab-about" class="tab-content active">
+  <section class="features">
+    <h2 style="font-size:2.5rem;color:var(--accent);text-align:center;margin-bottom:3rem;text-shadow:0 0 20px var(--accent-glow);">Why Matrix Conduit?</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">End-to-End Encryption</div>
+        <div class="feature-desc">All messages are encrypted by default. Not even the server can read your conversations.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📞</div>
+        <div class="feature-title">Voice & Video Calls</div>
+        <div class="feature-desc">Built-in support for encrypted voice and video calls with Matrix clients.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-title">Federation</div>
+        <div class="feature-desc">Talk to users on other Matrix servers. Your server, their server, one network.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-title">Auto TLS</div>
+        <div class="feature-desc">Automatic HTTPS with Caddy — certificates renew automatically, zero maintenance.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <div class="feature-title">Hardened Security</div>
+        <div class="feature-desc">Conduit runs isolated, no port exposure. Caddy handles all external traffic securely.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Lightweight</div>
+        <div class="feature-desc">Uses ~50MB of RAM. Perfect for Raspberry Pi, VPS, or home servers.</div>
+      </div>
     </div>
+  </section>
+</div>
 
-    <footer>
-        <div class="container">
-            <p>Built with ❤️ using <a href="https://conduit.rs/">Conduit</a>, <a href="https://caddyserver.com/">Caddy</a>, and <a href="https://github.com/coturn/coturn">Coturn</a></p>
-            <p style="margin-top: 8px;">MIT License — Use it, share it, modify it</p>
+<!-- ============================================
+     TAB 2: QUICK START
+     ============================================ -->
+<div id="tab-quick-start" class="tab-content">
+  <section class="content-section">
+    <div class="content-container">
+      <h2 class="section-title">Quick Start</h2>
+      
+      <div class="option-card">
+        <div class="option-title">Option A — Interactive Menu (Recommended)</div>
+        <div class="option-desc">Download the installer script and run it. You'll get a friendly menu to guide you through setup.</div>
+        <pre class="code-block">curl -o install.sh https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh
+chmod +x install.sh
+sudo ./install.sh</pre>
+        <div class="info-note">The script will ask you a few questions (domain, email, etc.) and do everything automatically.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">What the installer does</div>
+        <div class="ascii-art" style="color:#6c63ff;">
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║   🔐 Matrix Conduit Homeserver — Interactive Setup           ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+What would you like to do?
+
+  1) 🚀 Install new Matrix server
+  2) 📝 Change server configuration
+  3) ♻️  Update Conduit to latest version
+  4) 🗑️  Uninstall completely
+  5) ℹ️  Show server info & status
+  0) ❌ Exit
+
+Choose an option [1-5, 0 to exit]: _</div>
+        <div class="info-note">The installer handles Docker installation, domain setup, TLS certificates, firewall rules, and service configuration — all in one go.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">What happens on first install?</div>
+        <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+          <li>✅ Checks system requirements (Docker, ports, DNS)</li>
+          <li>✅ Asks for your domain name and admin email</li>
+          <li>✅ Lets you choose delegation mode (clean usernames or subdomain-only)</li>
+          <li>✅ Downloads and configures Conduit + Caddy + Coturn</li>
+          <li>✅ Generates your first admin account</li>
+          <li>✅ Sets up automatic TLS certificates (HTTPS)</li>
+          <li>✅ Configures firewall rules (if UFW is present)</li>
+          <li>✅ Starts everything and shows you next steps</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ============================================
+     TAB 3: DOMAIN SETUP
+     ============================================ -->
+<div id="tab-domain-setup" class="tab-content">
+  <section class="content-section">
+    <div class="content-container">
+      <h2 class="section-title">Domain Setup</h2>
+
+      <div class="info-danger">
+        <strong>⚠️ IMPORTANT:</strong> Your Matrix server name is <strong>permanent</strong>. Once you create accounts and join rooms, you cannot change it. Choose carefully!
+      </div>
+
+      <h3 class="section-subtitle">Two modes to choose from</h3>
+
+      <div class="option-card">
+        <div class="option-title">Mode 1: Clean Usernames (with delegation)</div>
+        <div class="option-desc">Your Matrix ID: <code>@alice:example.com</code> (looks professional)</div>
+        <div style="margin:1rem 0;">
+          <strong style="color:var(--accent);">✅ Pros:</strong>
+          <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+            <li>Clean, short usernames (<code>@user:example.com</code>)</li>
+            <li>Looks like your main domain (no "matrix." or "chat." prefix)</li>
+            <li>More professional for public servers</li>
+          </ul>
         </div>
-    </footer>
+        <div style="margin:1rem 0;">
+          <strong style="color:var(--warning);">⚠️ Cons:</strong>
+          <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+            <li>Requires delegation file on your main domain</li>
+            <li>Slightly more complex setup</li>
+            <li>Your main domain must serve <code>/.well-known/matrix/server</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">Mode 2: Subdomain Only (simpler)</div>
+        <div class="option-desc">Your Matrix ID: <code>@alice:matrix.example.com</code></div>
+        <div style="margin:1rem 0;">
+          <strong style="color:var(--accent);">✅ Pros:</strong>
+          <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+            <li>Simpler setup — just one DNS record</li>
+            <li>No delegation file needed</li>
+            <li>Perfect for personal/private servers</li>
+          </ul>
+        </div>
+        <div style="margin:1rem 0;">
+          <strong style="color:var(--warning);">⚠️ Cons:</strong>
+          <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+            <li>Longer usernames (<code>@user:matrix.example.com</code>)</li>
+            <li>Less "clean" looking</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="section-subtitle">Comparison Table</h3>
+      <div class="info-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Mode 1 (Delegation)</th>
+              <th>Mode 2 (Subdomain)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Matrix ID</strong></td>
+              <td><code>@user:example.com</code></td>
+              <td><code>@user:matrix.example.com</code></td>
+            </tr>
+            <tr>
+              <td><strong>DNS Records</strong></td>
+              <td>2 (A + SRV)</td>
+              <td>1 (A only)</td>
+            </tr>
+            <tr>
+              <td><strong>Delegation File</strong></td>
+              <td>Required on main domain</td>
+              <td>Not needed</td>
+            </tr>
+            <tr>
+              <td><strong>Setup Complexity</strong></td>
+              <td>Medium</td>
+              <td>Easy</td>
+            </tr>
+            <tr>
+              <td><strong>Best For</strong></td>
+              <td>Public servers, businesses</td>
+              <td>Personal/private servers</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="section-subtitle">DNS Setup — Mode 1 (Delegation)</h3>
+      <p style="color:var(--text-dim);margin-bottom:1rem;">You want usernames like <code>@alice:example.com</code> but the server runs on <code>matrix.example.com</code>.</p>
+      
+      <div class="option-card">
+        <div class="option-title">Step 1: DNS Records</div>
+        <div class="info-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Name</th>
+                <th>Value</th>
+                <th>TTL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A</td>
+                <td><code>matrix.example.com</code></td>
+                <td>Your server IP</td>
+                <td>3600</td>
+              </tr>
+              <tr>
+                <td>SRV</td>
+                <td><code>_matrix._tcp.example.com</code></td>
+                <td><code>10 0 8448 matrix.example.com.</code></td>
+                <td>3600</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">Step 2: Delegation File</div>
+        <div class="option-desc">Your main domain (<code>example.com</code>) must serve this file at <code>/.well-known/matrix/server</code>:</div>
+        <pre class="code-block">{
+  "m.server": "matrix.example.com:443"
+}</pre>
+        <div class="info-note">How you create this file depends on your web server (Nginx, Apache, Caddy, etc.). The installer can guide you through this.</div>
+      </div>
+
+      <h3 class="section-subtitle">DNS Setup — Mode 2 (Subdomain Only)</h3>
+      <p style="color:var(--text-dim);margin-bottom:1rem;">You're okay with usernames like <code>@alice:matrix.example.com</code>. Simpler setup!</p>
+      
+      <div class="option-card">
+        <div class="option-title">DNS Record</div>
+        <div class="info-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Name</th>
+                <th>Value</th>
+                <th>TTL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A</td>
+                <td><code>matrix.example.com</code></td>
+                <td>Your server IP</td>
+                <td>3600</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="info-note">That's it! No SRV record, no delegation file. Just point the subdomain to your server.</div>
+      </div>
+
+      <div class="info-warning" style="margin-top:2rem;">
+        <strong>⚠️ Cannot change later!</strong><br>
+        Once you create accounts and join Matrix rooms, your server name is <strong>permanent</strong>. You cannot migrate from <code>example.com</code> to <code>matrix.example.com</code> (or vice versa) without losing all your data and re-creating accounts.
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ============================================
+     TAB 4: AFTER INSTALL
+     ============================================ -->
+<div id="tab-after-install" class="tab-content">
+  <section class="content-section">
+    <div class="content-container">
+      <h2 class="section-title">After Install</h2>
+
+      <h3 class="section-subtitle">1. Download a Matrix Client</h3>
+      <p style="color:var(--text-dim);margin-bottom:1rem;">Your server is ready! Now you need an app to connect to it. Here are the most popular clients:</p>
+
+      <div class="info-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Platforms</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Element</strong></td>
+              <td>Web, Desktop, iOS, Android</td>
+              <td><a href="https://element.io/download" target="_blank">element.io/download</a></td>
+            </tr>
+            <tr>
+              <td><strong>SchildiChat</strong></td>
+              <td>Desktop, iOS, Android</td>
+              <td><a href="https://schildi.chat/" target="_blank">schildi.chat</a></td>
+            </tr>
+            <tr>
+              <td><strong>FluffyChat</strong></td>
+              <td>iOS, Android, Linux</td>
+              <td><a href="https://fluffychat.im/" target="_blank">fluffychat.im</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="section-subtitle">2. Sign In</h3>
+      <div class="option-card">
+        <div class="option-title">Connect to your homeserver</div>
+        <ol style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+          <li>Open your Matrix client (e.g., Element)</li>
+          <li>Click <strong>"Sign In"</strong></li>
+          <li>Click <strong>"Edit"</strong> next to the homeserver URL</li>
+          <li>Enter your server name:
+            <ul style="margin-left:1.5rem;">
+              <li>Mode 1: <code>example.com</code> (no https://)</li>
+              <li>Mode 2: <code>matrix.example.com</code></li>
+            </ul>
+          </li>
+          <li>Sign in with your username and password (from installer output)</li>
+        </ol>
+        <div class="info-note">Your first account was created automatically by the installer. Check the output for your username and password!</div>
+      </div>
+
+      <h3 class="section-subtitle">3. Create More Accounts</h3>
+      <div class="option-card">
+        <div class="option-title">Register new users</div>
+        <div class="option-desc">By default, registration is <strong>disabled</strong> for security. You can enable it temporarily or create accounts manually.</div>
+        
+        <p style="margin:1rem 0;font-weight:600;color:var(--accent);">Method 1: Enable registration (temporary)</p>
+        <pre class="code-block">sudo ./install.sh
+<span class="comment"># Choose option 2 (Change configuration)</span>
+<span class="comment"># Set "allow_registration = true"</span>
+<span class="comment"># Don't forget to disable it again after creating accounts!</span></pre>
+
+        <p style="margin:2rem 0 1rem;font-weight:600;color:var(--accent);">Method 2: Create account via command line</p>
+        <pre class="code-block">docker exec -it conduit /bin/sh
+conduit database create-user @newuser:example.com newpassword
+exit</pre>
+      </div>
+
+      <h3 class="section-subtitle">4. Security Tips</h3>
+      <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+        <li>🔒 <strong>Keep registration disabled</strong> unless you're actively creating accounts</li>
+        <li>🔑 <strong>Use strong passwords</strong> for all accounts</li>
+        <li>✅ <strong>Enable cross-signing</strong> in your client for device verification</li>
+        <li>💾 <strong>Backup your encryption keys</strong> (Settings → Security → Backup)</li>
+        <li>🛡️ <strong>Review your firewall rules</strong> — only ports 80, 443, 8448, 3478, 5349 should be open</li>
+        <li>🔄 <strong>Keep Conduit updated</strong> regularly (run the installer and choose "Update")</li>
+      </ul>
+
+    </div>
+  </section>
+</div>
+
+<!-- ============================================
+     TAB 5: FAQ
+     ============================================ -->
+<div id="tab-faq" class="tab-content">
+  <section class="content-section">
+    <div class="content-container">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+
+      <div class="option-card">
+        <div class="option-title">What is Matrix?</div>
+        <div class="option-desc">
+          Matrix is an <strong>open protocol</strong> for secure, decentralized communication. Think of it like email — anyone can run a Matrix server, and all servers can talk to each other (federation). Unlike WhatsApp or Telegram, you control your data and can run your own server.
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">Why run your own Matrix server?</div>
+        <ul style="margin-left:1.5rem;color:var(--text-dim);line-height:2;">
+          <li>🔐 <strong>Privacy:</strong> Your messages stay on your server, not someone else's</li>
+          <li>🛡️ <strong>Control:</strong> You decide who can register, what features are enabled</li>
+          <li>🌐 <strong>Federation:</strong> Still talk to users on other Matrix servers (matrix.org, etc.)</li>
+          <li>📚 <strong>Learning:</strong> Great way to understand self-hosting and encrypted communication</li>
+          <li>💰 <strong>Cost:</strong> Free if you already have a VPS or home server</li>
+        </ul>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">How is this different from WhatsApp/Telegram/Signal?</div>
+        <div class="info-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Matrix (Conduit)</th>
+                <th>WhatsApp</th>
+                <th>Telegram</th>
+                <th>Signal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Self-hosted</strong></td>
+                <td style="color:var(--success);">✅ Yes</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+              </tr>
+              <tr>
+                <td><strong>End-to-end encrypted</strong></td>
+                <td style="color:var(--success);">✅ Yes</td>
+                <td style="color:var(--success);">✅ Yes</td>
+                <td style="color:var(--warning);">⚠️ Optional</td>
+                <td style="color:var(--success);">✅ Yes</td>
+              </tr>
+              <tr>
+                <td><strong>Federation</strong></td>
+                <td style="color:var(--success);">✅ Yes</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+              </tr>
+              <tr>
+                <td><strong>Phone number required</strong></td>
+                <td style="color:var(--success);">❌ No</td>
+                <td style="color:var(--danger);">✅ Yes</td>
+                <td style="color:var(--danger);">✅ Yes</td>
+                <td style="color:var(--danger);">✅ Yes</td>
+              </tr>
+              <tr>
+                <td><strong>Open protocol</strong></td>
+                <td style="color:var(--success);">✅ Yes</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+              </tr>
+              <tr>
+                <td><strong>Control your data</strong></td>
+                <td style="color:var(--success);">✅ Yes</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--danger);">❌ No</td>
+                <td style="color:var(--warning);">⚠️ Partial</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">Is it secure?</div>
+        <div class="option-desc">
+          Yes! Matrix uses the <strong>Olm/Megolm</strong> encryption protocols (same family as Signal's Double Ratchet). All messages are end-to-end encrypted by default. Your server cannot read message contents — only metadata like who talked to whom and when.
+        </div>
+        <div class="info-note">
+          <strong>Important:</strong> Security depends on keeping your server updated and following best practices (strong passwords, firewall rules, regular backups).
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">How many users can it handle?</div>
+        <div class="option-desc">
+          Conduit is <strong>lightweight</strong> — it can handle dozens to hundreds of users on modest hardware. For reference:
+        </div>
+        <ul style="margin:1rem 0 0 1.5rem;color:var(--text-dim);line-height:2;">
+          <li>1-10 users: <strong>1GB RAM</strong>, any CPU (Raspberry Pi works!)</li>
+          <li>10-100 users: <strong>2-4GB RAM</strong>, 2+ CPU cores</li>
+          <li>100-500 users: <strong>4-8GB RAM</strong>, 4+ CPU cores</li>
+        </ul>
+        <div class="info-note" style="margin-top:1rem;">
+          This deployment uses ~50MB of RAM for Conduit itself, plus Caddy (~30MB) and Coturn (~20MB) = ~100MB total for a small server.
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">Can I change the server name later?</div>
+        <div class="option-desc" style="color:var(--danger);font-weight:600;">
+          ❌ NO! Your Matrix server name is <strong>permanent</strong>.
+        </div>
+        <div style="margin-top:1rem;color:var(--text-dim);">
+          Once you create accounts and join rooms, your server name is locked in. If you change it, all your accounts become invalid, and you lose access to all rooms. There is no migration tool — you'd have to start from scratch.
+        </div>
+        <div class="info-warning" style="margin-top:1rem;">
+          <strong>⚠️ Think carefully before choosing!</strong><br>
+          Pick a domain you'll keep long-term. If you're unsure, use Mode 2 (subdomain) — it's simpler and you can always add delegation later if you want cleaner usernames.
+        </div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">How do I backup my server?</div>
+        <pre class="code-block">docker compose down
+sudo tar czf conduit-backup-$(date +%F).tar.gz /opt/conduit
+docker compose up -d</pre>
+        <div class="info-note">This backs up your database, configuration, and media files. Store the backup somewhere safe (off-site, encrypted).</div>
+      </div>
+
+      <div class="option-card">
+        <div class="option-title">How do I update Conduit?</div>
+        <pre class="code-block">sudo ./install.sh
+<span class="comment"># Choose option 3 (Update to latest version)</span></pre>
+        <div class="info-note">The installer pulls the latest Conduit image and restarts the services. Your data is preserved.</div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ============================================
+     TAB 6: ARCHITECTURE
+     ============================================ -->
+<div id="tab-architecture" class="tab-content">
+  <section class="content-section">
+    <div class="content-container">
+      <h2 class="section-title">Architecture</h2>
+
+      <h3 class="section-subtitle">How it all works</h3>
+      <div class="ascii-art">
+┌─────────────────────────────────────────────────────────────┐
+│                      Internet                               │
+│                         ↓                                   │
+│            Ports 80, 443, 8448, 3478, 5349                  │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+          ┌──────────▼──────────┐
+          │   Caddy (Reverse    │ ← Auto HTTPS, TLS certificates
+          │      Proxy)         │ ← Routes traffic to Conduit
+          └──────────┬──────────┘
+                     │
+          ┌──────────▼──────────┐
+          │   Conduit (Matrix   │ ← Matrix homeserver (no ports exposed!)
+          │    Homeserver)      │ ← Runs isolated in Docker network
+          └─────────────────────┘
+                     │
+          ┌──────────▼──────────┐
+          │   Coturn (TURN/     │ ← Handles voice/video NAT traversal
+          │   STUN server)      │ ← Ports 3478 (UDP), 5349 (TCP/UDP)
+          └─────────────────────┘
+      </div>
+
+      <div class="info-note">
+        <strong>Security note:</strong> Conduit does <strong>not</strong> expose any ports directly. All external traffic goes through Caddy, which handles TLS termination and reverse proxying. Conduit only listens on the internal Docker network.
+      </div>
+
+      <h3 class="section-subtitle">Port Table</h3>
+      <div class="info-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Port</th>
+              <th>Protocol</th>
+              <th>Service</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>80</strong></td>
+              <td>TCP</td>
+              <td>Caddy</td>
+              <td>HTTP (redirects to HTTPS)</td>
+            </tr>
+            <tr>
+              <td><strong>443</strong></td>
+              <td>TCP</td>
+              <td>Caddy</td>
+              <td>HTTPS (Matrix client-server API)</td>
+            </tr>
+            <tr>
+              <td><strong>8448</strong></td>
+              <td>TCP</td>
+              <td>Caddy</td>
+              <td>Matrix federation (server-to-server)</td>
+            </tr>
+            <tr>
+              <td><strong>3478</strong></td>
+              <td>UDP</td>
+              <td>Coturn</td>
+              <td>STUN (voice/video NAT discovery)</td>
+            </tr>
+            <tr>
+              <td><strong>5349</strong></td>
+              <td>TCP/UDP</td>
+              <td>Coturn</td>
+              <td>TURNS (encrypted voice/video relay)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="section-subtitle">File Structure</h3>
+      <div class="option-card">
+        <div class="option-title">Default installation paths</div>
+        <pre class="code-block">/opt/conduit/
+├── docker-compose.yml     <span class="comment"># Main orchestration file</span>
+├── .env                   <span class="comment"># Configuration (domain, secrets, etc.)</span>
+├── data/                  <span class="comment"># Conduit database & media</span>
+├── caddy/                 <span class="comment"># Caddy config & certificates</span>
+└── coturn/                <span class="comment"># Coturn config</span></pre>
+      </div>
+
+      <h3 class="section-subtitle">System Requirements</h3>
+      <div class="info-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Minimum</th>
+              <th>Recommended</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>CPU</strong></td>
+              <td>1 core (ARM or x86)</td>
+              <td>2+ cores</td>
+            </tr>
+            <tr>
+              <td><strong>RAM</strong></td>
+              <td>512MB</td>
+              <td>1-2GB</td>
+            </tr>
+            <tr>
+              <td><strong>Disk</strong></td>
+              <td>2GB</td>
+              <td>10GB+ (for media storage)</td>
+            </tr>
+            <tr>
+              <td><strong>OS</strong></td>
+              <td>Linux (Docker support)</td>
+              <td>Ubuntu 22.04+ / Debian 12+</td>
+            </tr>
+            <tr>
+              <td><strong>Network</strong></td>
+              <td>Public IP + domain</td>
+              <td>Static IP preferred</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-note" style="margin-top:1.5rem;">
+        <strong>💡 Tested on:</strong> Raspberry Pi 4 (4GB), AWS t3.micro, DigitalOcean Basic Droplet, Hetzner Cloud CX11, home Ubuntu server.
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ============================================
+     FOOTER
+     ============================================ -->
+<footer class="footer">
+  <p>Built with 💜 for the Matrix community — <a href="https://github.com/balnaimi/conduit-deploy" target="_blank">GitHub</a> — Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></p>
+  <p style="margin-top:0.75rem;font-size:0.8rem;">Powered by <a href="https://conduit.rs/" target="_blank">Conduit</a> + <a href="https://caddyserver.com/" target="_blank">Caddy</a> + <a href="https://github.com/coturn/coturn" target="_blank">Coturn</a></p>
+  <p style="margin-top:0.5rem;font-size:0.7rem;color:#555;">Matrix is a trademark of The Matrix.org Foundation. This is an unofficial deployment guide.</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================
+// TAB SWITCHING
+// ============================================
+function switchTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  
+  // Show selected tab
+  document.getElementById('tab-' + tabName).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ============================================
+// COPY CODE BLOCKS
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '📋 Copy';
+    btn.onclick = function() {
+      const text = block.textContent.replace('📋 Copy', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+      });
+    };
+    block.style.position = 'relative';
+    block.appendChild(btn);
+  });
+});
+
+// ============================================
+// TOAST
+// ============================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
 </body>
 </html>

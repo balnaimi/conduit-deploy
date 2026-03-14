@@ -1141,6 +1141,68 @@ menu_create_account() {
 }
 
 # ═══════════════════════════════════════════════
+#  CHECK FOR UPDATES
+# ═══════════════════════════════════════════════
+check_for_updates() {
+    step "🔍 Checking for container updates..."
+    echo
+
+    cd "$INSTALL_DIR"
+    local has_updates=false
+    local services=()
+
+    # Get list of images from compose
+    while IFS= read -r line; do
+        local svc=$(echo "$line" | awk '{print $1}')
+        local img=$(echo "$line" | awk '{print $2}')
+        [ -z "$img" ] && continue
+
+        # Get local image digest
+        local local_digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null | sed 's/.*@//')
+
+        # Pull quietly to check for new version
+        echo -ne "  Checking ${BOLD}${svc}${NC} (${img})... "
+        local pull_output=$($SUDO docker pull "$img" 2>&1)
+
+        # Get new digest
+        local remote_digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null | sed 's/.*@//')
+
+        if [ -z "$local_digest" ]; then
+            echo -e "${CYAN}⬇️  New image${NC}"
+            has_updates=true
+            services+=("$svc")
+        elif [ "$local_digest" != "$remote_digest" ]; then
+            echo -e "${YELLOW}⬆️  Update available!${NC}"
+            has_updates=true
+            services+=("$svc")
+        else
+            echo -e "${GREEN}✅ Up to date${NC}"
+        fi
+    done < <($SUDO docker compose config --services 2>/dev/null | while read svc; do
+        img=$($SUDO docker compose config --format json 2>/dev/null | grep -A5 "\"$svc\"" | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
+        [ -z "$img" ] && img=$($SUDO docker compose images "$svc" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
+        echo "$svc $img"
+    done)
+
+    echo
+    if $has_updates; then
+        warn "Updates available for: ${services[*]}"
+        echo
+        ask "Apply updates now? (restart containers with new images) [y/N]:"
+        read -r confirm
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            info "Restarting containers with new images..."
+            $SUDO docker compose up -d 2>&1
+            success "Containers updated and restarted!"
+        else
+            info "Skipped. Run 'Update containers' when ready."
+        fi
+    else
+        success "All containers are up to date! 🎉"
+    fi
+}
+
+# ═══════════════════════════════════════════════
 #  MENU 5: SERVICE MANAGEMENT
 # ═══════════════════════════════════════════════
 menu_services() {
@@ -1159,10 +1221,11 @@ menu_services() {
     echo -e "  ${CYAN}3${NC}) Restart all services"
     echo -e "  ${CYAN}4${NC}) View logs (live)"
     echo -e "  ${CYAN}5${NC}) Update containers (pull latest)"
-    echo -e "  ${CYAN}6${NC}) Show resource usage"
+    echo -e "  ${CYAN}6${NC}) 🔍 Check for updates"
+    echo -e "  ${CYAN}7${NC}) Show resource usage"
     echo -e "  ${CYAN}0${NC}) Back to main menu"
     echo
-    ask "Choose [0-6]:"
+    ask "Choose [0-7]:"
     read -r choice
 
     cd "$INSTALL_DIR"
@@ -1196,6 +1259,10 @@ menu_services() {
             press_enter
             ;;
         6)
+            check_for_updates
+            press_enter
+            ;;
+        7)
             $SUDO docker stats --no-stream
             press_enter
             ;;

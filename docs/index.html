@@ -1548,6 +1548,40 @@ exit</pre>
       <div class="callout-icon">🧪</div>
       <div style="color:rgba(244,246,241,0.75);">Tested on: Raspberry Pi 4, AWS t3.micro, DigitalOcean Droplet, Hetzner CX11, home Ubuntu server.</div>
     </div>
+
+    <h3 class="subtitle">What the Script Installs</h3>
+    <p style="color:var(--text-dim);margin-bottom:1rem;">The script will automatically install any missing packages. Here's exactly what gets added to your system:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Package</th><th>What it does</th><th>Why it's needed</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Docker</strong></td><td>Container runtime</td><td>Runs Conduit, Caddy, and Coturn in isolated containers</td></tr>
+          <tr><td><strong>UFW</strong></td><td>Firewall</td><td>Blocks unauthorized access, opens only needed ports</td></tr>
+          <tr><td><strong>Fail2ban</strong></td><td>Brute-force protection</td><td>Automatically bans IPs that try too many failed logins</td></tr>
+          <tr><td><strong>unattended-upgrades</strong></td><td>Auto security updates</td><td>Keeps your OS patched without manual intervention</td></tr>
+          <tr><td><strong>iptables-persistent</strong></td><td>Firewall rules persistence</td><td>Saves the UDP 443→5349 redirect rule across reboots</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--text-dim);font-size:0.88rem;margin:1rem 0 0.5rem;">System utilities (installed if missing):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Package</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>curl</code></td><td>curl</td><td>Downloading files, API calls, connectivity checks</td></tr>
+          <tr><td><code>openssl</code></td><td>openssl</td><td>Generating secure tokens and secrets</td></tr>
+          <tr><td><code>dig</code></td><td>dnsutils</td><td>DNS verification before install</td></tr>
+          <tr><td><code>ss</code></td><td>iproute2</td><td>Checking if ports are available</td></tr>
+          <tr><td><code>tar</code></td><td>tar</td><td>Creating and restoring backups</td></tr>
+          <tr><td><code>free</code></td><td>procps</td><td>Checking available RAM</td></tr>
+          <tr><td><code>awk</code></td><td>gawk</td><td>Text processing (parsing outputs)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-info" style="margin-top:1rem;">
+      <div class="callout-icon">📋</div>
+      <div>Most of these are already pre-installed on Debian and Ubuntu. The script checks each one and only installs what's missing. Nothing is installed without showing you first.</div>
+    </div>
   </div>
 </section>
 

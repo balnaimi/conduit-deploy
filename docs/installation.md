@@ -8,6 +8,32 @@ Make sure you've completed:
 - [ ] Set up DNS records (see [Domain Setup](domain-setup.md))
 - [ ] Waited a few minutes for DNS to propagate
 
+## What the script installs
+
+The script automatically checks for and installs any missing dependencies:
+
+**Services:**
+| Package | Purpose |
+|---------|---------|
+| Docker | Runs Conduit, Caddy, and Coturn in containers |
+| UFW | Firewall — blocks unauthorized access |
+| Fail2ban | Bans IPs after too many failed login attempts |
+| unattended-upgrades | Automatic security patches |
+| iptables-persistent | Saves firewall rules across reboots |
+
+**Utilities (if missing):**
+| Command | Package | Used for |
+|---------|---------|----------|
+| `curl` | curl | Downloads, API calls |
+| `openssl` | openssl | Generating tokens/secrets |
+| `dig` | dnsutils | DNS verification |
+| `ss` | iproute2 | Port availability checks |
+| `tar` | tar | Backups |
+| `free` | procps | RAM checks |
+| `awk` | gawk | Text processing |
+
+> Most are already pre-installed on Debian/Ubuntu. The script only installs what's missing.
+
 ## Connecting to your server
 
 Open a terminal (or PuTTY on Windows) and connect:

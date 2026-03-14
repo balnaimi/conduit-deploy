@@ -1310,6 +1310,127 @@ menu_create_account() {
 }
 
 # ═══════════════════════════════════════════════
+#  BACKUP (with image version pinning)
+# ═══════════════════════════════════════════════
+do_backup() {
+    local reason="${1:-manual}"
+
+    if [ ! -f "$COMPOSE_FILE" ]; then
+        error "Conduit is not installed. Nothing to backup."
+        return 1
+    fi
+
+    load_config
+    cd "$INSTALL_DIR"
+
+    # Save current image versions (pinned digests)
+    step "Saving current image versions"
+    local versions_file="$INSTALL_DIR/.image-versions"
+    $SUDO bash -c "echo '# Image versions at backup time: $(date)' > '$versions_file'"
+    for svc in conduit caddy coturn; do
+        local img=$($SUDO docker compose images "$svc" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
+        local digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null || echo "")
+        if [ -n "$digest" ]; then
+            echo "${svc}=${digest}" | $SUDO tee -a "$versions_file" >/dev/null
+            success "$svc: $img → ${digest##*@sha256:}" | head -c 80
+            echo
+        else
+            warn "$svc: could not get digest for $img"
+        fi
+    done
+
+    # Create backup archive
+    BACKUP_FILE="$HOME/conduit-backup-$(date +%F-%H%M%S).tar.gz"
+    info "Creating backup at $BACKUP_FILE..."
+    $SUDO tar czf "$BACKUP_FILE" "$INSTALL_DIR" 2>/dev/null
+    
+    local backup_size=$(du -h "$BACKUP_FILE" 2>/dev/null | awk '{print $1}')
+    success "Backup saved: $BACKUP_FILE ($backup_size)"
+    echo
+    info "This backup includes:"
+    echo -e "  • Database, media, and configuration files"
+    echo -e "  • Pinned image versions (for exact rollback)"
+    echo -e "  • TLS certificates and secrets"
+
+    return 0
+}
+
+do_restore() {
+    step "Restore from Backup"
+
+    echo -e "  ${DIM}Enter the path to your backup file (.tar.gz)${NC}"
+    ask "Backup file path:"
+    read -r RESTORE_FILE
+
+    if [ ! -f "$RESTORE_FILE" ]; then
+        error "File not found: $RESTORE_FILE"
+        return 1
+    fi
+
+    echo
+    echo -e "  ${RED}${BOLD}WARNING: This will replace your current installation!${NC}"
+    echo -e "  ${YELLOW}All current data, accounts, and messages will be overwritten.${NC}"
+    echo
+    ask "Continue with restore? [y/N]:"
+    read -r confirm
+    [[ "$confirm" =~ ^[Yy]$ ]] || return
+
+    # Stop current services if running
+    if [ -f "$COMPOSE_FILE" ]; then
+        info "Stopping current services..."
+        cd "$INSTALL_DIR" && $SUDO docker compose down 2>/dev/null || true
+    fi
+
+    # Restore files
+    info "Restoring from backup..."
+    $SUDO rm -rf "$INSTALL_DIR"
+    $SUDO tar xzf "$RESTORE_FILE" -C / 2>/dev/null
+    success "Files restored"
+
+    # Check for pinned image versions
+    local versions_file="$INSTALL_DIR/.image-versions"
+    if [ -f "$versions_file" ]; then
+        step "Restoring pinned image versions"
+        echo -e "  ${DIM}Pulling the exact same images that were running at backup time.${NC}"
+        echo
+
+        while IFS='=' read -r svc digest; do
+            [[ "$svc" =~ ^#.*$ || -z "$svc" ]] && continue
+            echo -ne "  Pulling ${BOLD}${svc}${NC}... "
+            if $SUDO docker pull "$digest" >/dev/null 2>&1; then
+                # Tag it back to the compose-expected name
+                local expected_img=""
+                case "$svc" in
+                    conduit) expected_img="matrixconduit/matrix-conduit:latest" ;;
+                    caddy)   expected_img="caddy:2-alpine" ;;
+                    coturn)  expected_img="coturn/coturn:alpine" ;;
+                esac
+                if [ -n "$expected_img" ]; then
+                    $SUDO docker tag "$digest" "$expected_img" 2>/dev/null
+                fi
+                echo -e "${GREEN}[OK]${NC}"
+            else
+                echo -e "${YELLOW}[!] Could not pull pinned version, will use latest${NC}"
+            fi
+        done < "$versions_file"
+    else
+        warn "No pinned image versions found in backup. Will use latest images."
+        info "Pulling latest images..."
+        cd "$INSTALL_DIR" && $SUDO docker compose pull 2>/dev/null
+    fi
+
+    # Start services
+    info "Starting services..."
+    cd "$INSTALL_DIR" && $SUDO docker compose up -d 2>&1
+    success "Restore complete! Services are running."
+
+    echo
+    info "Run Health Check to verify everything is working."
+
+    return 0
+}
+
+# ═══════════════════════════════════════════════
 #  CHECK FOR UPDATES
 # ═══════════════════════════════════════════════
 check_for_updates() {
@@ -1360,9 +1481,17 @@ check_for_updates() {
         ask "Apply updates now? (restart containers with new images) [y/N]:"
         read -r confirm
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            ask "Create backup before updating? (recommended) [Y/n]:"
+            read -r pre_upd_bk
+            if [[ ! "$pre_upd_bk" =~ ^[Nn]$ ]]; then
+                do_backup "pre-update"
+                echo
+            fi
             info "Restarting containers with new images..."
             $SUDO docker compose up -d 2>&1
             success "Containers updated and restarted!"
+            echo
+            info "If something goes wrong, use 'Restore from backup' to rollback."
         else
             info "Skipped. Run 'Update containers' when ready."
         fi
@@ -1391,10 +1520,12 @@ menu_services() {
     echo -e "  ${CYAN}4${NC}) View logs (live)"
     echo -e "  ${CYAN}5${NC}) Update containers (pull latest)"
     echo -e "  ${CYAN}6${NC}) * Check for updates"
-    echo -e "  ${CYAN}7${NC}) Show resource usage"
+    echo -e "  ${CYAN}7${NC}) Backup (with version pinning)"
+    echo -e "  ${CYAN}8${NC}) Restore from backup"
+    echo -e "  ${CYAN}9${NC}) Show resource usage"
     echo -e "  ${CYAN}0${NC}) Back to main menu"
     echo
-    ask "Choose [0-7]:"
+    ask "Choose [0-9]:"
     read -r choice
 
     cd "$INSTALL_DIR"
@@ -1421,10 +1552,19 @@ menu_services() {
             $SUDO docker compose logs -f --tail 50
             ;;
         5)
+            echo
+            ask "Create backup before updating? (recommended) [Y/n]:"
+            read -r pre_update_backup
+            if [[ ! "$pre_update_backup" =~ ^[Nn]$ ]]; then
+                do_backup "pre-update"
+                echo
+            fi
             info "Pulling latest images..."
             $SUDO docker compose pull 2>&1
             $SUDO docker compose up -d 2>&1
             success "Containers updated"
+            echo
+            info "If something goes wrong, use 'Restore from backup' to rollback."
             press_enter
             ;;
         6)
@@ -1432,6 +1572,14 @@ menu_services() {
             press_enter
             ;;
         7)
+            do_backup "manual"
+            press_enter
+            ;;
+        8)
+            do_restore
+            press_enter
+            ;;
+        9)
             $SUDO docker stats --no-stream
             press_enter
             ;;
@@ -1478,11 +1626,7 @@ menu_uninstall() {
     ask "Create a backup before removing? [Y/n]:"
     read -r backup_confirm
     if [[ ! "$backup_confirm" =~ ^[Nn]$ ]]; then
-        BACKUP_FILE="$HOME/conduit-backup-$(date +%F-%H%M%S).tar.gz"
-        info "Creating backup at $BACKUP_FILE..."
-        cd "$INSTALL_DIR" && $SUDO docker compose down 2>/dev/null
-        $SUDO tar czf "$BACKUP_FILE" "$INSTALL_DIR" 2>/dev/null
-        success "Backup saved to: $BACKUP_FILE"
+        do_backup "pre-uninstall"
     fi
 
     # Stop and remove containers + volumes

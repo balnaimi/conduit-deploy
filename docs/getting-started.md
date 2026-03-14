@@ -85,10 +85,10 @@ Here's what happens when you run the script:
 ssh user@your-server-ip
 
 # Download the script
-curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh -o conduit-deploy.sh
 
 # Run it
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 ```
 
 The script will guide you through everything with a friendly menu!

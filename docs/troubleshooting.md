@@ -5,7 +5,7 @@
 First, run the Health Check:
 
 ```bash
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 # Choose 3 (Health Check)
 ```
 
@@ -97,13 +97,13 @@ dig SRV _matrix._tcp.yourdomain.com
 
 **Check 1: Is registration open?**
 ```bash
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 # Choose 4 → Check current status
 ```
 
 **Check 2: Check the token**
 ```bash
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 # Choose 4 → 4 (Show registration token)
 ```
 
@@ -111,7 +111,7 @@ sudo bash install.sh
 
 **Check resources:**
 ```bash
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 # Choose 5 → 6 (Resource usage)
 ```
 

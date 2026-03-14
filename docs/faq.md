@@ -106,7 +106,7 @@ sudo docker compose up -d
 
 Use the script menu:
 ```bash
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 # Choose 5 → 5 (Update containers)
 ```
 

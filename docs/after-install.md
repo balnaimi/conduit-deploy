@@ -64,7 +64,7 @@ Now that everything works, do these important steps:
 So random people can't create accounts on your server:
 
 ```bash
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 # Choose 4 → 2 (Close registration)
 ```
 

@@ -29,8 +29,8 @@ One interactive script that sets up a complete, secure Matrix server with **end-
 
 ```bash
 ssh user@your-server
-curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh -o install.sh
-sudo bash install.sh
+curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh -o conduit-deploy.sh
+sudo bash conduit-deploy.sh
 ```
 
 That's it. The interactive menu guides you through everything.

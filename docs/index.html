@@ -1032,9 +1032,9 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
       </div>
       <div class="install-card-body">
         <p style="color:var(--text-dim);margin-bottom:1rem;font-size:0.92rem;">Download the installer and run it. A friendly menu guides you through everything.</p>
-        <pre class="code-block"><span class="cmd">curl</span> <span class="flag">-o</span> install.sh https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh
-<span class="cmd">chmod</span> <span class="flag">+x</span> install.sh
-<span class="cmd">sudo</span> ./install.sh</pre>
+        <pre class="code-block"><span class="cmd">curl</span> <span class="flag">-o</span> conduit-deploy.sh https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh
+<span class="cmd">chmod</span> <span class="flag">+x</span> conduit-deploy.sh
+<span class="cmd">sudo</span> ./conduit-deploy.sh</pre>
         <div class="callout callout-info">
           <div class="callout-icon">💡</div>
           <div>The script asks your domain, email, and preferred setup mode — then does everything automatically.</div>
@@ -1047,7 +1047,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
         <div class="terminal-dot red"></div>
         <div class="terminal-dot yellow"></div>
         <div class="terminal-dot green"></div>
-        <div class="terminal-title">install.sh — bash</div>
+        <div class="terminal-title">conduit-deploy.sh — bash</div>
       </div>
       <div class="terminal-body"><span class="t-blue">╔═══════════════════════════════════════════════════════════════╗</span>
 <span class="t-blue">║</span>                                                               <span class="t-blue">║</span>
@@ -1246,7 +1246,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
         <p>Registration is <strong>disabled by default</strong> for security. Two ways to add users:</p>
         <div style="margin-top:1rem;">
           <strong style="color:var(--blue);font-size:0.88rem;">Option A: Enable registration temporarily</strong>
-          <pre class="code-block"><span class="cmd">sudo</span> ./install.sh
+          <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
 <span class="comment"># Choose option 2 (Change configuration)</span>
 <span class="comment"># Set "allow_registration = true"</span>
 <span class="comment"># Disable again after creating accounts!</span></pre>
@@ -1406,7 +1406,7 @@ exit</pre>
       <p class="desc">Updates are <strong>not automatic</strong> — you decide when to update. The installer can check Docker Hub for newer images and tell you exactly which containers have updates available.</p>
       <div style="margin-top:1rem;">
         <strong style="color:var(--blue);font-size:0.88rem;">Check for updates</strong>
-        <pre class="code-block"><span class="cmd">sudo</span> ./install.sh
+        <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
 <span class="comment"># Choose: Services → Check for updates</span></pre>
         <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">This compares your local images with Docker Hub and shows you:</p>
         <pre class="code-block" style="font-size:0.82rem;line-height:1.5;"><span class="comment">  Checking</span> <span class="cmd">caddy</span> (caddy:2-alpine)...       <span style="color:#16a34a;">✅ Up to date</span>
@@ -1415,7 +1415,7 @@ exit</pre>
       </div>
       <div style="margin-top:1.5rem;">
         <strong style="color:var(--blue);font-size:0.88rem;">Apply updates</strong>
-        <pre class="code-block"><span class="cmd">sudo</span> ./install.sh
+        <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
 <span class="comment"># Choose: Services → Update containers (pull latest)</span></pre>
         <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">Or manually:</p>
         <pre class="code-block"><span class="cmd">cd</span> /opt/conduit

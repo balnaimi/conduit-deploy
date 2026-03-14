@@ -6,7 +6,7 @@
 # ╚═══════════════════════════════════════════════════╝
 #
 # Requirements: Fresh Debian 13 VPS with root or sudo access
-# Usage: sudo bash install.sh  (or as root: bash install.sh)
+# Usage: sudo bash conduit-deploy.sh  (or as root: bash conduit-deploy.sh)
 #
 
 set -euo pipefail
@@ -303,7 +303,7 @@ menu_install() {
     step "Pre-flight Checks"
 
     if [ "$EUID" -ne 0 ] && ! sudo -n true 2>/dev/null; then
-        error "Root or sudo access required: ${BOLD}sudo bash install.sh${NC}"
+        error "Root or sudo access required: ${BOLD}sudo bash conduit-deploy.sh${NC}"
         press_enter
         return
     fi
@@ -1308,7 +1308,7 @@ if [ "$EUID" -ne 0 ]; then
         exit 1
     fi
     if ! sudo -n true 2>/dev/null && ! sudo true; then
-        echo -e "${RED}❌${NC} sudo access required. Run: ${BOLD}sudo bash install.sh${NC}"
+        echo -e "${RED}❌${NC} sudo access required. Run: ${BOLD}sudo bash conduit-deploy.sh${NC}"
         exit 1
     fi
     info "Running with sudo privileges"

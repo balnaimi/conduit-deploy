@@ -22,10 +22,10 @@ ssh user@your-server-ip
 
 ```bash
 # Download
-curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh -o conduit-deploy.sh
 
 # Run (as root or with sudo)
-sudo bash install.sh
+sudo bash conduit-deploy.sh
 ```
 
 You'll see the main menu:

@@ -124,34 +124,61 @@ Internet
 Voice/video calls use UDP-first with TCP fallback:
 
 ```
-turn:matrix.YOUR_DOMAIN?transport=udp   ← Primary (fastest)
-turn:matrix.YOUR_DOMAIN?transport=tcp   ← Fallback
-stun:matrix.YOUR_DOMAIN                 ← Peer-to-peer
+turn:YOUR_MATRIX_HOST?transport=udp   ← Primary (fastest)
+turn:YOUR_MATRIX_HOST?transport=tcp   ← Fallback
+stun:YOUR_MATRIX_HOST                 ← Peer-to-peer
 ```
+
+Where `YOUR_MATRIX_HOST` is `matrix.example.com` (delegation mode) or `chat.example.com` (subdomain mode).
 
 > **Why no `turns:` (TLS)?** Element clients prefer TURNS over plain TURN when available, forcing all traffic through TCP even when UDP works fine. This causes unnecessary latency.
 
 ## Domain Setup — How It Works
 
-Matrix uses **two different things**:
+The script supports **two domain modes**. Choose based on how you want your usernames to look:
 
-| Concept | Example | Purpose |
-|---------|---------|---------|
-| **Server Name** (identity) | `example.com` | Shows in usernames: `@user:example.com` |
-| **Server URL** (actual server) | `matrix.example.com` | Where the server actually runs |
+### Mode 1: Clean Username (Delegation)
 
-The script sets up your Matrix server on `matrix.YOUR_DOMAIN` (subdomain), while your usernames use the clean root domain (`@user:YOUR_DOMAIN`).
+Your usernames use the **root domain** while the server runs on a subdomain:
 
-### `.well-known` Delegation
+```
+Username:   @user:example.com          ← clean!
+Server:     https://matrix.example.com  ← where it actually runs
+```
 
-For this to work, your **root domain** needs to serve a small JSON file that tells Matrix clients where to find the actual server. The script handles this differently depending on your setup:
+This requires `.well-known` delegation — a small JSON file on your root domain that tells Matrix clients where to find the server. The script handles this automatically:
 
-| Scenario | What the script does |
-|----------|---------------------|
-| Root domain has **no existing website** | Caddy serves both Matrix + `.well-known` automatically ✅ |
-| Root domain has **an existing website** | Script gives you the exact config to add to your existing web server (Nginx, Apache, Traefik, etc.) |
+| Your situation | What the script does |
+|----------------|---------------------|
+| Root domain has **no existing website** | Caddy serves Matrix + `.well-known` — fully automatic ✅ |
+| Root domain has **an existing website** | Shows exact config to add to your web server (Nginx, Apache, Traefik) |
 
-> **Note:** You do NOT need Cloudflare Workers or any special service for this — any web server can serve the `.well-known` file.
+**DNS required:** `A` record for `matrix` + `A` record for `@` (if no existing site)
+
+### Mode 2: Subdomain Only (Simple)
+
+Your usernames use the **subdomain** directly — no delegation needed:
+
+```
+Username:   @user:chat.example.com     ← slightly longer
+Server:     https://chat.example.com    ← same address
+```
+
+No `.well-known` needed. Just one DNS record and you're done.
+
+**DNS required:** `A` record for `chat` (or whatever subdomain you pick)
+
+### Which should I choose?
+
+| | Mode 1 (Delegation) | Mode 2 (Subdomain) |
+|---|---|---|
+| **Username** | `@user:example.com` | `@user:chat.example.com` |
+| **Setup** | Slightly more involved | Simplest possible |
+| **DNS records** | 2-3 records | 1 record |
+| **Root domain** | Must serve `.well-known` | Not involved at all |
+| **Best for** | Professional / permanent setup | Quick setup / testing |
+
+> **⚠️ Important:** Your server name (the part after `:` in usernames) is **permanent**. You cannot change it later without creating a new server. Choose carefully!
 
 ## Compatible Clients
 

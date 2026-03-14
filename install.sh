@@ -63,6 +63,7 @@ load_config() {
     if [ -f "$ENV_FILE" ]; then
         source "$ENV_FILE" 2>/dev/null || true
         DOMAIN="${SERVER_NAME:-}"
+        MATRIX_HOST="${MATRIX_HOST:-matrix.${DOMAIN}}"
         VPS_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || echo "")
     fi
 }
@@ -102,15 +103,51 @@ menu_prepare() {
     show_header
     step "📋 Pre-Installation Checklist"
 
-    # Ask domain
     echo -e "  ${DIM}This will tell you exactly what to set up before installing.${NC}"
     echo
+
+    # ─── Domain Mode ───
+    echo -e "  ${BOLD}🌐 How do you want your usernames to look?${NC}"
+    echo
+    echo -e "  ${CYAN}1${NC}) ${BOLD}Clean username (Delegation)${NC}"
+    echo -e "     Username: ${GREEN}@user:example.com${NC}"
+    echo -e "     Server:   ${GREEN}matrix.example.com${NC}"
+    echo -e "     ${DIM}Requires .well-known delegation on root domain${NC}"
+    echo
+    echo -e "  ${CYAN}2${NC}) ${BOLD}Subdomain only (Simple)${NC}"
+    echo -e "     Username: ${GREEN}@user:chat.example.com${NC}"
+    echo -e "     Server:   ${GREEN}chat.example.com${NC}"
+    echo -e "     ${DIM}No delegation needed — just one DNS record${NC}"
+    echo
+    echo -e "  ${DIM}┌──────────────────┬───────────────────────┬───────────────────────┐${NC}"
+    echo -e "  ${DIM}│                  │ Mode 1 (Delegation)   │ Mode 2 (Subdomain)    │${NC}"
+    echo -e "  ${DIM}├──────────────────┼───────────────────────┼───────────────────────┤${NC}"
+    echo -e "  ${DIM}│ Username         │ @user:example.com     │ @user:chat.example.com│${NC}"
+    echo -e "  ${DIM}│ DNS records      │ 2-3 records           │ 1 record              │${NC}"
+    echo -e "  ${DIM}│ Root domain      │ Must serve .well-known│ Not involved           │${NC}"
+    echo -e "  ${DIM}│ Best for         │ Professional/permanent│ Quick setup/testing    │${NC}"
+    echo -e "  ${DIM}└──────────────────┴───────────────────────┴───────────────────────┘${NC}"
+    echo
+    echo -e "  ${YELLOW}⚠️  Your server name is PERMANENT — you cannot change it later!${NC}"
+    echo
+    ask "Choose [1/2]:"
+    read -r PREP_MODE
+    PREP_MODE=${PREP_MODE:-1}
+    echo
+
     ask "Your domain name (e.g. example.com):"
     read -r PREP_DOMAIN
     if [ -z "$PREP_DOMAIN" ]; then
         error "Domain is required"
         press_enter
         return
+    fi
+
+    if [[ "$PREP_MODE" == "2" ]]; then
+        ask "Subdomain for the server (e.g. chat, matrix, msg):"
+        read -r PREP_SUB
+        PREP_SUB=${PREP_SUB:-chat}
+        PREP_FULL="${PREP_SUB}.${PREP_DOMAIN}"
     fi
 
     # Detect IP
@@ -135,70 +172,109 @@ menu_prepare() {
     # ─── DNS Records ───
     echo -e "  ${BOLD}🌐 DNS Records (add these in your DNS provider):${NC}"
     echo
-    echo -e "     ${CYAN}1.${NC} ${BOLD}A Record${NC} — Points to your server"
-    echo -e "        Name:  ${GREEN}matrix${NC}"
-    echo -e "        Value: ${GREEN}${PREP_IP}${NC}"
-    echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
-    echo
 
-    echo -e "     ${CYAN}2.${NC} ${BOLD}SRV Record${NC} — Federation discovery"
-    echo -e "        Name:     ${GREEN}_matrix._tcp${NC}"
-    echo -e "        Target:   ${GREEN}matrix.${PREP_DOMAIN}${NC}"
-    echo -e "        Port:     ${GREEN}443${NC}"
-    echo -e "        Priority: 0  Weight: 1"
-    echo
-
-    if [ -n "$PREP_IPV6" ]; then
-        echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (detected on this server)"
-        echo -e "        Name:  ${GREEN}matrix${NC}"
-        echo -e "        Value: ${GREEN}${PREP_IPV6}${NC}"
+    if [[ "$PREP_MODE" == "2" ]]; then
+        # ── Subdomain mode ──
+        echo -e "     ${CYAN}1.${NC} ${BOLD}A Record${NC} — Points to your server"
+        echo -e "        Name:  ${GREEN}${PREP_SUB}${NC}"
+        echo -e "        Value: ${GREEN}${PREP_IP}${NC}"
         echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
         echo
-    else
-        echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (optional)"
-        echo -e "        ${DIM}Enable IPv6 on your VPS first, then add this record${NC}"
-        echo
-    fi
 
-    # ─── .well-known delegation ───
-    echo -e "  ${BOLD}🔗 .well-known Delegation${NC} (required for clean usernames):"
-    echo
-    echo -e "     Your usernames will be ${GREEN}@user:${PREP_DOMAIN}${NC} but the server"
-    echo -e "     runs at ${GREEN}matrix.${PREP_DOMAIN}${NC}. To link them, your root domain"
-    echo -e "     needs to serve a small JSON response."
-    echo
-    echo -e "     ${CYAN}Option A:${NC} ${BOLD}Root domain has NO existing website${NC}"
-    echo -e "        → The installer handles everything automatically!"
-    echo -e "        → Just point ${GREEN}${PREP_DOMAIN}${NC} (A record) to your server IP: ${GREEN}${PREP_IP}${NC}"
-    echo
-    echo -e "     ${CYAN}Option B:${NC} ${BOLD}Root domain has an existing website${NC}"
-    echo -e "        → Add this to your existing web server:"
-    echo
-    echo -e "        ${BOLD}Nginx:${NC}"
-    echo -e "        ${DIM}location /.well-known/matrix/server {"
-    echo -e "            return 200 '{\"m.server\": \"matrix.${PREP_DOMAIN}:443\"}';"
-    echo -e "            add_header Content-Type application/json;"
-    echo -e "        }"
-    echo -e "        location /.well-known/matrix/client {"
-    echo -e "            return 200 '{\"m.homeserver\": {\"base_url\": \"https://matrix.${PREP_DOMAIN}\"}}';"
-    echo -e "            add_header Content-Type application/json;"
-    echo -e "            add_header Access-Control-Allow-Origin *;"
-    echo -e "        }${NC}"
-    echo
-    echo -e "        ${BOLD}Apache:${NC}"
-    echo -e "        ${DIM}# Create /.well-known/matrix/server with:"
-    echo -e "        {\"m.server\": \"matrix.${PREP_DOMAIN}:443\"}"
-    echo -e "        # Create /.well-known/matrix/client with:"
-    echo -e "        {\"m.homeserver\": {\"base_url\": \"https://matrix.${PREP_DOMAIN}\"}}${NC}"
-    echo
-    echo -e "        ${BOLD}Traefik:${NC}"
-    echo -e "        ${DIM}# Use a middleware or small container to serve the JSON${NC}"
+        echo -e "     ${CYAN}2.${NC} ${BOLD}SRV Record${NC} — Federation discovery"
+        echo -e "        Name:     ${GREEN}_matrix._tcp.${PREP_SUB}${NC}"
+        echo -e "        Target:   ${GREEN}${PREP_FULL}${NC}"
+        echo -e "        Port:     ${GREEN}443${NC}"
+        echo -e "        Priority: 0  Weight: 1"
+        echo
+
+        if [ -n "$PREP_IPV6" ]; then
+            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (detected on this server)"
+            echo -e "        Name:  ${GREEN}${PREP_SUB}${NC}"
+            echo -e "        Value: ${GREEN}${PREP_IPV6}${NC}"
+            echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
+            echo
+        fi
+
+        echo -e "  ${DIM}That's it! No .well-known needed for subdomain mode.${NC}"
+
+    else
+        # ── Delegation mode ──
+        echo -e "     ${CYAN}1.${NC} ${BOLD}A Record${NC} — Points to your server"
+        echo -e "        Name:  ${GREEN}matrix${NC}"
+        echo -e "        Value: ${GREEN}${PREP_IP}${NC}"
+        echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
+        echo
+
+        echo -e "     ${CYAN}2.${NC} ${BOLD}SRV Record${NC} — Federation discovery"
+        echo -e "        Name:     ${GREEN}_matrix._tcp${NC}"
+        echo -e "        Target:   ${GREEN}matrix.${PREP_DOMAIN}${NC}"
+        echo -e "        Port:     ${GREEN}443${NC}"
+        echo -e "        Priority: 0  Weight: 1"
+        echo
+
+        if [ -n "$PREP_IPV6" ]; then
+            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (detected on this server)"
+            echo -e "        Name:  ${GREEN}matrix${NC}"
+            echo -e "        Value: ${GREEN}${PREP_IPV6}${NC}"
+            echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
+            echo
+        else
+            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (optional)"
+            echo -e "        ${DIM}Enable IPv6 on your VPS first, then add this record${NC}"
+            echo
+        fi
+
+        # ─── .well-known delegation ───
+        echo -e "  ${BOLD}🔗 .well-known Delegation:${NC}"
+        echo
+        echo -e "     Your usernames will be ${GREEN}@user:${PREP_DOMAIN}${NC} but the server"
+        echo -e "     runs at ${GREEN}matrix.${PREP_DOMAIN}${NC}. To link them:"
+        echo
+        echo -e "     ${CYAN}Option A:${NC} ${BOLD}Root domain has NO existing website${NC}"
+        echo -e "        → The installer handles everything automatically!"
+        echo -e "        → Just point ${GREEN}${PREP_DOMAIN}${NC} (A record) to your server IP: ${GREEN}${PREP_IP}${NC}"
+        echo
+        echo -e "     ${CYAN}Option B:${NC} ${BOLD}Root domain has an existing website${NC}"
+        echo -e "        → Add this to your existing web server:"
+        echo
+        echo -e "        ${BOLD}Nginx:${NC}"
+        echo -e "        ${DIM}location /.well-known/matrix/server {"
+        echo -e "            return 200 '{\"m.server\": \"matrix.${PREP_DOMAIN}:443\"}';"
+        echo -e "            add_header Content-Type application/json;"
+        echo -e "        }"
+        echo -e "        location /.well-known/matrix/client {"
+        echo -e "            return 200 '{\"m.homeserver\": {\"base_url\": \"https://matrix.${PREP_DOMAIN}\"}}';"
+        echo -e "            add_header Content-Type application/json;"
+        echo -e "            add_header Access-Control-Allow-Origin *;"
+        echo -e "        }${NC}"
+        echo
+        echo -e "        ${BOLD}Apache:${NC}"
+        echo -e "        ${DIM}# Create /.well-known/matrix/server with:"
+        echo -e "        {\"m.server\": \"matrix.${PREP_DOMAIN}:443\"}"
+        echo -e "        # Create /.well-known/matrix/client with:"
+        echo -e "        {\"m.homeserver\": {\"base_url\": \"https://matrix.${PREP_DOMAIN}\"}}${NC}"
+        echo
+        echo -e "        ${BOLD}Traefik:${NC}"
+        echo -e "        ${DIM}# Use a middleware or small container to serve the JSON${NC}"
+    fi
 
     echo
     separator
     echo
+    echo -e "  ${BOLD}Your server identity:${NC}"
+    if [[ "$PREP_MODE" == "2" ]]; then
+        echo -e "     Server name: ${GREEN}${PREP_FULL}${NC}"
+        echo -e "     Usernames:   ${GREEN}@user:${PREP_FULL}${NC}"
+        echo -e "     Server URL:  ${GREEN}https://${PREP_FULL}${NC}"
+    else
+        echo -e "     Server name: ${GREEN}${PREP_DOMAIN}${NC}"
+        echo -e "     Usernames:   ${GREEN}@user:${PREP_DOMAIN}${NC}"
+        echo -e "     Server URL:  ${GREEN}https://matrix.${PREP_DOMAIN}${NC}"
+    fi
+    echo
     echo -e "  ${BOLD}📱 Apps to download:${NC}"
-    echo -e "     • ${GREEN}Element${NC} — iOS / Android / Web (most popular)"
+    echo -e "     • ${GREEN}Element${NC} — iOS / Android / Web / Desktop (most popular)"
     echo -e "     • ${GREEN}SchildiChat${NC} — iOS / Android (nicer UI)"
     echo -e "     • ${GREEN}FluffyChat${NC} — iOS / Android (lightweight)"
 
@@ -252,10 +328,36 @@ menu_install() {
     # ─── Gather info ───
     step "Configuration"
 
+    # ─── Domain Mode ───
+    echo -e "  ${BOLD}🌐 How do you want your usernames to look?${NC}"
+    echo
+    echo -e "  ${CYAN}1${NC}) ${BOLD}Clean username${NC} — @user:${BOLD}example.com${NC} (server at matrix.example.com)"
+    echo -e "  ${CYAN}2${NC}) ${BOLD}Subdomain only${NC} — @user:${BOLD}chat.example.com${NC} (simpler, no delegation)"
+    echo
+    echo -e "  ${YELLOW}⚠️  This is permanent — you cannot change it later!${NC}"
+    echo
+    ask "Choose [1/2]:"
+    read -r DOMAIN_MODE
+    DOMAIN_MODE=${DOMAIN_MODE:-1}
+
+    echo
     echo -e "  ${DIM}Example: majlis7.net, example.com${NC}"
     ask "Your domain name:"
     read -r DOMAIN
     [ -z "$DOMAIN" ] && { error "Domain is required"; press_enter; return; }
+
+    # Set MATRIX_HOST and SERVER_NAME based on mode
+    if [[ "$DOMAIN_MODE" == "2" ]]; then
+        ask "Subdomain for the server (e.g. chat, matrix, msg):"
+        read -r SUBDOMAIN
+        SUBDOMAIN=${SUBDOMAIN:-chat}
+        MATRIX_HOST="${SUBDOMAIN}.${DOMAIN}"
+        SERVER_NAME="$MATRIX_HOST"    # username = @user:chat.example.com
+        WELLKNOWN_MODE="NONE"
+    else
+        MATRIX_HOST="matrix.${DOMAIN}"
+        SERVER_NAME="$DOMAIN"          # username = @user:example.com
+    fi
 
     DETECTED_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || echo "")
     if [ -n "$DETECTED_IP" ]; then
@@ -268,44 +370,46 @@ menu_install() {
     fi
     [ -z "$VPS_IP" ] && { error "VPS IP is required"; press_enter; return; }
 
-    # Well-known delegation
-    echo
-    echo -e "  ${BOLD}📌 .well-known Delegation${NC}"
-    echo -e "  ${DIM}Your usernames will be @user:${DOMAIN} but the server runs at matrix.${DOMAIN}${NC}"
-    echo -e "  ${DIM}The root domain needs to tell clients where to find the server.${NC}"
-    echo
-    echo -e "  ${CYAN}A${NC}) Root domain (${DOMAIN}) has ${BOLD}NO existing website${NC} — Caddy handles it"
-    echo -e "  ${CYAN}B${NC}) Root domain (${DOMAIN}) has ${BOLD}an existing website${NC} — I'll give you instructions"
-    echo
-    ask "Choose [A/B]:"
-    read -r WELLKNOWN_MODE
-    WELLKNOWN_MODE=${WELLKNOWN_MODE:-A}
-    WELLKNOWN_MODE=$(echo "$WELLKNOWN_MODE" | tr '[:lower:]' '[:upper:]')
+    # Well-known delegation (only for Mode 1)
+    if [[ "$DOMAIN_MODE" != "2" ]]; then
+        echo
+        echo -e "  ${BOLD}📌 .well-known Delegation${NC}"
+        echo -e "  ${DIM}Your usernames will be @user:${DOMAIN} but the server runs at ${MATRIX_HOST}${NC}"
+        echo -e "  ${DIM}The root domain needs to tell clients where to find the server.${NC}"
+        echo
+        echo -e "  ${CYAN}A${NC}) Root domain (${DOMAIN}) has ${BOLD}NO existing website${NC} — Caddy handles it"
+        echo -e "  ${CYAN}B${NC}) Root domain (${DOMAIN}) has ${BOLD}an existing website${NC} — I'll give you instructions"
+        echo
+        ask "Choose [A/B]:"
+        read -r WELLKNOWN_MODE
+        WELLKNOWN_MODE=${WELLKNOWN_MODE:-A}
+        WELLKNOWN_MODE=$(echo "$WELLKNOWN_MODE" | tr '[:lower:]' '[:upper:]')
 
-    if [[ "$WELLKNOWN_MODE" == "B" ]]; then
-        echo
-        echo -e "  ${BOLD}${YELLOW}Add this to your existing web server for ${DOMAIN}:${NC}"
-        echo
-        echo -e "  ${BOLD}Nginx:${NC}"
-        echo -e "  ${DIM}location /.well-known/matrix/server {"
-        echo -e "      return 200 '{\"m.server\": \"matrix.${DOMAIN}:443\"}';"
-        echo -e "      add_header Content-Type application/json;"
-        echo -e "  }"
-        echo -e "  location /.well-known/matrix/client {"
-        echo -e "      return 200 '{\"m.homeserver\": {\"base_url\": \"https://matrix.${DOMAIN}\"}}';"
-        echo -e "      add_header Content-Type application/json;"
-        echo -e "      add_header Access-Control-Allow-Origin *;"
-        echo -e "  }${NC}"
-        echo
-        echo -e "  ${BOLD}Apache:${NC}"
-        echo -e "  ${DIM}Create files at: /.well-known/matrix/server and /.well-known/matrix/client${NC}"
-        echo
-        echo -e "  ${BOLD}Traefik:${NC}"
-        echo -e "  ${DIM}Use a middleware or small container to serve the JSON responses${NC}"
-        echo
-        warn "Add the config above to your web server, then press Enter to continue."
-        ask "Press Enter when ready (or Ctrl+C to cancel)..."
-        read -r
+        if [[ "$WELLKNOWN_MODE" == "B" ]]; then
+            echo
+            echo -e "  ${BOLD}${YELLOW}Add this to your existing web server for ${DOMAIN}:${NC}"
+            echo
+            echo -e "  ${BOLD}Nginx:${NC}"
+            echo -e "  ${DIM}location /.well-known/matrix/server {"
+            echo -e "      return 200 '{\"m.server\": \"${MATRIX_HOST}:443\"}';"
+            echo -e "      add_header Content-Type application/json;"
+            echo -e "  }"
+            echo -e "  location /.well-known/matrix/client {"
+            echo -e "      return 200 '{\"m.homeserver\": {\"base_url\": \"https://${MATRIX_HOST}\"}}';"
+            echo -e "      add_header Content-Type application/json;"
+            echo -e "      add_header Access-Control-Allow-Origin *;"
+            echo -e "  }${NC}"
+            echo
+            echo -e "  ${BOLD}Apache:${NC}"
+            echo -e "  ${DIM}Create files at: /.well-known/matrix/server and /.well-known/matrix/client${NC}"
+            echo
+            echo -e "  ${BOLD}Traefik:${NC}"
+            echo -e "  ${DIM}Use a middleware or small container to serve the JSON responses${NC}"
+            echo
+            warn "Add the config above to your web server, then press Enter to continue."
+            ask "Press Enter when ready (or Ctrl+C to cancel)..."
+            read -r
+        fi
     fi
 
     echo
@@ -321,14 +425,17 @@ menu_install() {
     separator
     echo
     echo -e "  ${BOLD}Summary:${NC}"
-    echo -e "  Domain:      ${GREEN}${DOMAIN}${NC}"
-    echo -e "  Matrix URL:  ${GREEN}https://matrix.${DOMAIN}${NC}"
+    echo -e "  Server name: ${GREEN}${SERVER_NAME}${NC}"
+    echo -e "  Usernames:   ${GREEN}@user:${SERVER_NAME}${NC}"
+    echo -e "  Matrix URL:  ${GREEN}https://${MATRIX_HOST}${NC}"
     echo -e "  VPS IP:      ${GREEN}${VPS_IP}${NC}"
     echo -e "  Max upload:  ${GREEN}${MAX_UPLOAD_MB}MB${NC}"
     if [[ "$WELLKNOWN_MODE" == "A" ]]; then
         echo -e "  .well-known: ${GREEN}Caddy (automatic)${NC}"
-    else
+    elif [[ "$WELLKNOWN_MODE" == "B" ]]; then
         echo -e "  .well-known: ${YELLOW}External (your web server)${NC}"
+    else
+        echo -e "  .well-known: ${GREEN}Not needed (subdomain mode)${NC}"
     fi
     echo
     ask "Start installation? [Y/n]"
@@ -403,7 +510,8 @@ menu_install() {
 
     # .env
     $SUDO tee .env > /dev/null << EOF
-SERVER_NAME=${DOMAIN}
+SERVER_NAME=${SERVER_NAME}
+MATRIX_HOST=${MATRIX_HOST}
 TURN_SECRET=${TURN_SECRET}
 REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
 PUBLIC_IP=${VPS_IP}
@@ -457,10 +565,10 @@ services:
       CONDUIT_ALLOW_ROOM_CREATION: "true"
       CONDUIT_TRUSTED_SERVERS: '["matrix.org"]'
       # UDP first (fastest), TCP fallback — do NOT add turns: (Element prefers TLS over UDP)
-      CONDUIT_TURN_URIS: '["turn:matrix.${SERVER_NAME}?transport=udp","turn:matrix.${SERVER_NAME}?transport=tcp","stun:matrix.${SERVER_NAME}"]'
+      CONDUIT_TURN_URIS: '["turn:${MATRIX_HOST}?transport=udp","turn:${MATRIX_HOST}?transport=tcp","stun:${MATRIX_HOST}"]'
       CONDUIT_TURN_SECRET: ${TURN_SECRET}
-      CONDUIT_WELL_KNOWN_CLIENT: "https://matrix.${SERVER_NAME}"
-      CONDUIT_WELL_KNOWN_SERVER: "matrix.${SERVER_NAME}:443"
+      CONDUIT_WELL_KNOWN_CLIENT: "https://${MATRIX_HOST}"
+      CONDUIT_WELL_KNOWN_SERVER: "${MATRIX_HOST}:443"
     volumes:
       - conduit-data:/var/lib/matrix-conduit
       - ./conduit.toml:/etc/conduit.toml:ro
@@ -495,13 +603,13 @@ YAML
 
     # Caddyfile
     if [[ "$WELLKNOWN_MODE" == "A" ]]; then
-        # Mode A: Caddy serves both Matrix + .well-known on root domain
+        # Delegation + Caddy serves .well-known on root domain
         $SUDO tee Caddyfile > /dev/null << EOF
-matrix.${DOMAIN}:443 {
+${MATRIX_HOST}:443 {
     reverse_proxy conduit:6167
 }
 
-matrix.${DOMAIN}:8448 {
+${MATRIX_HOST}:8448 {
     reverse_proxy conduit:6167
 }
 
@@ -509,20 +617,31 @@ ${DOMAIN}:443 {
     header /.well-known/matrix/* Content-Type application/json
     header /.well-known/matrix/client Access-Control-Allow-Origin *
 
-    respond /.well-known/matrix/server \`{"m.server": "matrix.${DOMAIN}:443"}\` 200
-    respond /.well-known/matrix/client \`{"m.homeserver": {"base_url": "https://matrix.${DOMAIN}"}}\` 200
+    respond /.well-known/matrix/server \`{"m.server": "${MATRIX_HOST}:443"}\` 200
+    respond /.well-known/matrix/client \`{"m.homeserver": {"base_url": "https://${MATRIX_HOST}"}}\` 200
 
     respond "Not Found" 404
 }
 EOF
-    else
-        # Mode B: Only Matrix subdomain, .well-known handled externally
+    elif [[ "$WELLKNOWN_MODE" == "B" ]]; then
+        # Delegation + .well-known handled externally
         $SUDO tee Caddyfile > /dev/null << EOF
-matrix.${DOMAIN}:443 {
+${MATRIX_HOST}:443 {
     reverse_proxy conduit:6167
 }
 
-matrix.${DOMAIN}:8448 {
+${MATRIX_HOST}:8448 {
+    reverse_proxy conduit:6167
+}
+EOF
+    else
+        # Subdomain-only mode — no delegation needed
+        $SUDO tee Caddyfile > /dev/null << EOF
+${MATRIX_HOST}:443 {
+    reverse_proxy conduit:6167
+}
+
+${MATRIX_HOST}:8448 {
     reverse_proxy conduit:6167
 }
 EOF
@@ -552,7 +671,7 @@ external-ip=${VPS_IP}
 # Authentication (shared secret with Conduit)
 use-auth-secret
 static-auth-secret=${TURN_SECRET}
-realm=matrix.${DOMAIN}
+realm=${MATRIX_HOST}
 
 fingerprint
 
@@ -600,7 +719,7 @@ EOF
     info "Waiting for Let's Encrypt certificate (up to 60s)..."
     for i in $(seq 1 12); do
         sleep 5
-        if curl -s -o /dev/null -w "%{http_code}" "https://matrix.${DOMAIN}/_matrix/client/versions" 2>/dev/null | grep -q "200"; then
+        if curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null | grep -q "200"; then
             success "HTTPS is working!"
             break
         fi
@@ -609,10 +728,10 @@ EOF
     echo
 
     # Copy TLS certs for Coturn
-    CERT_DIR="/var/lib/docker/volumes/conduit_caddy-data/_data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/matrix.${DOMAIN}"
+    CERT_DIR="/var/lib/docker/volumes/conduit_caddy-data/_data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MATRIX_HOST}"
     if [ -d "$CERT_DIR" ]; then
-        $SUDO cp "$CERT_DIR/matrix.${DOMAIN}.crt" "$INSTALL_DIR/certs/turn.crt"
-        $SUDO cp "$CERT_DIR/matrix.${DOMAIN}.key" "$INSTALL_DIR/certs/turn.key"
+        $SUDO cp "$CERT_DIR/${MATRIX_HOST}.crt" "$INSTALL_DIR/certs/turn.crt"
+        $SUDO cp "$CERT_DIR/${MATRIX_HOST}.key" "$INSTALL_DIR/certs/turn.key"
         $SUDO chmod 644 "$INSTALL_DIR/certs/turn."*
         $SUDO docker compose restart coturn >/dev/null 2>&1
         success "TLS certificates synced to Coturn"
@@ -628,7 +747,7 @@ EOF
 Description=Watch Caddy TLS certs for changes
 
 [Path]
-PathChanged=${CERT_DIR}/matrix.${DOMAIN}.crt
+PathChanged=${CERT_DIR}/${MATRIX_HOST}.crt
 
 [Install]
 WantedBy=multi-user.target
@@ -640,7 +759,7 @@ Description=Sync TLS certs from Caddy to Coturn
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'cp "${CERT_DIR}/matrix.${DOMAIN}.crt" "${INSTALL_DIR}/certs/turn.crt"; cp "${CERT_DIR}/matrix.${DOMAIN}.key" "${INSTALL_DIR}/certs/turn.key"; chmod 644 ${INSTALL_DIR}/certs/turn.*; docker restart coturn'
+ExecStart=/bin/bash -c 'cp "${CERT_DIR}/${MATRIX_HOST}.crt" "${INSTALL_DIR}/certs/turn.crt"; cp "${CERT_DIR}/${MATRIX_HOST}.key" "${INSTALL_DIR}/certs/turn.key"; chmod 644 ${INSTALL_DIR}/certs/turn.*; docker restart coturn'
 EOF
     $SUDO systemctl daemon-reload
     $SUDO systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
@@ -662,7 +781,7 @@ EOF
 ═══════════════════════════════════════════
 
 Domain:             ${DOMAIN}
-Matrix URL:         https://matrix.${DOMAIN}
+Matrix URL:         https://${MATRIX_HOST}
 VPS IP:             ${VPS_IP}
 
 Registration Token: ${REGISTRATION_TOKEN}
@@ -678,7 +797,7 @@ EOF
     # ─── Done ───
     step "Installation Complete! 🎉"
     echo -e "  ${GREEN}Your Matrix server is running at:${NC}"
-    echo -e "  ${BOLD}https://matrix.${DOMAIN}${NC}"
+    echo -e "  ${BOLD}https://${MATRIX_HOST}${NC}"
     echo
     echo -e "  ${BOLD}Registration Token:${NC}"
     echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
@@ -723,16 +842,16 @@ menu_healthcheck() {
     # ─── HTTPS ───
     echo -e "  ${BOLD}Connectivity:${NC}"
     if [ -n "$DOMAIN" ]; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://matrix.${DOMAIN}/_matrix/client/versions" 2>/dev/null || echo "000")
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null || echo "000")
         if [ "$HTTP_CODE" = "200" ]; then
-            success "  HTTPS working (matrix.${DOMAIN})"
+            success "  HTTPS working (${MATRIX_HOST})"
         else
             error "  HTTPS failed (HTTP $HTTP_CODE)"
             all_ok=false
             issues+=("HTTPS not working")
         fi
 
-        FED_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://matrix.${DOMAIN}:8448/_matrix/client/versions" 2>/dev/null || echo "000")
+        FED_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}:8448/_matrix/client/versions" 2>/dev/null || echo "000")
         if [ "$FED_CODE" = "200" ]; then
             success "  Federation port 8448 working"
         else
@@ -740,7 +859,7 @@ menu_healthcheck() {
         fi
 
         # IPv6
-        IPV6_CODE=$(curl -6 -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://matrix.${DOMAIN}/_matrix/client/versions" 2>/dev/null || echo "000")
+        IPV6_CODE=$(curl -6 -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null || echo "000")
         if [ "$IPV6_CODE" = "200" ]; then
             success "  IPv6 working"
         else
@@ -914,7 +1033,7 @@ menu_registration() {
             echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
             echo
             echo -e "  ${DIM}Users can register at: https://app.element.io/#/register${NC}"
-            echo -e "  ${DIM}Homeserver: ${DOMAIN}${NC}"
+            echo -e "  ${DIM}Homeserver: ${SERVER_NAME}${NC}"
             press_enter
             ;;
         2)
@@ -971,7 +1090,7 @@ menu_create_account() {
     # Register via Matrix client API
     info "Creating account @${NEW_USER}:${DOMAIN}..."
     
-    REGISTER_RESPONSE=$(curl -s -X POST "https://matrix.${DOMAIN}/_matrix/client/v3/register" \
+    REGISTER_RESPONSE=$(curl -s -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"username\": \"${NEW_USER}\",
@@ -988,7 +1107,7 @@ menu_create_account() {
     SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4)
     
     if [ -n "$SESSION" ]; then
-        REGISTER_RESPONSE=$(curl -s -X POST "https://matrix.${DOMAIN}/_matrix/client/v3/register" \
+        REGISTER_RESPONSE=$(curl -s -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
             -H "Content-Type: application/json" \
             -d "{
                 \"username\": \"${NEW_USER}\",

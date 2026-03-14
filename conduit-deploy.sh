@@ -421,6 +421,26 @@ menu_install() {
     separator
     echo -e "\n  ${BOLD}Media Settings${NC}\n"
 
+    # Detect available disk and suggest smart defaults
+    AVAIL_DISK_GB=$(df -BG / | awk 'NR==2{print $4}' | tr -d 'G')
+    echo -e "  ${DIM}Available disk space: ${BOLD}${AVAIL_DISK_GB}GB${NC}"
+    echo
+
+    # Smart defaults based on disk size
+    if [ "$AVAIL_DISK_GB" -ge 100 ]; then
+        DEFAULT_MEDIA_GB=50
+        DEFAULT_THUMB_GB=5
+    elif [ "$AVAIL_DISK_GB" -ge 50 ]; then
+        DEFAULT_MEDIA_GB=20
+        DEFAULT_THUMB_GB=2
+    elif [ "$AVAIL_DISK_GB" -ge 20 ]; then
+        DEFAULT_MEDIA_GB=10
+        DEFAULT_THUMB_GB=1
+    else
+        DEFAULT_MEDIA_GB=3
+        DEFAULT_THUMB_GB=1
+    fi
+
     echo -e "  ${DIM}Maximum file size a user can upload (images, videos, documents).${NC}"
     echo -e "  ${DIM}Matrix supports up to 1GB. Default: 100MB.${NC}"
     ask "Max upload size in MB [100]:"
@@ -430,37 +450,48 @@ menu_install() {
 
     echo
     echo -e "  ${DIM}Total disk space allowed for all media files.${NC}"
-    echo -e "  ${DIM}When this limit is reached, oldest files are removed first.${NC}"
-    ask "Max media storage in GB [10]:"
+    echo -e "  ${DIM}When this limit is reached, oldest files are removed automatically.${NC}"
+    ask "Max media storage in GB [${DEFAULT_MEDIA_GB}]:"
     read -r MEDIA_SPACE_GB
-    MEDIA_SPACE_GB=${MEDIA_SPACE_GB:-10}
+    MEDIA_SPACE_GB=${MEDIA_SPACE_GB:-$DEFAULT_MEDIA_GB}
+
+    if [ "$MEDIA_SPACE_GB" -ge "$AVAIL_DISK_GB" ]; then
+        warn "Media limit (${MEDIA_SPACE_GB}GB) is larger than available disk (${AVAIL_DISK_GB}GB)!"
+        ask "Continue anyway? [y/N]:"
+        read -r disk_confirm
+        [[ "$disk_confirm" =~ ^[Yy]$ ]] || return
+    fi
 
     echo
-    echo -e "  ${BOLD}Media retention — when should old files be cleaned up?${NC}"
+    echo -e "  ${BOLD}Media cleanup policy${NC}"
     echo
-    echo -e "  ${DIM}Remote media = files from other Matrix servers (federation).${NC}"
-    echo -e "  ${DIM}Local media  = files uploaded by your users.${NC}"
+    echo -e "  ${DIM}There are two types of media on your server:${NC}"
+    echo -e "  ${CYAN}Your users' files${NC}  — images, videos, documents they uploaded"
+    echo -e "  ${CYAN}Cached files${NC}       — copies of files from other Matrix servers (federation)"
+    echo
+    echo -e "  ${DIM}Cached files can be re-downloaded anytime, so it's safe to clean them up.${NC}"
+    echo -e "  ${DIM}Your users' files are the originals — be more careful with those.${NC}"
     echo
 
-    echo -e "  ${DIM}Remote media: delete if not accessed for X days. Default: 30.${NC}"
-    ask "Remote media access expiry in days [30]:"
+    echo -e "  ${DIM}Delete cached files if nobody opened them for X days [30]:${NC}"
+    ask "Cached files idle expiry in days [30]:"
     read -r REMOTE_ACCESS_DAYS
     REMOTE_ACCESS_DAYS=${REMOTE_ACCESS_DAYS:-30}
 
-    echo -e "  ${DIM}Remote media: delete if older than X days (regardless of access). Default: 90.${NC}"
-    ask "Remote media max age in days [90]:"
+    echo -e "  ${DIM}Delete cached files older than X days, even if still accessed [90]:${NC}"
+    ask "Cached files max age in days [90]:"
     read -r REMOTE_CREATED_DAYS
     REMOTE_CREATED_DAYS=${REMOTE_CREATED_DAYS:-90}
 
-    echo -e "  ${DIM}Local media: delete if not accessed for X days. Default: 365.${NC}"
-    ask "Local media access expiry in days [365]:"
+    echo -e "  ${DIM}Delete your users' files if nobody opened them for X days [365]:${NC}"
+    ask "User files idle expiry in days [365]:"
     read -r LOCAL_ACCESS_DAYS
     LOCAL_ACCESS_DAYS=${LOCAL_ACCESS_DAYS:-365}
 
-    echo -e "  ${DIM}Max space for thumbnails (auto-generated previews). Default: 1GB.${NC}"
-    ask "Thumbnail storage in GB [1]:"
+    echo -e "  ${DIM}Max space for thumbnails (auto-generated previews) [${DEFAULT_THUMB_GB}GB]:${NC}"
+    ask "Thumbnail storage in GB [${DEFAULT_THUMB_GB}]:"
     read -r THUMB_SPACE_GB
-    THUMB_SPACE_GB=${THUMB_SPACE_GB:-1}
+    THUMB_SPACE_GB=${THUMB_SPACE_GB:-$DEFAULT_THUMB_GB}
 
     REGISTRATION_TOKEN=$(openssl rand -hex 32)
     TURN_SECRET=$(openssl rand -hex 32)

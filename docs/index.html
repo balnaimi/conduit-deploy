@@ -1339,98 +1339,110 @@ exit</pre>
 
     <div class="option-card">
       <h3>How do I backup my server?</h3>
-      <p class="desc">Stop services, archive the entire <code>/opt/conduit</code> directory (database, config, media, certificates), then start again.</p>
-      <pre class="code-block"><span class="cmd">cd</span> /opt/conduit
-<span class="cmd">sudo</span> docker compose down
-<span class="cmd">sudo</span> tar czf ~/conduit-backup-$(date +%F).tar.gz /opt/conduit
-<span class="cmd">sudo</span> docker compose up -d</pre>
+      <p class="desc">The easiest way is through the script menu:</p>
+      <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Backup (with version pinning)</span></pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin:1rem 0;">This saves <strong>everything</strong> into a single <code>.tar.gz</code> file:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>What's included</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Database</strong> (RocksDB)</td><td>All accounts, messages, room history</td></tr>
+            <tr><td><strong>Media files</strong></td><td>Uploaded images, videos, documents</td></tr>
+            <tr><td><strong>Configuration</strong> (.env, Caddyfile, etc.)</td><td>Your domain, secrets, settings</td></tr>
+            <tr><td><strong>TLS certificates</strong></td><td>Let's Encrypt certs for HTTPS</td></tr>
+            <tr><td><strong>Docker image versions</strong></td><td>Exact SHA256 digest of each container image</td></tr>
+          </tbody>
+        </table>
+      </div>
       <div class="callout callout-info">
-        <div class="callout-icon">💾</div>
-        <div>This backs up <strong>everything</strong>: your RocksDB database, Caddy TLS certificates, Coturn config, media uploads, and <code>.env</code> settings. Store the archive somewhere safe (off-site, encrypted).</div>
+        <div class="callout-icon">📌</div>
+        <div><strong>Version pinning:</strong> The backup records the <strong>exact version</strong> (SHA256 digest) of each Docker image running at backup time. This means when you restore, you get back the <strong>exact same software</strong> — not a newer version that might have issues.</div>
       </div>
     </div>
 
     <div class="option-card">
       <h3>How do I restore from a backup?</h3>
-      <p class="desc">If an update goes wrong or you're moving to a new server, restore your backup like this:</p>
-      <pre class="code-block"><span class="comment"># Stop current services (if running)</span>
-<span class="cmd">cd</span> /opt/conduit
-<span class="cmd">sudo</span> docker compose down
-
-<span class="comment"># Remove current installation</span>
+      <p class="desc">If an update broke something and you want to go back to exactly how it was before:</p>
+      <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Restore from backup</span></pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin:1rem 0;">The restore process:</p>
+      <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+        <li>Stops current services</li>
+        <li>Replaces all files from the backup</li>
+        <li>Pulls the <strong>exact same Docker images</strong> that were running at backup time (not latest)</li>
+        <li>Starts services — you're back to exactly where you were</li>
+      </ol>
+      <div class="callout callout-info">
+        <div class="callout-icon">🔄</div>
+        <div><strong>Why this matters:</strong> Without version pinning, restoring your data but running a <em>newer</em> image could cause the same problem you're trying to fix. Pinned versions ensure a true rollback — same data <strong>and</strong> same software.</div>
+      </div>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:1rem;">Or manually:</p>
+      <pre class="code-block"><span class="comment"># Stop and remove current installation</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose down
 <span class="cmd">sudo</span> rm -rf /opt/conduit
 
-<span class="comment"># Restore from backup</span>
-<span class="cmd">sudo</span> tar xzf ~/conduit-backup-2025-01-15.tar.gz -C /
+<span class="comment"># Restore files from backup</span>
+<span class="cmd">sudo</span> tar xzf ~/conduit-backup-2025-01-15-120000.tar.gz -C /
 
-<span class="comment"># Start services</span>
-<span class="cmd">cd</span> /opt/conduit
-<span class="cmd">sudo</span> docker compose up -d</pre>
-      <div class="callout callout-warn">
-        <div class="callout-icon">⚠️</div>
-        <div><strong>Always backup before updating.</strong> If the update breaks something, you can restore to exactly how it was before.</div>
-      </div>
+<span class="comment"># Start services (uses pinned images if available)</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose up -d</pre>
     </div>
 
     <div class="option-card">
       <h3>How do I migrate to a different server?</h3>
-      <p class="desc">Moving your Matrix server to a new VPS or machine? Here's the full process:</p>
+      <p class="desc">Moving your Matrix server to a new VPS or machine:</p>
       <div style="margin-top:1rem;">
         <strong style="color:var(--blue);font-size:0.88rem;">On the old server:</strong>
-        <pre class="code-block"><span class="comment"># Backup everything</span>
-<span class="cmd">cd</span> /opt/conduit
-<span class="cmd">sudo</span> docker compose down
-<span class="cmd">sudo</span> tar czf ~/conduit-backup.tar.gz /opt/conduit
+        <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Backup (with version pinning)</span>
 
-<span class="comment"># Copy to new server</span>
-<span class="cmd">scp</span> ~/conduit-backup.tar.gz user@new-server:~/</pre>
+<span class="comment"># Copy backup to new server</span>
+<span class="cmd">scp</span> ~/conduit-backup-*.tar.gz user@new-server:~/</pre>
       </div>
       <div style="margin-top:1.5rem;">
         <strong style="color:var(--blue);font-size:0.88rem;">On the new server:</strong>
-        <pre class="code-block"><span class="comment"># Install Docker (if not already installed)</span>
+        <pre class="code-block"><span class="comment"># Install Docker</span>
 <span class="cmd">curl</span> -fsSL https://get.docker.com | sh
 
-<span class="comment"># Restore backup</span>
-<span class="cmd">sudo</span> tar xzf ~/conduit-backup.tar.gz -C /
+<span class="comment"># Download the deploy script</span>
+<span class="cmd">curl</span> <span class="flag">-o</span> conduit-deploy.sh https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh
+<span class="cmd">chmod</span> <span class="flag">+x</span> conduit-deploy.sh
 
-<span class="comment"># Start services</span>
-<span class="cmd">cd</span> /opt/conduit
-<span class="cmd">sudo</span> docker compose up -d</pre>
+<span class="comment"># Restore from backup (pulls exact same image versions)</span>
+<span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Restore from backup</span></pre>
       </div>
       <div class="callout callout-danger" style="margin-top:1rem;">
         <div class="callout-icon">🔑</div>
-        <div><strong>Don't forget DNS!</strong> Update your domain's A record to point to the new server's IP address. Caddy will automatically obtain new Let's Encrypt certificates on the new server.</div>
+        <div><strong>Don't forget DNS!</strong> Update your domain's A record to point to the new server's IP. Caddy will automatically obtain new Let's Encrypt certificates.</div>
       </div>
     </div>
 
     <div class="option-card">
       <h3>How do I check for & apply updates?</h3>
-      <p class="desc">Updates are <strong>not automatic</strong> — you decide when to update. The installer can check Docker Hub for newer images and tell you exactly which containers have updates available.</p>
+      <p class="desc">Updates are <strong>not automatic</strong> — you decide when to update. The script can check Docker Hub for newer images and tell you which containers have updates available.</p>
       <div style="margin-top:1rem;">
         <strong style="color:var(--blue);font-size:0.88rem;">Check for updates</strong>
         <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
 <span class="comment"># Choose: Services → Check for updates</span></pre>
-        <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">This compares your local images with Docker Hub and shows you:</p>
-        <pre class="code-block" style="font-size:0.82rem;line-height:1.5;"><span class="comment">  Checking</span> <span class="cmd">caddy</span> (caddy:2-alpine)...       <span style="color:#16a34a;">✅ Up to date</span>
-<span class="comment">  Checking</span> <span class="cmd">conduit</span> (matrix-conduit:latest)... <span style="color:#d97706;">⬆️  Update available!</span>
-<span class="comment">  Checking</span> <span class="cmd">coturn</span> (coturn:alpine)...        <span style="color:#16a34a;">✅ Up to date</span></pre>
+        <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">This compares your local images with Docker Hub:</p>
+        <pre class="code-block" style="font-size:0.82rem;line-height:1.5;"><span class="comment">  Checking</span> <span class="cmd">caddy</span> (caddy:2-alpine)...       <span style="color:#16a34a;">[OK] Up to date</span>
+<span class="comment">  Checking</span> <span class="cmd">conduit</span> (matrix-conduit:latest)... <span style="color:#d97706;">[UP] Update available!</span>
+<span class="comment">  Checking</span> <span class="cmd">coturn</span> (coturn:alpine)...        <span style="color:#16a34a;">[OK] Up to date</span></pre>
       </div>
       <div style="margin-top:1.5rem;">
-        <strong style="color:var(--blue);font-size:0.88rem;">Apply updates</strong>
-        <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
-<span class="comment"># Choose: Services → Update containers (pull latest)</span></pre>
-        <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">Or manually:</p>
-        <pre class="code-block"><span class="cmd">cd</span> /opt/conduit
-<span class="cmd">sudo</span> docker compose pull      <span class="comment"># Download latest images from Docker Hub</span>
-<span class="cmd">sudo</span> docker compose up -d     <span class="comment"># Restart containers with new images</span></pre>
+        <strong style="color:var(--blue);font-size:0.88rem;">The safe update flow</strong>
+        <p style="color:var(--text-dim);font-size:0.92rem;margin:0.5rem 0;">When you choose to update, the script asks to <strong>create a backup first</strong>. This means:</p>
+        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+          <li><strong>Backup</strong> — saves your data + current image versions</li>
+          <li><strong>Update</strong> — pulls latest Docker images and restarts</li>
+          <li><strong>If something breaks</strong> — restore from backup (gets exact previous versions)</li>
+        </ol>
       </div>
       <div class="callout callout-info" style="margin-top:1rem;">
         <div class="callout-icon">📦</div>
-        <div><strong>What gets updated:</strong> The Docker images for Conduit (<code>latest</code>), Caddy (<code>2-alpine</code>), and Coturn (<code>alpine</code>). These tags always point to the newest release, so pulling fetches the latest version. Your database, config, certificates, and user data are <strong>never touched</strong>.</div>
-      </div>
-      <div class="callout callout-warn" style="margin-top:0.5rem;">
-        <div class="callout-icon">💡</div>
-        <div><strong>Tip:</strong> Always <strong>backup before updating</strong>. If something breaks, you can restore to the previous state in seconds.</div>
+        <div><strong>What gets updated:</strong> The Docker images for Conduit (<code>latest</code>), Caddy (<code>2-alpine</code>), and Coturn (<code>alpine</code>). These tags always point to the newest release. Your database, config, certificates, and user data are <strong>never touched</strong>.</div>
       </div>
     </div>
   </div>

@@ -153,38 +153,39 @@ menu_prepare() {
         echo
     fi
 
-    echo -e "     ${CYAN}4.${NC} ${BOLD}A Record${NC} — Root domain (for Cloudflare Worker)"
-    echo -e "        Name:  ${GREEN}@${NC}"
-    echo -e "        Value: ${GREEN}192.0.2.1${NC} (dummy)"
-    echo -e "        Proxy: ${GREEN}ON (Proxied)${NC}"
+    # ─── .well-known delegation ───
+    echo -e "  ${BOLD}🔗 .well-known Delegation${NC} (required for clean usernames):"
     echo
-
-    # ─── Cloudflare Worker ───
-    echo -e "  ${BOLD}☁️  Cloudflare Worker${NC} (for .well-known delegation):"
+    echo -e "     Your usernames will be ${GREEN}@user:${PREP_DOMAIN}${NC} but the server"
+    echo -e "     runs at ${GREEN}matrix.${PREP_DOMAIN}${NC}. To link them, your root domain"
+    echo -e "     needs to serve a small JSON response."
     echo
-    echo -e "     Create a Worker named ${GREEN}matrix-wellknown${NC} with this code:"
+    echo -e "     ${CYAN}Option A:${NC} ${BOLD}Root domain has NO existing website${NC}"
+    echo -e "        → The installer handles everything automatically!"
+    echo -e "        → Just point ${GREEN}${PREP_DOMAIN}${NC} (A record) to your server IP: ${GREEN}${PREP_IP}${NC}"
     echo
-    echo -e "     ${DIM}export default {"
-    echo -e "       async fetch(request) {"
-    echo -e "         const url = new URL(request.url);"
-    echo -e "         if (url.pathname === '/.well-known/matrix/client') {"
-    echo -e "           return new Response(JSON.stringify({"
-    echo -e "             'm.homeserver': { 'base_url': 'https://matrix.${PREP_DOMAIN}/' }"
-    echo -e "           }), { headers: {"
-    echo -e "             'Content-Type': 'application/json',"
-    echo -e "             'Access-Control-Allow-Origin': '*'"
-    echo -e "           }});"
-    echo -e "         }"
-    echo -e "         if (url.pathname === '/.well-known/matrix/server') {"
-    echo -e "           return new Response(JSON.stringify({"
-    echo -e "             'm.server': 'matrix.${PREP_DOMAIN}:443'"
-    echo -e "           }), { headers: { 'Content-Type': 'application/json' }});"
-    echo -e "         }"
-    echo -e "         return new Response('Not Found', { status: 404 });"
-    echo -e "       }"
-    echo -e "     };${NC}"
+    echo -e "     ${CYAN}Option B:${NC} ${BOLD}Root domain has an existing website${NC}"
+    echo -e "        → Add this to your existing web server:"
     echo
-    echo -e "     Route: ${GREEN}${PREP_DOMAIN}/.well-known/matrix/*${NC}"
+    echo -e "        ${BOLD}Nginx:${NC}"
+    echo -e "        ${DIM}location /.well-known/matrix/server {"
+    echo -e "            return 200 '{\"m.server\": \"matrix.${PREP_DOMAIN}:443\"}';"
+    echo -e "            add_header Content-Type application/json;"
+    echo -e "        }"
+    echo -e "        location /.well-known/matrix/client {"
+    echo -e "            return 200 '{\"m.homeserver\": {\"base_url\": \"https://matrix.${PREP_DOMAIN}\"}}';"
+    echo -e "            add_header Content-Type application/json;"
+    echo -e "            add_header Access-Control-Allow-Origin *;"
+    echo -e "        }${NC}"
+    echo
+    echo -e "        ${BOLD}Apache:${NC}"
+    echo -e "        ${DIM}# Create /.well-known/matrix/server with:"
+    echo -e "        {\"m.server\": \"matrix.${PREP_DOMAIN}:443\"}"
+    echo -e "        # Create /.well-known/matrix/client with:"
+    echo -e "        {\"m.homeserver\": {\"base_url\": \"https://matrix.${PREP_DOMAIN}\"}}${NC}"
+    echo
+    echo -e "        ${BOLD}Traefik:${NC}"
+    echo -e "        ${DIM}# Use a middleware or small container to serve the JSON${NC}"
 
     echo
     separator
@@ -260,6 +261,46 @@ menu_install() {
     fi
     [ -z "$VPS_IP" ] && { error "VPS IP is required"; press_enter; return; }
 
+    # Well-known delegation
+    echo
+    echo -e "  ${BOLD}📌 .well-known Delegation${NC}"
+    echo -e "  ${DIM}Your usernames will be @user:${DOMAIN} but the server runs at matrix.${DOMAIN}${NC}"
+    echo -e "  ${DIM}The root domain needs to tell clients where to find the server.${NC}"
+    echo
+    echo -e "  ${CYAN}A${NC}) Root domain (${DOMAIN}) has ${BOLD}NO existing website${NC} — Caddy handles it"
+    echo -e "  ${CYAN}B${NC}) Root domain (${DOMAIN}) has ${BOLD}an existing website${NC} — I'll give you instructions"
+    echo
+    ask "Choose [A/B]:"
+    read -r WELLKNOWN_MODE
+    WELLKNOWN_MODE=${WELLKNOWN_MODE:-A}
+    WELLKNOWN_MODE=$(echo "$WELLKNOWN_MODE" | tr '[:lower:]' '[:upper:]')
+
+    if [[ "$WELLKNOWN_MODE" == "B" ]]; then
+        echo
+        echo -e "  ${BOLD}${YELLOW}Add this to your existing web server for ${DOMAIN}:${NC}"
+        echo
+        echo -e "  ${BOLD}Nginx:${NC}"
+        echo -e "  ${DIM}location /.well-known/matrix/server {"
+        echo -e "      return 200 '{\"m.server\": \"matrix.${DOMAIN}:443\"}';"
+        echo -e "      add_header Content-Type application/json;"
+        echo -e "  }"
+        echo -e "  location /.well-known/matrix/client {"
+        echo -e "      return 200 '{\"m.homeserver\": {\"base_url\": \"https://matrix.${DOMAIN}\"}}';"
+        echo -e "      add_header Content-Type application/json;"
+        echo -e "      add_header Access-Control-Allow-Origin *;"
+        echo -e "  }${NC}"
+        echo
+        echo -e "  ${BOLD}Apache:${NC}"
+        echo -e "  ${DIM}Create files at: /.well-known/matrix/server and /.well-known/matrix/client${NC}"
+        echo
+        echo -e "  ${BOLD}Traefik:${NC}"
+        echo -e "  ${DIM}Use a middleware or small container to serve the JSON responses${NC}"
+        echo
+        warn "Add the config above to your web server, then press Enter to continue."
+        ask "Press Enter when ready (or Ctrl+C to cancel)..."
+        read -r
+    fi
+
     echo
     echo -e "  ${DIM}Default: 100MB. Matrix supports up to 1GB.${NC}"
     ask "Max upload size in MB [100]:"
@@ -273,10 +314,15 @@ menu_install() {
     separator
     echo
     echo -e "  ${BOLD}Summary:${NC}"
-    echo -e "  Domain:     ${GREEN}${DOMAIN}${NC}"
-    echo -e "  Matrix URL: ${GREEN}https://matrix.${DOMAIN}${NC}"
-    echo -e "  VPS IP:     ${GREEN}${VPS_IP}${NC}"
-    echo -e "  Max upload: ${GREEN}${MAX_UPLOAD_MB}MB${NC}"
+    echo -e "  Domain:      ${GREEN}${DOMAIN}${NC}"
+    echo -e "  Matrix URL:  ${GREEN}https://matrix.${DOMAIN}${NC}"
+    echo -e "  VPS IP:      ${GREEN}${VPS_IP}${NC}"
+    echo -e "  Max upload:  ${GREEN}${MAX_UPLOAD_MB}MB${NC}"
+    if [[ "$WELLKNOWN_MODE" == "A" ]]; then
+        echo -e "  .well-known: ${GREEN}Caddy (automatic)${NC}"
+    else
+        echo -e "  .well-known: ${YELLOW}External (your web server)${NC}"
+    fi
     echo
     ask "Start installation? [Y/n]"
     read -r confirm
@@ -441,7 +487,30 @@ YAML
     success "Created docker-compose.yml"
 
     # Caddyfile
-    cat > Caddyfile << EOF
+    if [[ "$WELLKNOWN_MODE" == "A" ]]; then
+        # Mode A: Caddy serves both Matrix + .well-known on root domain
+        cat > Caddyfile << EOF
+matrix.${DOMAIN}:443 {
+    reverse_proxy conduit:6167
+}
+
+matrix.${DOMAIN}:8448 {
+    reverse_proxy conduit:6167
+}
+
+${DOMAIN}:443 {
+    header /.well-known/matrix/* Content-Type application/json
+    header /.well-known/matrix/client Access-Control-Allow-Origin *
+
+    respond /.well-known/matrix/server \`{"m.server": "matrix.${DOMAIN}:443"}\` 200
+    respond /.well-known/matrix/client \`{"m.homeserver": {"base_url": "https://matrix.${DOMAIN}"}}\` 200
+
+    respond "Not Found" 404
+}
+EOF
+    else
+        # Mode B: Only Matrix subdomain, .well-known handled externally
+        cat > Caddyfile << EOF
 matrix.${DOMAIN}:443 {
     reverse_proxy conduit:6167
 }
@@ -450,6 +519,7 @@ matrix.${DOMAIN}:8448 {
     reverse_proxy conduit:6167
 }
 EOF
+    fi
     success "Created Caddyfile"
 
     # turnserver.conf

@@ -29,7 +29,7 @@ One interactive script that sets up a complete, secure Matrix server with **end-
 - **RAM:** 512MB minimum (1GB+ recommended)
 - **Disk:** 10GB+ free
 - **Ports:** 80, 443, 8448, 3478, 5349 accessible
-- **Domain:** With DNS access (Cloudflare recommended)
+- **Domain:** With DNS access (any provider)
 
 ## Quick Start
 
@@ -130,6 +130,28 @@ stun:matrix.YOUR_DOMAIN                 ← Peer-to-peer
 ```
 
 > **Why no `turns:` (TLS)?** Element clients prefer TURNS over plain TURN when available, forcing all traffic through TCP even when UDP works fine. This causes unnecessary latency.
+
+## Domain Setup — How It Works
+
+Matrix uses **two different things**:
+
+| Concept | Example | Purpose |
+|---------|---------|---------|
+| **Server Name** (identity) | `example.com` | Shows in usernames: `@user:example.com` |
+| **Server URL** (actual server) | `matrix.example.com` | Where the server actually runs |
+
+The script sets up your Matrix server on `matrix.YOUR_DOMAIN` (subdomain), while your usernames use the clean root domain (`@user:YOUR_DOMAIN`).
+
+### `.well-known` Delegation
+
+For this to work, your **root domain** needs to serve a small JSON file that tells Matrix clients where to find the actual server. The script handles this differently depending on your setup:
+
+| Scenario | What the script does |
+|----------|---------------------|
+| Root domain has **no existing website** | Caddy serves both Matrix + `.well-known` automatically ✅ |
+| Root domain has **an existing website** | Script gives you the exact config to add to your existing web server (Nginx, Apache, Traefik, etc.) |
+
+> **Note:** You do NOT need Cloudflare Workers or any special service for this — any web server can serve the `.well-known` file.
 
 ## Compatible Clients
 

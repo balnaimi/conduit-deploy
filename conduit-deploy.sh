@@ -1339,7 +1339,7 @@ do_backup() {
         echo
         echo -e "  ${DIM}Free up space by removing old backups:${NC}"
         # List existing backups
-        local old_backups=$(ls -lh /opt/conduit/backups/conduit-backup-*.tar.gz 2>/dev/null)
+        local old_backups=$(ls -lh /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null)
         if [ -n "$old_backups" ]; then
             echo -e "  ${DIM}${old_backups}${NC}"
         else
@@ -1354,18 +1354,18 @@ do_backup() {
     fi
 
     # ─── Clean old backups ───
-    local backup_count=$(ls /opt/conduit/backups/conduit-backup-*.tar.gz 2>/dev/null | wc -l)
+    local backup_count=$(ls /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null | wc -l)
     if [ "$backup_count" -ge 3 ]; then
         echo
         warn "You have ${backup_count} old backups in $HOME:"
-        ls -lhS /opt/conduit/backups/conduit-backup-*.tar.gz 2>/dev/null | while read line; do
+        ls -lhS /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null | while read line; do
             echo -e "  ${DIM}${line}${NC}"
         done
         echo
         ask "Delete old backups? Keep only the latest 2. [y/N]:"
         read -r cleanup_confirm
         if [[ "$cleanup_confirm" =~ ^[Yy]$ ]]; then
-            ls -t /opt/conduit/backups/conduit-backup-*.tar.gz 2>/dev/null | tail -n +3 | while read old_file; do
+            ls -t /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null | tail -n +3 | while read old_file; do
                 local old_size=$(du -h "$old_file" | awk '{print $1}')
                 rm -f "$old_file"
                 success "Deleted: $(basename "$old_file") ($old_size)"
@@ -1390,10 +1390,10 @@ do_backup() {
     done
 
     # Create backup archive
-    $SUDO mkdir -p /opt/conduit/backups
-    BACKUP_FILE="/opt/conduit/backups/conduit-backup-$(date +%F-%H%M%S).tar.gz"
+    $SUDO mkdir -p /opt/conduit-backups
+    BACKUP_FILE="/opt/conduit-backups/conduit-backup-$(date +%F-%H%M%S).tar.gz"
     info "Creating backup at $BACKUP_FILE..."
-    $SUDO tar czf "$BACKUP_FILE" --exclude='backups' "$INSTALL_DIR" 2>/dev/null
+    $SUDO tar czf "$BACKUP_FILE" "$INSTALL_DIR" 2>/dev/null
     
     local backup_size=$(du -h "$BACKUP_FILE" 2>/dev/null | awk '{print $1}')
     success "Backup saved: $BACKUP_FILE ($backup_size)"
@@ -1722,6 +1722,7 @@ menu_uninstall() {
     separator
     echo -e "\n  ${GREEN}${BOLD}Uninstall complete.${NC}"
     echo -e "  Docker, fail2ban, and UFW are still installed (shared system packages)."
+    echo -e "  Backups are kept at: ${BOLD}/opt/conduit-backups/${NC} (not deleted)"
     if [[ ! "$backup_confirm" =~ ^[Nn]$ ]]; then
         echo -e "  Backup saved at: ${BOLD}$BACKUP_FILE${NC}"
     fi

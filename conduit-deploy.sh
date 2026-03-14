@@ -446,6 +446,38 @@ menu_install() {
     read -r confirm
     [[ "$confirm" =~ ^[Nn]$ ]] && return
 
+    # ─── System Dependencies ───
+    step "Checking Dependencies"
+    local missing_deps=()
+    for dep in curl openssl sed grep; do
+        if ! command -v "$dep" &>/dev/null; then
+            missing_deps+=("$dep")
+        fi
+    done
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        info "Installing missing packages: ${missing_deps[*]}"
+        $SUDO apt-get update -qq >/dev/null 2>&1
+        $SUDO apt-get install -y -qq "${missing_deps[@]}" >/dev/null 2>&1
+        success "Dependencies installed"
+    else
+        success "All dependencies available (curl, openssl, sed, grep)"
+    fi
+
+    # ─── Timezone ───
+    step "Timezone Configuration"
+    CURRENT_TZ=$(timedatectl show --property=Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null || echo "Unknown")
+    echo -e "  Current timezone: ${BOLD}${CURRENT_TZ}${NC}"
+    echo
+    ask "Change timezone? [y/N]"
+    read -r tz_confirm
+    if [[ "$tz_confirm" =~ ^[Yy]$ ]]; then
+        $SUDO dpkg-reconfigure tzdata
+        CURRENT_TZ=$(timedatectl show --property=Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null || echo "Unknown")
+        success "Timezone set to: $CURRENT_TZ"
+    else
+        success "Keeping timezone: $CURRENT_TZ"
+    fi
+
     # ─── Install Docker ───
     step "Installing Docker"
     if command -v docker &>/dev/null; then

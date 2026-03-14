@@ -612,7 +612,7 @@ menu_install() {
         $SUDO systemctl enable --now docker
         success "Docker installed"
     fi
-    docker compose version &>/dev/null || { error "Docker Compose v2 not found"; press_enter; return; }
+    $SUDO docker compose version &>/dev/null || { error "Docker Compose v2 not found"; press_enter; return; }
     success "Docker Compose available"
 
     # ─── Firewall ───
@@ -1256,14 +1256,18 @@ menu_create_account() {
     echo
     [ -z "$NEW_PASS" ] && { error "Password required"; press_enter; return; }
 
+    # Escape special characters for JSON
+    NEW_PASS_ESCAPED=$(echo "$NEW_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    NEW_USER_ESCAPED=$(echo "$NEW_USER" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
     # Register via Matrix client API
     info "Creating account @${NEW_USER}:${DOMAIN}..."
     
     REGISTER_RESPONSE=$(curl -s -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
         -H "Content-Type: application/json" \
         -d "{
-            \"username\": \"${NEW_USER}\",
-            \"password\": \"${NEW_PASS}\",
+            \"username\": \"${NEW_USER_ESCAPED}\",
+            \"password\": \"${NEW_PASS_ESCAPED}\",
             \"auth\": {
                 \"type\": \"m.login.registration_token\",
                 \"token\": \"${REGISTRATION_TOKEN}\",
@@ -1279,8 +1283,8 @@ menu_create_account() {
         REGISTER_RESPONSE=$(curl -s -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
             -H "Content-Type: application/json" \
             -d "{
-                \"username\": \"${NEW_USER}\",
-                \"password\": \"${NEW_PASS}\",
+                \"username\": \"${NEW_USER_ESCAPED}\",
+                \"password\": \"${NEW_PASS_ESCAPED}\",
                 \"auth\": {
                     \"type\": \"m.login.registration_token\",
                     \"token\": \"${REGISTRATION_TOKEN}\",
@@ -1343,7 +1347,7 @@ do_backup() {
         if [ -n "$old_backups" ]; then
             echo -e "  ${DIM}${old_backups}${NC}"
         else
-            echo -e "  ${DIM}No old backups found in $HOME${NC}"
+            echo -e "  ${DIM}No old backups found in /opt/conduit-backups/${NC}"
         fi
         echo
         ask "Continue anyway? (backup may fail) [y/N]:"
@@ -1357,7 +1361,7 @@ do_backup() {
     local backup_count=$(ls /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null | wc -l)
     if [ "$backup_count" -ge 3 ]; then
         echo
-        warn "You have ${backup_count} old backups in $HOME:"
+        warn "You have ${backup_count} old backups in /opt/conduit-backups/:"
         ls -lhS /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null | while read line; do
             echo -e "  ${DIM}${line}${NC}"
         done
@@ -1516,12 +1520,14 @@ check_for_updates() {
         # Get local image digest
         local local_digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null | sed 's/.*@//')
 
-        # Pull quietly to check for new version
+        # Check remote digest WITHOUT pulling (using Docker Hub API)
         echo -ne "  Checking ${BOLD}${svc}${NC} (${img})... "
-        local pull_output=$($SUDO docker pull "$img" 2>&1)
-
-        # Get new digest
-        local remote_digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null | sed 's/.*@//')
+        local repo=$(echo "$img" | cut -d: -f1)
+        local tag=$(echo "$img" | cut -d: -f2)
+        # Handle official images (no slash = library/)
+        [[ "$repo" != */* ]] && repo="library/$repo"
+        local token=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" 2>/dev/null | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+        local remote_digest=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/${repo}/manifests/${tag}" 2>/dev/null | grep -o '"digest":"sha256:[^"]*"' | head -1 | cut -d'"' -f4)
 
         if [ -z "$local_digest" ]; then
             echo -e "${CYAN}[NEW]  New image${NC}"
@@ -1577,6 +1583,8 @@ menu_services() {
         press_enter
         return
     fi
+
+    load_config
 
     step "* Service Management"
 

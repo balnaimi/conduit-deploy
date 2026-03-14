@@ -30,9 +30,9 @@ NC='\033[0m'
 
 # ─── Helpers ───
 info()    { echo -e "${BLUE}ℹ${NC}  $1"; }
-success() { echo -e "${GREEN}✅${NC} $1"; }
-warn()    { echo -e "${YELLOW}⚠️${NC}  $1"; }
-error()   { echo -e "${RED}❌${NC} $1"; }
+success() { echo -e "${GREEN}[OK]${NC} $1"; }
+warn()    { echo -e "${YELLOW}[!]${NC}  $1"; }
+error()   { echo -e "${RED}[X]${NC} $1"; }
 step()    { echo -e "\n${BOLD}${CYAN}═══ $1 ═══${NC}\n"; }
 ask()     { echo -en "${BOLD}$1${NC} "; }
 
@@ -72,11 +72,15 @@ load_config() {
 show_header() {
     clear
     echo -e "${BOLD}${CYAN}"
-    echo "  ╔═══════════════════════════════════════════╗"
-    echo "  ║   🏠 Matrix Conduit Server Manager        ║"
-    echo "  ║   Your own private messaging server       ║"
-    echo "  ╚═══════════════════════════════════════════╝"
+    echo '   ██████╗ ██████╗ ███╗   ██╗██████╗ ██╗   ██╗██╗████████╗'
+    echo '  ██╔════╝██╔═══██╗████╗  ██║██╔══██╗██║   ██║██║╚══██╔══╝'
+    echo '  ██║     ██║   ██║██╔██╗ ██║██║  ██║██║   ██║██║   ██║   '
+    echo '  ██║     ██║   ██║██║╚██╗██║██║  ██║██║   ██║██║   ██║   '
+    echo '  ╚██████╗╚██████╔╝██║ ╚████║██████╔╝╚██████╔╝██║   ██║   '
+    echo '   ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝  ╚═════╝ ╚═╝   ╚═╝   '
     echo -e "${NC}"
+    echo -e "          ${DIM}Matrix Homeserver Deploy Tool${NC}"
+    echo
     
     if [ -f "$ENV_FILE" ]; then
         source "$ENV_FILE" 2>/dev/null || true
@@ -101,13 +105,13 @@ show_header() {
 # ═══════════════════════════════════════════════
 menu_prepare() {
     show_header
-    step "📋 Pre-Installation Checklist"
+    step "* Pre-Installation Checklist"
 
     echo -e "  ${DIM}This will tell you exactly what to set up before installing.${NC}"
     echo
 
     # ─── Domain Mode ───
-    echo -e "  ${BOLD}🌐 How do you want your usernames to look?${NC}"
+    echo -e "  ${BOLD}* How do you want your usernames to look?${NC}"
     echo
     echo -e "  ${CYAN}1${NC}) ${BOLD}Clean username (Delegation)${NC}"
     echo -e "     Username: ${GREEN}@user:example.com${NC}"
@@ -128,7 +132,7 @@ menu_prepare() {
     echo -e "  ${DIM}│ Best for         │ Professional/permanent│ Quick setup/testing    │${NC}"
     echo -e "  ${DIM}└──────────────────┴───────────────────────┴───────────────────────┘${NC}"
     echo
-    echo -e "  ${YELLOW}⚠️  Your server name is PERMANENT — you cannot change it later!${NC}"
+    echo -e "  ${YELLOW}[!]  Your server name is PERMANENT — you cannot change it later!${NC}"
     echo
     ask "Choose [1/2]:"
     read -r PREP_MODE
@@ -161,7 +165,7 @@ menu_prepare() {
     echo -e "\n${BOLD}${GREEN}Before you install, complete these steps:${NC}\n"
 
     # ─── VPS Requirements ───
-    echo -e "  ${BOLD}🖥️  VPS Requirements:${NC}"
+    echo -e "  ${BOLD}*  VPS Requirements:${NC}"
     echo -e "     • Debian 13 (or Ubuntu 22.04+)"
     echo -e "     • Minimum 512MB RAM (1GB+ recommended)"
     echo -e "     • 10GB+ free disk"
@@ -170,7 +174,7 @@ menu_prepare() {
     echo
 
     # ─── DNS Records ───
-    echo -e "  ${BOLD}🌐 DNS Records (add these in your DNS provider):${NC}"
+    echo -e "  ${BOLD}* DNS Records (add these in your DNS provider):${NC}"
     echo
 
     if [[ "$PREP_MODE" == "2" ]]; then
@@ -226,7 +230,7 @@ menu_prepare() {
         fi
 
         # ─── .well-known delegation ───
-        echo -e "  ${BOLD}🔗 .well-known Delegation:${NC}"
+        echo -e "  ${BOLD}* .well-known Delegation:${NC}"
         echo
         echo -e "     Your usernames will be ${GREEN}@user:${PREP_DOMAIN}${NC} but the server"
         echo -e "     runs at ${GREEN}matrix.${PREP_DOMAIN}${NC}. To link them:"
@@ -273,7 +277,7 @@ menu_prepare() {
         echo -e "     Server URL:  ${GREEN}https://matrix.${PREP_DOMAIN}${NC}"
     fi
     echo
-    echo -e "  ${BOLD}📱 Apps to download:${NC}"
+    echo -e "  ${BOLD}* Apps to download:${NC}"
     echo -e "     • ${GREEN}Element${NC} — iOS / Android / Web / Desktop (most popular)"
     echo -e "     • ${GREEN}SchildiChat${NC} — iOS / Android (nicer UI)"
     echo -e "     • ${GREEN}FluffyChat${NC} — iOS / Android (lightweight)"
@@ -329,12 +333,12 @@ menu_install() {
     step "Configuration"
 
     # ─── Domain Mode ───
-    echo -e "  ${BOLD}🌐 How do you want your usernames to look?${NC}"
+    echo -e "  ${BOLD}* How do you want your usernames to look?${NC}"
     echo
     echo -e "  ${CYAN}1${NC}) ${BOLD}Clean username${NC} — @user:${BOLD}example.com${NC} (server at matrix.example.com)"
     echo -e "  ${CYAN}2${NC}) ${BOLD}Subdomain only${NC} — @user:${BOLD}chat.example.com${NC} (simpler, no delegation)"
     echo
-    echo -e "  ${YELLOW}⚠️  This is permanent — you cannot change it later!${NC}"
+    echo -e "  ${YELLOW}[!]  This is permanent — you cannot change it later!${NC}"
     echo
     ask "Choose [1/2]:"
     read -r DOMAIN_MODE
@@ -373,7 +377,7 @@ menu_install() {
     # Well-known delegation (only for Mode 1)
     if [[ "$DOMAIN_MODE" != "2" ]]; then
         echo
-        echo -e "  ${BOLD}📌 .well-known Delegation${NC}"
+        echo -e "  ${BOLD}* .well-known Delegation${NC}"
         echo -e "  ${DIM}Your usernames will be @user:${DOMAIN} but the server runs at ${MATRIX_HOST}${NC}"
         echo -e "  ${DIM}The root domain needs to tell clients where to find the server.${NC}"
         echo
@@ -789,13 +793,13 @@ TURN Secret:        ${TURN_SECRET}
 
 Install directory:  ${INSTALL_DIR}
 
-⚠️  DELETE THIS FILE after saving credentials!
+[!]  DELETE THIS FILE after saving credentials!
 ═══════════════════════════════════════════
 EOF
     $SUDO chmod 600 "$CREDS_FILE"
 
     # ─── Done ───
-    step "Installation Complete! 🎉"
+    step "Installation Complete! "
     echo -e "  ${GREEN}Your Matrix server is running at:${NC}"
     echo -e "  ${BOLD}https://${MATRIX_HOST}${NC}"
     echo
@@ -814,7 +818,7 @@ EOF
 # ═══════════════════════════════════════════════
 menu_healthcheck() {
     show_header
-    step "🔍 Health Check"
+    step "* Health Check"
 
     if [ ! -f "$COMPOSE_FILE" ]; then
         error "Conduit is not installed. Run Install first."
@@ -973,9 +977,9 @@ menu_healthcheck() {
     echo
     separator
     if $all_ok && [ ${#issues[@]} -eq 0 ]; then
-        echo -e "\n  ${BOLD}${GREEN}✅ All checks passed! Server is healthy.${NC}\n"
+        echo -e "\n  ${BOLD}${GREEN}[OK] All checks passed! Server is healthy.${NC}\n"
     else
-        echo -e "\n  ${BOLD}${YELLOW}⚠️  Issues found (${#issues[@]}):${NC}"
+        echo -e "\n  ${BOLD}${YELLOW}[!]  Issues found (${#issues[@]}):${NC}"
         for issue in "${issues[@]}"; do
             echo -e "     • $issue"
         done
@@ -1005,7 +1009,7 @@ menu_registration() {
         reg_open=true
     fi
 
-    step "👤 Registration Management"
+    step "* Registration Management"
 
     if $reg_open; then
         echo -e "  Current status: ${YELLOW}● OPEN${NC}"
@@ -1144,7 +1148,7 @@ menu_create_account() {
 #  CHECK FOR UPDATES
 # ═══════════════════════════════════════════════
 check_for_updates() {
-    step "🔍 Checking for container updates..."
+    step "* Checking for container updates..."
     echo
 
     cd "$INSTALL_DIR"
@@ -1168,15 +1172,15 @@ check_for_updates() {
         local remote_digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null | sed 's/.*@//')
 
         if [ -z "$local_digest" ]; then
-            echo -e "${CYAN}⬇️  New image${NC}"
+            echo -e "${CYAN}[NEW]  New image${NC}"
             has_updates=true
             services+=("$svc")
         elif [ "$local_digest" != "$remote_digest" ]; then
-            echo -e "${YELLOW}⬆️  Update available!${NC}"
+            echo -e "${YELLOW}[UP]  Update available!${NC}"
             has_updates=true
             services+=("$svc")
         else
-            echo -e "${GREEN}✅ Up to date${NC}"
+            echo -e "${GREEN}[OK] Up to date${NC}"
         fi
     done < <($SUDO docker compose config --services 2>/dev/null | while read svc; do
         img=$($SUDO docker compose config --format json 2>/dev/null | grep -A5 "\"$svc\"" | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -1198,7 +1202,7 @@ check_for_updates() {
             info "Skipped. Run 'Update containers' when ready."
         fi
     else
-        success "All containers are up to date! 🎉"
+        success "All containers are up to date! "
     fi
 }
 
@@ -1214,14 +1218,14 @@ menu_services() {
         return
     fi
 
-    step "🔧 Service Management"
+    step "* Service Management"
 
     echo -e "  ${CYAN}1${NC}) Start all services"
     echo -e "  ${CYAN}2${NC}) Stop all services"
     echo -e "  ${CYAN}3${NC}) Restart all services"
     echo -e "  ${CYAN}4${NC}) View logs (live)"
     echo -e "  ${CYAN}5${NC}) Update containers (pull latest)"
-    echo -e "  ${CYAN}6${NC}) 🔍 Check for updates"
+    echo -e "  ${CYAN}6${NC}) * Check for updates"
     echo -e "  ${CYAN}7${NC}) Show resource usage"
     echo -e "  ${CYAN}0${NC}) Back to main menu"
     echo
@@ -1294,7 +1298,7 @@ main_menu() {
             3) menu_healthcheck ;;
             4) menu_registration ;;
             5) menu_services ;;
-            0|q|Q) echo -e "\n${DIM}Goodbye! 👋${NC}\n"; exit 0 ;;
+            0|q|Q) echo -e "\n${DIM}Goodbye! ${NC}\n"; exit 0 ;;
             *) warn "Invalid option"; sleep 1 ;;
         esac
     done
@@ -1304,11 +1308,11 @@ main_menu() {
 if [ "$EUID" -ne 0 ]; then
     # Not root — check if sudo is available
     if ! command -v sudo &>/dev/null; then
-        echo -e "${RED}❌${NC} Please run as root or install sudo: ${BOLD}apt install sudo${NC}"
+        echo -e "${RED}[X]${NC} Please run as root or install sudo: ${BOLD}apt install sudo${NC}"
         exit 1
     fi
     if ! sudo -n true 2>/dev/null && ! sudo true; then
-        echo -e "${RED}❌${NC} sudo access required. Run: ${BOLD}sudo bash conduit-deploy.sh${NC}"
+        echo -e "${RED}[X]${NC} sudo access required. Run: ${BOLD}sudo bash conduit-deploy.sh${NC}"
         exit 1
     fi
     info "Running with sudo privileges"

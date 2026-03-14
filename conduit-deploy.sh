@@ -1040,8 +1040,17 @@ menu_healthcheck() {
     echo -e "  ${BOLD}Resources:${NC}"
     DISK_USED=$(df -h / | awk 'NR==2{print $3}')
     DISK_AVAIL=$(df -h / | awk 'NR==2{print $4}')
-    DISK_PCT=$(df -h / | awk 'NR==2{print $5}')
-    success "  Disk: ${DISK_USED} used / ${DISK_AVAIL} free ($DISK_PCT)"
+    DISK_PCT=$(df -h / | awk 'NR==2{print $5}' | tr -d '%')
+    if [ "$DISK_PCT" -ge 90 ]; then
+        error "  Disk: ${DISK_USED} used / ${DISK_AVAIL} free (${DISK_PCT}%) — CRITICAL!"
+        all_ok=false
+        issues+=("Disk usage at ${DISK_PCT}%")
+    elif [ "$DISK_PCT" -ge 80 ]; then
+        warn "  Disk: ${DISK_USED} used / ${DISK_AVAIL} free (${DISK_PCT}%) — getting full"
+        issues+=("Disk usage at ${DISK_PCT}%")
+    else
+        success "  Disk: ${DISK_USED} used / ${DISK_AVAIL} free (${DISK_PCT}%)"
+    fi
 
     RAM_USED=$(free -h | awk '/^Mem:/{print $3}')
     RAM_TOTAL=$(free -h | awk '/^Mem:/{print $2}')
@@ -1360,6 +1369,100 @@ menu_services() {
 }
 
 # ═══════════════════════════════════════════════
+#  MENU 6: UNINSTALL
+# ═══════════════════════════════════════════════
+menu_uninstall() {
+    show_header
+    step "Uninstall Matrix Conduit"
+
+    if [ ! -f "$COMPOSE_FILE" ]; then
+        error "Conduit is not installed. Nothing to remove."
+        press_enter
+        return
+    fi
+
+    load_config
+
+    echo -e "  ${RED}${BOLD}WARNING: This will permanently remove:${NC}"
+    echo -e "  • All Docker containers (Conduit, Caddy, Coturn)"
+    echo -e "  • All Docker volumes (database, media, certificates)"
+    echo -e "  • Configuration files at ${INSTALL_DIR}/"
+    echo -e "  • Firewall rules added by the installer"
+    echo -e "  • TLS cert auto-sync service"
+    echo -e "  • iptables UDP redirect rule"
+    echo
+    echo -e "  ${YELLOW}Your accounts, messages, and media will be LOST.${NC}"
+    echo
+    ask "Type 'UNINSTALL' to confirm:"
+    read -r confirm
+    if [ "$confirm" != "UNINSTALL" ]; then
+        info "Cancelled."
+        press_enter
+        return
+    fi
+
+    echo
+    ask "Create a backup before removing? [Y/n]:"
+    read -r backup_confirm
+    if [[ ! "$backup_confirm" =~ ^[Nn]$ ]]; then
+        BACKUP_FILE="$HOME/conduit-backup-$(date +%F-%H%M%S).tar.gz"
+        info "Creating backup at $BACKUP_FILE..."
+        cd "$INSTALL_DIR" && $SUDO docker compose down 2>/dev/null
+        $SUDO tar czf "$BACKUP_FILE" "$INSTALL_DIR" 2>/dev/null
+        success "Backup saved to: $BACKUP_FILE"
+    fi
+
+    # Stop and remove containers + volumes
+    info "Stopping and removing containers..."
+    cd "$INSTALL_DIR"
+    $SUDO docker compose down -v 2>/dev/null || true
+    success "Containers and volumes removed"
+
+    # Remove cert watcher
+    if systemctl is-enabled turn-cert-sync.path &>/dev/null 2>&1; then
+        $SUDO systemctl stop turn-cert-sync.path 2>/dev/null || true
+        $SUDO systemctl disable turn-cert-sync.path 2>/dev/null || true
+        $SUDO rm -f /etc/systemd/system/turn-cert-sync.path
+        $SUDO rm -f /etc/systemd/system/turn-cert-sync.service
+        $SUDO systemctl daemon-reload
+        success "TLS cert auto-sync removed"
+    fi
+
+    # Remove iptables rule
+    if $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
+        $SUDO iptables -t nat -D PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null || true
+        $SUDO netfilter-persistent save 2>/dev/null || true
+        success "iptables UDP redirect removed"
+    fi
+
+    # Remove firewall rules (reset UFW to deny all, keep SSH)
+    if command -v ufw &>/dev/null && $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
+        $SUDO ufw delete allow 80/tcp 2>/dev/null || true
+        $SUDO ufw delete allow 443/tcp 2>/dev/null || true
+        $SUDO ufw delete allow 8448/tcp 2>/dev/null || true
+        $SUDO ufw delete allow 3478 2>/dev/null || true
+        $SUDO ufw delete allow 5349 2>/dev/null || true
+        $SUDO ufw delete allow 49152:65535/udp 2>/dev/null || true
+        success "Firewall rules removed (SSH kept)"
+    fi
+
+    # Remove install directory
+    $SUDO rm -rf "$INSTALL_DIR"
+    success "Removed $INSTALL_DIR"
+
+    echo
+    separator
+    echo -e "\n  ${GREEN}${BOLD}Uninstall complete.${NC}"
+    echo -e "  Docker, fail2ban, and UFW are still installed (shared system packages)."
+    if [[ ! "$backup_confirm" =~ ^[Nn]$ ]]; then
+        echo -e "  Backup saved at: ${BOLD}$BACKUP_FILE${NC}"
+    fi
+    echo
+
+    press_enter
+}
+
+# ═══════════════════════════════════════════════
 #  MAIN MENU
 # ═══════════════════════════════════════════════
 main_menu() {
@@ -1370,9 +1473,10 @@ main_menu() {
         echo -e "  ${CYAN}3${NC}) ${BOLD}Health Check${NC} — Verify services & security"
         echo -e "  ${CYAN}4${NC}) ${BOLD}Registration${NC} — Open/close/create accounts"
         echo -e "  ${CYAN}5${NC}) ${BOLD}Services${NC}     — Start/stop/restart/update/logs"
+        echo -e "  ${CYAN}6${NC}) ${BOLD}Uninstall${NC}    — Remove everything"
         echo -e "  ${CYAN}0${NC}) ${BOLD}Exit${NC}"
         echo
-        ask "Choose [0-5]:"
+        ask "Choose [0-6]:"
         read -r choice
 
         case $choice in
@@ -1381,6 +1485,7 @@ main_menu() {
             3) menu_healthcheck ;;
             4) menu_registration ;;
             5) menu_services ;;
+            6) menu_uninstall ;;
             0|q|Q) echo -e "\n${DIM}Goodbye! ${NC}\n"; exit 0 ;;
             *) warn "Invalid option"; sleep 1 ;;
         esac

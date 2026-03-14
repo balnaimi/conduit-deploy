@@ -859,6 +859,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
     <a href="#after">After Install</a>
     <a href="#faq">FAQ</a>
     <a href="#arch">Architecture</a>
+    <a href="#troubleshooting">Troubleshooting</a>
   </div>
   <a href="https://github.com/balnaimi/conduit-deploy" target="_blank" class="nav-github">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -1062,9 +1063,10 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
   <span class="t-green">3)</span> <span class="t-white">Health Check</span> — Verify services & security
   <span class="t-green">4)</span> <span class="t-white">Registration</span> — Open/close/create accounts
   <span class="t-green">5)</span> <span class="t-white">Services</span>     — Start/stop/restart/update/logs
+  <span class="t-green">6)</span> <span class="t-white">Uninstall</span>    — Remove everything
   <span class="t-green">0)</span> <span class="t-white">Exit</span>
 
-<span class="t-orange">Choose [0-5]:</span> <span class="t-white">_</span></div>
+<span class="t-orange">Choose [0-6]:</span> <span class="t-white">_</span></div>
     </div>
 
     <h3 class="subtitle">What happens on first install?</h3>
@@ -1521,6 +1523,88 @@ exit</pre>
     <div class="callout callout-info" style="border-color:rgba(22,137,206,0.3);background:rgba(22,137,206,0.08);">
       <div class="callout-icon">🧪</div>
       <div style="color:rgba(244,246,241,0.75);">Tested on: Raspberry Pi 4, AWS t3.micro, DigitalOcean Droplet, Hetzner CX11, home Ubuntu server.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TROUBLESHOOTING -->
+<section class="section section-soft" id="troubleshooting">
+  <div class="container-sm">
+    <div class="section-header">
+      <div class="section-label">Help</div>
+      <h2 class="section-title">Troubleshooting</h2>
+      <p class="section-desc">Something not working? Start with the Health Check, then check common issues below.</p>
+    </div>
+
+    <div class="callout callout-info" style="margin-bottom:2rem;">
+      <div class="callout-icon">💡</div>
+      <div>Run <code>sudo ./conduit-deploy.sh</code> → <strong>Health Check</strong> first. It checks everything automatically and tells you what's wrong.</div>
+    </div>
+
+    <div class="option-card">
+      <h3>Can't connect from my phone / app</h3>
+      <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+        <li>Check all 3 containers are running: <code>cd /opt/conduit && sudo docker compose ps</code></li>
+        <li>Test HTTPS: open <code>https://matrix.yourdomain.com/_matrix/client/versions</code> in a browser</li>
+        <li>Make sure you entered the right homeserver in your app:
+          <ul style="margin:0.25rem 0 0 1.25rem;">
+            <li>Delegation mode: enter <code>example.com</code> (not matrix.example.com!)</li>
+            <li>Subdomain mode: enter <code>chat.example.com</code></li>
+          </ul>
+        </li>
+        <li>DNS might need 10–30 minutes to propagate</li>
+      </ul>
+    </div>
+
+    <div class="option-card">
+      <h3>HTTPS certificate error</h3>
+      <p class="desc">Caddy gets Let's Encrypt certificates automatically. If it fails:</p>
+      <pre class="code-block"><span class="comment"># Check Caddy logs for errors</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose logs caddy --tail 50</pre>
+      <ul style="margin:0.75rem 0 0 1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2;">
+        <li><strong>DNS not ready</strong> — wait, then restart: <code>sudo docker compose restart caddy</code></li>
+        <li><strong>Port 80 blocked</strong> — Let's Encrypt needs port 80 for verification</li>
+        <li><strong>Rate limited</strong> — too many requests; wait an hour and retry</li>
+      </ul>
+    </div>
+
+    <div class="option-card">
+      <h3>Voice / video calls don't work</h3>
+      <pre class="code-block"><span class="comment"># Check TURN ports are open</span>
+<span class="cmd">sudo</span> ufw status | grep -E "3478|5349"
+
+<span class="comment"># Check Coturn is running</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose logs coturn --tail 20
+
+<span class="comment"># Check TLS certs are synced</span>
+<span class="cmd">ls</span> -la /opt/conduit/certs/</pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.75rem;">If <code>turn.crt</code> is missing, restart to trigger cert sync: <code>sudo docker compose restart</code></p>
+    </div>
+
+    <div class="option-card">
+      <h3>Federation doesn't work</h3>
+      <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+        <li>Check port 8448 is open: <code>sudo ufw status | grep 8448</code></li>
+        <li>Test federation: visit <code>https://federationtester.matrix.org</code></li>
+        <li>Verify SRV record: <code>dig SRV _matrix._tcp.yourdomain.com</code></li>
+      </ul>
+    </div>
+
+    <div class="option-card">
+      <h3>Forgot registration token</h3>
+      <pre class="code-block"><span class="cmd">sudo</span> grep REGISTRATION_TOKEN /opt/conduit/.env</pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">Or use the script: <code>sudo ./conduit-deploy.sh</code> → Registration → Show token</p>
+    </div>
+
+    <div class="option-card">
+      <h3>Viewing logs</h3>
+      <pre class="code-block"><span class="comment"># All services (live)</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose logs -f
+
+<span class="comment"># Single service</span>
+<span class="cmd">sudo</span> docker compose logs -f conduit
+<span class="cmd">sudo</span> docker compose logs -f caddy
+<span class="cmd">sudo</span> docker compose logs -f coturn</pre>
     </div>
   </div>
 </section>

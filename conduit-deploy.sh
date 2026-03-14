@@ -1737,9 +1737,24 @@ menu_uninstall() {
     separator
     echo -e "\n  ${GREEN}${BOLD}Uninstall complete.${NC}"
     echo -e "  Docker, fail2ban, and UFW are still installed (shared system packages)."
-    echo -e "  Backups are kept at: ${BOLD}/opt/conduit-backups/${NC} (not deleted)"
     if [[ ! "$backup_confirm" =~ ^[Nn]$ ]]; then
         echo -e "  Backup saved at: ${BOLD}$BACKUP_FILE${NC}"
+    fi
+
+    # Offer to delete backups for full cleanup
+    if [ -d "/opt/conduit-backups" ] && ls /opt/conduit-backups/conduit-backup-*.tar.gz &>/dev/null; then
+        local bk_count=$(ls /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null | wc -l)
+        local bk_size=$(du -sh /opt/conduit-backups 2>/dev/null | awk '{print $1}')
+        echo
+        echo -e "  ${YELLOW}You still have ${bk_count} backup(s) in /opt/conduit-backups/ (${bk_size})${NC}"
+        ask "Delete all backups too? (completely remove everything) [y/N]:"
+        read -r del_backups
+        if [[ "$del_backups" =~ ^[Yy]$ ]]; then
+            $SUDO rm -rf /opt/conduit-backups
+            success "Backups deleted. Server is completely clean."
+        else
+            echo -e "  Backups kept at: ${BOLD}/opt/conduit-backups/${NC}"
+        fi
     fi
     echo
 

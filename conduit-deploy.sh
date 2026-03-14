@@ -1402,6 +1402,10 @@ do_backup() {
     echo -e "  • Database, media, and configuration files"
     echo -e "  • Pinned image versions (for exact rollback)"
     echo -e "  • TLS certificates and secrets"
+    echo
+    echo -e "  ${DIM}Backups are stored separately from the installation:${NC}"
+    echo -e "  ${DIM}  /opt/conduit/          = installation (database, config, media)${NC}"
+    echo -e "  ${DIM}  /opt/conduit-backups/  = backups (safe even if you uninstall)${NC}"
 
     return 0
 }
@@ -1410,6 +1414,17 @@ do_restore() {
     step "Restore from Backup"
 
     echo -e "  ${DIM}Enter the path to your backup file (.tar.gz)${NC}"
+    echo -e "  ${DIM}Backups are stored in: /opt/conduit-backups/${NC}"
+    echo
+    # List available backups
+    local available_backups=$(ls -lhS /opt/conduit-backups/conduit-backup-*.tar.gz 2>/dev/null)
+    if [ -n "$available_backups" ]; then
+        echo -e "  ${BOLD}Available backups:${NC}"
+        echo "$available_backups" | while read line; do
+            echo -e "  ${DIM}${line}${NC}"
+        done
+        echo
+    fi
     ask "Backup file path:"
     read -r RESTORE_FILE
 

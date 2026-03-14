@@ -91,16 +91,23 @@ Everything is in `/opt/conduit/`:
 
 ### How do I back up?
 
+The easiest way is through the script:
 ```bash
-# Stop services
-cd /opt/conduit && sudo docker compose down
-
-# Back up everything
-sudo tar -czf conduit-backup-$(date +%Y%m%d).tar.gz /opt/conduit /var/lib/docker/volumes/conduit_conduit-data
-
-# Start again
-sudo docker compose up -d
+sudo bash conduit-deploy.sh
+# Choose: Services → Backup (with version pinning)
 ```
+
+This saves everything to `/opt/conduit-backups/` — a **separate folder** from the installation at `/opt/conduit/`. Your backups are safe even if the installation is damaged or uninstalled.
+
+The backup includes: database, media, config, TLS certificates, and **pinned Docker image versions** (SHA256 digests). This means restoring gives you back the exact same software, not a newer version.
+
+```
+/opt/
+├── conduit/              ← installation
+└── conduit-backups/      ← backups (separate, survives uninstall)
+```
+
+The script automatically offers to clean up old backups when you have 3 or more.
 
 ### How do I update?
 

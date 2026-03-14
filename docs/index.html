@@ -1359,6 +1359,18 @@ exit</pre>
         <div class="callout-icon">📌</div>
         <div><strong>Version pinning:</strong> The backup records the <strong>exact version</strong> (SHA256 digest) of each Docker image running at backup time. This means when you restore, you get back the <strong>exact same software</strong> — not a newer version that might have issues.</div>
       </div>
+      <div class="callout callout-warn" style="margin-top:0.5rem;">
+        <div class="callout-icon">📂</div>
+        <div>
+          <strong>Where are backups stored?</strong> Backups are saved to <code>/opt/conduit-backups/</code> — a <strong>separate folder</strong> from the installation at <code>/opt/conduit/</code>. This is intentional: if the installation is damaged or uninstalled, your backups are safe and untouched.
+          <pre style="margin:0.75rem 0 0 0;font-size:0.82rem;line-height:1.5;color:var(--text-dim);background:var(--bg-alt);padding:0.75rem;border-radius:6px;">/opt/
+├── conduit/              ← installation (database, config, media)
+└── conduit-backups/      ← backups (separate, survives uninstall)
+    ├── conduit-backup-2025-03-15-020000.tar.gz
+    └── conduit-backup-2025-03-14-100000.tar.gz</pre>
+          <p style="margin:0.5rem 0 0 0;font-size:0.85rem;">The script automatically manages old backups — when you have 3 or more, it offers to keep only the latest 2 to save disk space.</p>
+        </div>
+      </div>
     </div>
 
     <div class="option-card">
@@ -1383,7 +1395,7 @@ exit</pre>
 <span class="cmd">sudo</span> rm -rf /opt/conduit
 
 <span class="comment"># Restore files from backup</span>
-<span class="cmd">sudo</span> tar xzf ~/conduit-backup-2025-01-15-120000.tar.gz -C /
+<span class="cmd">sudo</span> tar xzf /opt/conduit-backups/conduit-backup-2025-01-15-120000.tar.gz -C /
 
 <span class="comment"># Start services (uses pinned images if available)</span>
 <span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose up -d</pre>
@@ -1398,7 +1410,7 @@ exit</pre>
 <span class="comment"># Choose: Services → Backup (with version pinning)</span>
 
 <span class="comment"># Copy backup to new server</span>
-<span class="cmd">scp</span> ~/conduit-backup-*.tar.gz user@new-server:~/</pre>
+<span class="cmd">scp</span> /opt/conduit-backups/conduit-backup-*.tar.gz user@new-server:~/</pre>
       </div>
       <div style="margin-top:1.5rem;">
         <strong style="color:var(--blue);font-size:0.88rem;">On the new server:</strong>

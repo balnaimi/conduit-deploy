@@ -34,12 +34,12 @@ One interactive script that sets up a complete, secure Matrix server with **end-
 ## Quick Start
 
 ```bash
-# SSH into your server as root
-ssh root@your-server
+# SSH into your server (root or any user with sudo)
+ssh user@your-server
 
 # Download and run
 curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/install.sh -o install.sh
-bash install.sh
+sudo bash install.sh    # or: bash install.sh (if already root)
 ```
 
 ## Interactive Menu

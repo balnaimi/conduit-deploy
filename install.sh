@@ -5,8 +5,8 @@
 # ║  Deploy and manage your own Matrix server         ║
 # ╚═══════════════════════════════════════════════════╝
 #
-# Requirements: Fresh Debian 13 VPS with root access
-# Usage: bash install.sh
+# Requirements: Fresh Debian 13 VPS with root or sudo access
+# Usage: sudo bash install.sh  (or as root: bash install.sh)
 #
 
 set -euo pipefail
@@ -39,6 +39,13 @@ ask()     { echo -en "${BOLD}$1${NC} "; }
 separator() {
     echo -e "${DIM}───────────────────────────────────────────────${NC}"
 }
+
+# ─── Privilege helper ───
+# Runs command as root (directly if root, via sudo otherwise)
+SUDO=""
+if [ "$EUID" -ne 0 ]; then
+    SUDO="sudo"
+fi
 
 press_enter() {
     echo
@@ -75,7 +82,7 @@ show_header() {
         echo -e "  ${DIM}Domain: ${GREEN}${SERVER_NAME:-not set}${NC}"
         
         # Quick status
-        if command -v docker &>/dev/null && docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' conduit 2>/dev/null | grep -q "running"; then
+        if command -v docker &>/dev/null && $SUDO docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' conduit 2>/dev/null | grep -q "running"; then
             echo -e "  ${DIM}Status: ${GREEN}● Running${NC}"
         elif [ -f "$COMPOSE_FILE" ]; then
             echo -e "  ${DIM}Status: ${RED}● Stopped${NC}"
@@ -121,7 +128,7 @@ menu_prepare() {
     echo -e "     • Debian 13 (or Ubuntu 22.04+)"
     echo -e "     • Minimum 512MB RAM (1GB+ recommended)"
     echo -e "     • 10GB+ free disk"
-    echo -e "     • Root SSH access"
+    echo -e "     • SSH access with root or sudo privileges"
     echo -e "     • Ports 80, 443, 8448, 3478, 5349 NOT blocked by provider"
     echo
 
@@ -219,8 +226,8 @@ menu_install() {
     # ─── Pre-flight ───
     step "Pre-flight Checks"
 
-    if [ "$EUID" -ne 0 ]; then
-        error "Please run as root: ${BOLD}sudo bash install.sh${NC}"
+    if [ "$EUID" -ne 0 ] && ! sudo -n true 2>/dev/null; then
+        error "Root or sudo access required: ${BOLD}sudo bash install.sh${NC}"
         press_enter
         return
     fi
@@ -334,8 +341,8 @@ menu_install() {
         success "Docker already installed"
     else
         info "Installing Docker..."
-        curl -fsSL https://get.docker.com | sh
-        systemctl enable --now docker
+        curl -fsSL https://get.docker.com | $SUDO sh
+        $SUDO systemctl enable --now docker
         success "Docker installed"
     fi
     docker compose version &>/dev/null || { error "Docker Compose v2 not found"; press_enter; return; }
@@ -344,19 +351,19 @@ menu_install() {
     # ─── Firewall ───
     step "Configuring Firewall"
     if ! command -v ufw &>/dev/null; then
-        apt-get install -y -qq ufw >/dev/null 2>&1
+        $SUDO apt-get install -y -qq ufw >/dev/null 2>&1
     fi
-    ufw --force reset >/dev/null 2>&1
-    ufw default deny incoming >/dev/null 2>&1
-    ufw default allow outgoing >/dev/null 2>&1
-    ufw allow 22/tcp   comment 'SSH' >/dev/null 2>&1
-    ufw allow 80/tcp   comment 'HTTP' >/dev/null 2>&1
-    ufw allow 443/tcp  comment 'HTTPS' >/dev/null 2>&1
-    ufw allow 8448/tcp comment 'Matrix Federation' >/dev/null 2>&1
-    ufw allow 3478     comment 'TURN STUN' >/dev/null 2>&1
-    ufw allow 5349     comment 'TURN TLS/DTLS' >/dev/null 2>&1
-    ufw allow 49152:65535/udp comment 'Media Relay' >/dev/null 2>&1
-    ufw --force enable >/dev/null 2>&1
+    $SUDO ufw --force reset >/dev/null 2>&1
+    $SUDO ufw default deny incoming >/dev/null 2>&1
+    $SUDO ufw default allow outgoing >/dev/null 2>&1
+    $SUDO ufw allow 22/tcp   comment 'SSH' >/dev/null 2>&1
+    $SUDO ufw allow 80/tcp   comment 'HTTP' >/dev/null 2>&1
+    $SUDO ufw allow 443/tcp  comment 'HTTPS' >/dev/null 2>&1
+    $SUDO ufw allow 8448/tcp comment 'Matrix Federation' >/dev/null 2>&1
+    $SUDO ufw allow 3478     comment 'TURN STUN' >/dev/null 2>&1
+    $SUDO ufw allow 5349     comment 'TURN TLS/DTLS' >/dev/null 2>&1
+    $SUDO ufw allow 49152:65535/udp comment 'Media Relay' >/dev/null 2>&1
+    $SUDO ufw --force enable >/dev/null 2>&1
     success "Firewall configured"
 
     # ─── Hardening ───
@@ -364,9 +371,9 @@ menu_install() {
 
     # Swap
     if [ "$TOTAL_RAM" -lt 2048 ] && ! swapon --show 2>/dev/null | grep -q "/swapfile"; then
-        fallocate -l 2G /swapfile && chmod 600 /swapfile
-        mkswap /swapfile >/dev/null 2>&1 && swapon /swapfile
-        grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
+        $SUDO fallocate -l 2G /swapfile && $SUDO chmod 600 /swapfile
+        $SUDO mkswap /swapfile >/dev/null 2>&1 && $SUDO swapon /swapfile
+        grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" | $SUDO tee -a /etc/fstab > /dev/null
         success "Swap 2GB configured"
     else
         success "Swap OK"
@@ -374,28 +381,28 @@ menu_install() {
 
     # Fail2ban
     if ! command -v fail2ban-client &>/dev/null; then
-        apt-get install -y -qq fail2ban >/dev/null 2>&1
+        $SUDO apt-get install -y -qq fail2ban >/dev/null 2>&1
     fi
-    systemctl enable --now fail2ban >/dev/null 2>&1
+    $SUDO systemctl enable --now fail2ban >/dev/null 2>&1
     success "Fail2ban active"
 
     # Disable exim4
     if systemctl is-active exim4 &>/dev/null; then
-        systemctl stop exim4 && systemctl disable exim4 >/dev/null 2>&1
+        $SUDO systemctl stop exim4 && $SUDO systemctl disable exim4 >/dev/null 2>&1
         success "Disabled exim4"
     fi
 
     # Auto updates
-    dpkg -l | grep -q unattended-upgrades || apt-get install -y -qq unattended-upgrades >/dev/null 2>&1
+    dpkg -l | grep -q unattended-upgrades || $SUDO apt-get install -y -qq unattended-upgrades >/dev/null 2>&1
     success "Auto security updates enabled"
 
     # ─── Config files ───
     step "Creating Configuration Files"
-    mkdir -p "$INSTALL_DIR/certs"
+    $SUDO mkdir -p "$INSTALL_DIR/certs"
     cd "$INSTALL_DIR"
 
     # .env
-    cat > .env << EOF
+    $SUDO tee .env > /dev/null << EOF
 SERVER_NAME=${DOMAIN}
 TURN_SECRET=${TURN_SECRET}
 REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
@@ -404,7 +411,7 @@ EOF
     success "Created .env"
 
     # docker-compose.yml
-    cat > docker-compose.yml << 'YAML'
+    $SUDO tee docker-compose.yml > /dev/null << 'YAML'
 ###############################################
 # Matrix Conduit Server
 # Components: Conduit + Caddy (TLS) + Coturn (TURN)
@@ -483,13 +490,13 @@ networks:
 YAML
 
     # Fix MAX_REQUEST_SIZE with actual value
-    sed -i "s/CONDUIT_MAX_REQUEST_SIZE: 104857600/CONDUIT_MAX_REQUEST_SIZE: ${MAX_UPLOAD_BYTES}/" docker-compose.yml
+    $SUDO sed -i "s/CONDUIT_MAX_REQUEST_SIZE: 104857600/CONDUIT_MAX_REQUEST_SIZE: ${MAX_UPLOAD_BYTES}/" docker-compose.yml
     success "Created docker-compose.yml"
 
     # Caddyfile
     if [[ "$WELLKNOWN_MODE" == "A" ]]; then
         # Mode A: Caddy serves both Matrix + .well-known on root domain
-        cat > Caddyfile << EOF
+        $SUDO tee Caddyfile > /dev/null << EOF
 matrix.${DOMAIN}:443 {
     reverse_proxy conduit:6167
 }
@@ -510,7 +517,7 @@ ${DOMAIN}:443 {
 EOF
     else
         # Mode B: Only Matrix subdomain, .well-known handled externally
-        cat > Caddyfile << EOF
+        $SUDO tee Caddyfile > /dev/null << EOF
 matrix.${DOMAIN}:443 {
     reverse_proxy conduit:6167
 }
@@ -523,7 +530,7 @@ EOF
     success "Created Caddyfile"
 
     # turnserver.conf
-    cat > turnserver.conf << EOF
+    $SUDO tee turnserver.conf > /dev/null << EOF
 # Coturn TURN/STUN Configuration
 listening-port=3478
 tls-listening-port=5349
@@ -561,7 +568,7 @@ EOF
     success "Created turnserver.conf"
 
     # conduit.toml
-    cat > conduit.toml << 'EOF'
+    $SUDO tee conduit.toml > /dev/null << 'EOF'
 [global]
 
 [global.media]
@@ -587,8 +594,8 @@ EOF
 
     # ─── Start ───
     step "Starting Services"
-    docker compose pull 2>&1 | grep -E 'Pull|Done|Error' || true
-    docker compose up -d 2>&1
+    $SUDO docker compose pull 2>&1 | grep -E 'Pull|Done|Error' || true
+    $SUDO docker compose up -d 2>&1
     
     info "Waiting for Let's Encrypt certificate (up to 60s)..."
     for i in $(seq 1 12); do
@@ -604,10 +611,10 @@ EOF
     # Copy TLS certs for Coturn
     CERT_DIR="/var/lib/docker/volumes/conduit_caddy-data/_data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/matrix.${DOMAIN}"
     if [ -d "$CERT_DIR" ]; then
-        cp "$CERT_DIR/matrix.${DOMAIN}.crt" "$INSTALL_DIR/certs/turn.crt"
-        cp "$CERT_DIR/matrix.${DOMAIN}.key" "$INSTALL_DIR/certs/turn.key"
-        chmod 644 "$INSTALL_DIR/certs/turn."*
-        docker compose restart coturn >/dev/null 2>&1
+        $SUDO cp "$CERT_DIR/matrix.${DOMAIN}.crt" "$INSTALL_DIR/certs/turn.crt"
+        $SUDO cp "$CERT_DIR/matrix.${DOMAIN}.key" "$INSTALL_DIR/certs/turn.key"
+        $SUDO chmod 644 "$INSTALL_DIR/certs/turn."*
+        $SUDO docker compose restart coturn >/dev/null 2>&1
         success "TLS certificates synced to Coturn"
     else
         warn "TLS certs not ready yet — Coturn will work without TLS."
@@ -616,7 +623,7 @@ EOF
 
     # Cert auto-sync watcher
     info "Setting up TLS cert auto-sync..."
-    cat > /etc/systemd/system/turn-cert-sync.path << EOF
+    $SUDO tee /etc/systemd/system/turn-cert-sync.path > /dev/null << EOF
 [Unit]
 Description=Watch Caddy TLS certs for changes
 
@@ -627,7 +634,7 @@ PathChanged=${CERT_DIR}/matrix.${DOMAIN}.crt
 WantedBy=multi-user.target
 EOF
 
-    cat > /etc/systemd/system/turn-cert-sync.service << EOF
+    $SUDO tee /etc/systemd/system/turn-cert-sync.service > /dev/null << EOF
 [Unit]
 Description=Sync TLS certs from Caddy to Coturn
 
@@ -635,20 +642,20 @@ Description=Sync TLS certs from Caddy to Coturn
 Type=oneshot
 ExecStart=/bin/bash -c 'cp "${CERT_DIR}/matrix.${DOMAIN}.crt" "${INSTALL_DIR}/certs/turn.crt"; cp "${CERT_DIR}/matrix.${DOMAIN}.key" "${INSTALL_DIR}/certs/turn.key"; chmod 644 ${INSTALL_DIR}/certs/turn.*; docker restart coturn'
 EOF
-    systemctl daemon-reload
-    systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
+    $SUDO systemctl daemon-reload
+    $SUDO systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
     success "TLS cert auto-sync active"
 
     # iptables UDP 443 → 5349
-    if ! iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
-        iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1
-        netfilter-persistent save >/dev/null 2>&1
+    if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
+        $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
+        $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1
+        $SUDO netfilter-persistent save >/dev/null 2>&1
         success "UDP 443 → Coturn redirect configured"
     fi
 
     # Save credentials
-    cat > "$CREDS_FILE" << EOF
+    $SUDO tee "$CREDS_FILE" > /dev/null << EOF
 ═══════════════════════════════════════════
   Matrix Conduit Server Credentials
   Generated: $(date)
@@ -666,7 +673,7 @@ Install directory:  ${INSTALL_DIR}
 ⚠️  DELETE THIS FILE after saving credentials!
 ═══════════════════════════════════════════
 EOF
-    chmod 600 "$CREDS_FILE"
+    $SUDO chmod 600 "$CREDS_FILE"
 
     # ─── Done ───
     step "Installation Complete! 🎉"
@@ -703,7 +710,7 @@ menu_healthcheck() {
     # ─── Services ───
     echo -e "  ${BOLD}Services:${NC}"
     for svc in conduit caddy coturn; do
-        if docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' "$svc" 2>/dev/null | grep -q "running"; then
+        if $SUDO docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' "$svc" 2>/dev/null | grep -q "running"; then
             success "  $svc is running"
         else
             error "  $svc is NOT running"
@@ -746,7 +753,7 @@ menu_healthcheck() {
     echo -e "  ${BOLD}Security:${NC}"
 
     # UFW
-    if command -v ufw &>/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+    if command -v ufw &>/dev/null && $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
         success "  UFW firewall active"
     else
         warn "  UFW firewall not active"
@@ -899,8 +906,8 @@ menu_registration() {
 
     case $choice in
         1)
-            sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-            cd "$INSTALL_DIR" && docker compose up -d conduit >/dev/null 2>&1
+            $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
+            cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
             success "Registration OPENED"
             echo
             echo -e "  ${BOLD}Registration Token:${NC}"
@@ -911,8 +918,8 @@ menu_registration() {
             press_enter
             ;;
         2)
-            sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-            cd "$INSTALL_DIR" && docker compose up -d conduit >/dev/null 2>&1
+            $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
+            cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
             success "Registration CLOSED"
             press_enter
             ;;
@@ -946,8 +953,8 @@ menu_create_account() {
     local was_closed=false
     if grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
         was_closed=true
-        sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && docker compose up -d conduit >/dev/null 2>&1
+        $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
         sleep 3
         info "Temporarily opened registration..."
     fi
@@ -1006,8 +1013,8 @@ menu_create_account() {
 
     # Re-close if was closed
     if $was_closed; then
-        sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && docker compose up -d conduit >/dev/null 2>&1
+        $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
         info "Registration closed again"
     fi
 
@@ -1043,34 +1050,34 @@ menu_services() {
 
     case $choice in
         1)
-            docker compose up -d 2>&1
+            $SUDO docker compose up -d 2>&1
             success "Services started"
             press_enter
             ;;
         2)
-            docker compose down 2>&1
+            $SUDO docker compose down 2>&1
             success "Services stopped"
             press_enter
             ;;
         3)
-            docker compose restart 2>&1
+            $SUDO docker compose restart 2>&1
             success "Services restarted"
             press_enter
             ;;
         4)
             info "Press Ctrl+C to exit logs"
             sleep 1
-            docker compose logs -f --tail 50
+            $SUDO docker compose logs -f --tail 50
             ;;
         5)
             info "Pulling latest images..."
-            docker compose pull 2>&1
-            docker compose up -d 2>&1
+            $SUDO docker compose pull 2>&1
+            $SUDO docker compose up -d 2>&1
             success "Containers updated"
             press_enter
             ;;
         6)
-            docker stats --no-stream
+            $SUDO docker stats --no-stream
             press_enter
             ;;
         *)
@@ -1109,8 +1116,16 @@ main_menu() {
 
 # ─── Entry point ───
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}❌${NC} Please run as root: ${BOLD}sudo bash install.sh${NC}"
-    exit 1
+    # Not root — check if sudo is available
+    if ! command -v sudo &>/dev/null; then
+        echo -e "${RED}❌${NC} Please run as root or install sudo: ${BOLD}apt install sudo${NC}"
+        exit 1
+    fi
+    if ! sudo -n true 2>/dev/null && ! sudo true; then
+        echo -e "${RED}❌${NC} sudo access required. Run: ${BOLD}sudo bash install.sh${NC}"
+        exit 1
+    fi
+    info "Running with sudo privileges"
 fi
 
 main_menu

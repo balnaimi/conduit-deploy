@@ -1321,17 +1321,83 @@ exit</pre>
     </div>
 
     <div class="option-card">
-      <h3>How do I backup / update?</h3>
-      <div style="margin-top:0.5rem;">
-        <strong style="color:var(--blue);font-size:0.88rem;">Backup</strong>
-        <pre class="code-block"><span class="cmd">docker</span> compose down
-<span class="cmd">sudo</span> tar czf conduit-backup-$(date +%F).tar.gz /opt/conduit
-<span class="cmd">docker</span> compose up -d</pre>
+      <h3>How do I backup my server?</h3>
+      <p class="desc">Stop services, archive the entire <code>/opt/conduit</code> directory (database, config, media, certificates), then start again.</p>
+      <pre class="code-block"><span class="cmd">cd</span> /opt/conduit
+<span class="cmd">sudo</span> docker compose down
+<span class="cmd">sudo</span> tar czf ~/conduit-backup-$(date +%F).tar.gz /opt/conduit
+<span class="cmd">sudo</span> docker compose up -d</pre>
+      <div class="callout callout-info">
+        <div class="callout-icon">💾</div>
+        <div>This backs up <strong>everything</strong>: your RocksDB database, Caddy TLS certificates, Coturn config, media uploads, and <code>.env</code> settings. Store the archive somewhere safe (off-site, encrypted).</div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I restore from a backup?</h3>
+      <p class="desc">If an update goes wrong or you're moving to a new server, restore your backup like this:</p>
+      <pre class="code-block"><span class="comment"># Stop current services (if running)</span>
+<span class="cmd">cd</span> /opt/conduit
+<span class="cmd">sudo</span> docker compose down
+
+<span class="comment"># Remove current installation</span>
+<span class="cmd">sudo</span> rm -rf /opt/conduit
+
+<span class="comment"># Restore from backup</span>
+<span class="cmd">sudo</span> tar xzf ~/conduit-backup-2025-01-15.tar.gz -C /
+
+<span class="comment"># Start services</span>
+<span class="cmd">cd</span> /opt/conduit
+<span class="cmd">sudo</span> docker compose up -d</pre>
+      <div class="callout callout-warn">
+        <div class="callout-icon">⚠️</div>
+        <div><strong>Always backup before updating.</strong> If the update breaks something, you can restore to exactly how it was before.</div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I migrate to a different server?</h3>
+      <p class="desc">Moving your Matrix server to a new VPS or machine? Here's the full process:</p>
+      <div style="margin-top:1rem;">
+        <strong style="color:var(--blue);font-size:0.88rem;">On the old server:</strong>
+        <pre class="code-block"><span class="comment"># Backup everything</span>
+<span class="cmd">cd</span> /opt/conduit
+<span class="cmd">sudo</span> docker compose down
+<span class="cmd">sudo</span> tar czf ~/conduit-backup.tar.gz /opt/conduit
+
+<span class="comment"># Copy to new server</span>
+<span class="cmd">scp</span> ~/conduit-backup.tar.gz user@new-server:~/</pre>
       </div>
       <div style="margin-top:1.5rem;">
-        <strong style="color:var(--blue);font-size:0.88rem;">Update</strong>
-        <pre class="code-block"><span class="cmd">sudo</span> ./install.sh
-<span class="comment"># Choose option 3 (Update to latest version)</span></pre>
+        <strong style="color:var(--blue);font-size:0.88rem;">On the new server:</strong>
+        <pre class="code-block"><span class="comment"># Install Docker (if not already installed)</span>
+<span class="cmd">curl</span> -fsSL https://get.docker.com | sh
+
+<span class="comment"># Restore backup</span>
+<span class="cmd">sudo</span> tar xzf ~/conduit-backup.tar.gz -C /
+
+<span class="comment"># Start services</span>
+<span class="cmd">cd</span> /opt/conduit
+<span class="cmd">sudo</span> docker compose up -d</pre>
+      </div>
+      <div class="callout callout-danger" style="margin-top:1rem;">
+        <div class="callout-icon">🔑</div>
+        <div><strong>Don't forget DNS!</strong> Update your domain's A record to point to the new server's IP address. Caddy will automatically obtain new Let's Encrypt certificates on the new server.</div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I update Conduit?</h3>
+      <p class="desc">The update pulls the <strong>latest Docker images</strong> for all three services (Conduit, Caddy, Coturn) and restarts them. Your data, configuration, and accounts are preserved — only the software is updated.</p>
+      <pre class="code-block"><span class="cmd">sudo</span> ./install.sh
+<span class="comment"># Choose: Services → Update containers (pull latest)</span></pre>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.75rem;">Or manually:</p>
+      <pre class="code-block"><span class="cmd">cd</span> /opt/conduit
+<span class="cmd">sudo</span> docker compose pull      <span class="comment"># Download latest images</span>
+<span class="cmd">sudo</span> docker compose up -d     <span class="comment"># Restart with new images</span></pre>
+      <div class="callout callout-info">
+        <div class="callout-icon">📦</div>
+        <div><strong>What gets updated:</strong> Conduit server binary (latest tag), Caddy reverse proxy (2-alpine), and Coturn TURN server (latest). Your database, config (<code>.env</code>), certificates, and user data are <strong>untouched</strong>.</div>
       </div>
     </div>
   </div>

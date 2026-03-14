@@ -1323,6 +1323,56 @@ do_backup() {
     load_config
     cd "$INSTALL_DIR"
 
+    # ─── Check disk space before backup ───
+    local install_size_kb=$($SUDO du -sk "$INSTALL_DIR" 2>/dev/null | awk '{print $1}')
+    local install_size_mb=$((install_size_kb / 1024))
+    local avail_kb=$(df -k "$HOME" | awk 'NR==2{print $4}')
+    local avail_mb=$((avail_kb / 1024))
+
+    # Compressed backup is roughly 60-80% of original, estimate conservatively
+    local estimated_backup_mb=$((install_size_mb * 80 / 100))
+
+    if [ "$estimated_backup_mb" -ge "$avail_mb" ]; then
+        error "Not enough disk space for backup!"
+        echo -e "  Estimated backup size: ${BOLD}~${estimated_backup_mb}MB${NC}"
+        echo -e "  Available disk space:  ${BOLD}${avail_mb}MB${NC}"
+        echo
+        echo -e "  ${DIM}Free up space by removing old backups:${NC}"
+        # List existing backups
+        local old_backups=$(ls -lh "$HOME"/conduit-backup-*.tar.gz 2>/dev/null)
+        if [ -n "$old_backups" ]; then
+            echo -e "  ${DIM}${old_backups}${NC}"
+        else
+            echo -e "  ${DIM}No old backups found in $HOME${NC}"
+        fi
+        echo
+        ask "Continue anyway? (backup may fail) [y/N]:"
+        read -r space_confirm
+        [[ "$space_confirm" =~ ^[Yy]$ ]] || return 1
+    else
+        success "Disk space OK (need ~${estimated_backup_mb}MB, have ${avail_mb}MB free)"
+    fi
+
+    # ─── Clean old backups ───
+    local backup_count=$(ls "$HOME"/conduit-backup-*.tar.gz 2>/dev/null | wc -l)
+    if [ "$backup_count" -ge 3 ]; then
+        echo
+        warn "You have ${backup_count} old backups in $HOME:"
+        ls -lhS "$HOME"/conduit-backup-*.tar.gz 2>/dev/null | while read line; do
+            echo -e "  ${DIM}${line}${NC}"
+        done
+        echo
+        ask "Delete old backups? Keep only the latest 2. [y/N]:"
+        read -r cleanup_confirm
+        if [[ "$cleanup_confirm" =~ ^[Yy]$ ]]; then
+            ls -t "$HOME"/conduit-backup-*.tar.gz 2>/dev/null | tail -n +3 | while read old_file; do
+                local old_size=$(du -h "$old_file" | awk '{print $1}')
+                rm -f "$old_file"
+                success "Deleted: $(basename "$old_file") ($old_size)"
+            done
+        fi
+    fi
+
     # Save current image versions (pinned digests)
     step "Saving current image versions"
     local versions_file="$INSTALL_DIR/.image-versions"

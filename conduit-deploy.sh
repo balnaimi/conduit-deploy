@@ -521,19 +521,48 @@ menu_install() {
 
     # ─── System Dependencies ───
     step "Checking Dependencies"
-    local missing_deps=()
-    for dep in curl openssl sed grep awk; do
-        if ! command -v "$dep" &>/dev/null; then
-            missing_deps+=("$dep")
+
+    # Map: command → package name (some differ)
+    local -A dep_map=(
+        [curl]=curl
+        [openssl]=openssl
+        [sed]=sed
+        [grep]=grep
+        [awk]=gawk
+        [ss]=iproute2
+        [dig]=dnsutils
+        [tar]=tar
+        [free]=procps
+        [timedatectl]=systemd
+    )
+
+    local missing_pkgs=()
+    local missing_cmds=()
+    for cmd in "${!dep_map[@]}"; do
+        if ! command -v "$cmd" &>/dev/null; then
+            missing_cmds+=("$cmd")
+            # Avoid duplicates in package list
+            local pkg="${dep_map[$cmd]}"
+            local already=false
+            for p in "${missing_pkgs[@]}"; do
+                [[ "$p" == "$pkg" ]] && already=true
+            done
+            $already || missing_pkgs+=("$pkg")
         fi
     done
-    if [ ${#missing_deps[@]} -gt 0 ]; then
-        info "Installing missing packages: ${missing_deps[*]}"
+
+    if [ ${#missing_pkgs[@]} -gt 0 ]; then
+        info "Installing missing packages: ${missing_cmds[*]}"
         $SUDO apt-get update -qq >/dev/null 2>&1
-        $SUDO apt-get install -y -qq "${missing_deps[@]}" >/dev/null 2>&1
-        success "Dependencies installed"
+        if ! $SUDO apt-get install -y -qq "${missing_pkgs[@]}" 2>/dev/null; then
+            error "Failed to install: ${missing_pkgs[*]}"
+            error "Run manually: sudo apt-get install ${missing_pkgs[*]}"
+            press_enter
+            return
+        fi
+        success "Dependencies installed (${missing_cmds[*]})"
     else
-        success "All dependencies available (curl, openssl, sed, grep, awk)"
+        success "All dependencies available"
     fi
 
     # ─── Port Check ───

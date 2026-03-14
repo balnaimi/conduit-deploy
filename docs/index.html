@@ -19,8 +19,11 @@
   --blue-glow: rgba(22,137,206,0.15);
   --orange: #d46e13;
   --orange-light: #f08422;
-  --bg: #fcfaff;
-  --bg-alt: #f4f1fa;
+  --bg: #f8f7fc;
+  --bg-alt: #f0edf6;
+  --bg-warm: #f5f2eb;
+  --bg-cool: #edf2f8;
+  --bg-soft: #f2f0f7;
   --bg-dark: #01274f;
   --card-bg: #ffffff;
   --card-border: rgba(1,39,79,0.08);
@@ -281,6 +284,15 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
 }
 .section-alt {
   background: var(--bg-alt);
+}
+.section-warm {
+  background: var(--bg-warm);
+}
+.section-cool {
+  background: var(--bg-cool);
+}
+.section-soft {
+  background: var(--bg-soft);
 }
 .section-dark {
   background: var(--navy);
@@ -894,7 +906,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
 </section>
 
 <!-- FEATURES -->
-<section class="section" id="features">
+<section class="section section-soft" id="features">
   <div class="container">
     <div class="section-header">
       <div class="section-label">Features</div>
@@ -937,7 +949,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
 </section>
 
 <!-- TECH STACK -->
-<section class="section section-alt" id="stack">
+<section class="section section-warm" id="stack">
   <div class="container">
     <div class="section-header">
       <div class="section-label">Under the Hood</div>
@@ -1006,7 +1018,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
 </section>
 
 <!-- QUICK START -->
-<section class="section section-alt" id="quickstart">
+<section class="section section-cool" id="quickstart">
   <div class="container-sm">
     <div class="section-header">
       <div class="section-label">Installation</div>
@@ -1070,7 +1082,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
 </section>
 
 <!-- DOMAIN SETUP -->
-<section class="section" id="domain">
+<section class="section section-alt" id="domain">
   <div class="container-sm">
     <div class="section-header">
       <div class="section-label">Configuration</div>
@@ -1187,7 +1199,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
 </section>
 
 <!-- AFTER INSTALL -->
-<section class="section section-alt" id="after">
+<section class="section section-warm" id="after">
   <div class="container-sm">
     <div class="section-header">
       <div class="section-label">Next Steps</div>
@@ -1263,7 +1275,7 @@ exit</pre>
 </section>
 
 <!-- FAQ -->
-<section class="section" id="faq">
+<section class="section section-cool" id="faq">
   <div class="container-sm">
     <div class="section-header">
       <div class="section-label">FAQ</div>

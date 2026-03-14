@@ -9,7 +9,7 @@
 # Usage: sudo bash conduit-deploy.sh  (or as root: bash conduit-deploy.sh)
 #
 
-set -euo pipefail
+set -eo pipefail
 
 # ─── Config ───
 INSTALL_DIR="/opt/conduit"
@@ -29,7 +29,7 @@ DIM='\033[2m'
 NC='\033[0m'
 
 # ─── Helpers ───
-info()    { echo -e "${BLUE}ℹ${NC}  $1"; }
+info()    { echo -e "${BLUE}[i]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC}  $1"; }
 error()   { echo -e "${RED}[X]${NC} $1"; }
@@ -449,7 +449,7 @@ menu_install() {
     # ─── System Dependencies ───
     step "Checking Dependencies"
     local missing_deps=()
-    for dep in curl openssl sed grep; do
+    for dep in curl openssl sed grep awk; do
         if ! command -v "$dep" &>/dev/null; then
             missing_deps+=("$dep")
         fi
@@ -460,7 +460,58 @@ menu_install() {
         $SUDO apt-get install -y -qq "${missing_deps[@]}" >/dev/null 2>&1
         success "Dependencies installed"
     else
-        success "All dependencies available (curl, openssl, sed, grep)"
+        success "All dependencies available (curl, openssl, sed, grep, awk)"
+    fi
+
+    # ─── Port Check ───
+    step "Checking Port Availability"
+    local port_conflict=false
+    for port in 80 443 8448; do
+        if ss -tlnp 2>/dev/null | grep -q ":${port} " || netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
+            local blocking=$(ss -tlnp 2>/dev/null | grep ":${port} " | grep -oP 'users:\(\("\K[^"]+' || echo "unknown")
+            error "Port $port is already in use by: $blocking"
+            port_conflict=true
+        else
+            success "Port $port is available"
+        fi
+    done
+    if $port_conflict; then
+        warn "Some ports are in use. Caddy needs ports 80, 443, and 8448 to be free."
+        ask "Continue anyway? [y/N]:"
+        read -r port_confirm
+        [[ "$port_confirm" =~ ^[Yy]$ ]] || return
+    fi
+
+    # ─── DNS Check ───
+    step "Verifying DNS"
+    local dns_ok=true
+    RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | head -1)
+    if [ -z "$RESOLVED_IP" ]; then
+        # dig might not be installed, try host command
+        RESOLVED_IP=$(host "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1)
+    fi
+    if [ -z "$RESOLVED_IP" ]; then
+        # Last resort: getent
+        RESOLVED_IP=$(getent hosts "$MATRIX_HOST" 2>/dev/null | awk '{print $1}' | head -1)
+    fi
+
+    if [ -z "$RESOLVED_IP" ]; then
+        warn "$MATRIX_HOST does not resolve to any IP address."
+        warn "Make sure you've added the DNS A record before continuing."
+        warn "Without DNS, Let's Encrypt cannot issue a TLS certificate."
+        echo
+        ask "Continue anyway? (Let's Encrypt will retry) [y/N]:"
+        read -r dns_confirm
+        [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
+    elif [ "$RESOLVED_IP" != "$VPS_IP" ]; then
+        warn "$MATRIX_HOST resolves to $RESOLVED_IP (expected $VPS_IP)"
+        warn "DNS might not have propagated yet, or the A record points elsewhere."
+        echo
+        ask "Continue anyway? [y/N]:"
+        read -r dns_confirm
+        [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
+    else
+        success "$MATRIX_HOST resolves to $VPS_IP"
     fi
 
     # ─── Timezone ───

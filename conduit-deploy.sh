@@ -540,8 +540,20 @@ menu_install() {
     step "Checking Port Availability"
     local port_conflict=false
     for port in 80 443 8448; do
-        if ss -tlnp 2>/dev/null | grep -q ":${port} " || netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
-            local blocking=$(ss -tlnp 2>/dev/null | grep ":${port} " | grep -oP 'users:\(\("\K[^"]+' || echo "unknown")
+        local port_in_use=false
+        local blocking="unknown"
+        if command -v ss &>/dev/null; then
+            if ss -tlnp 2>/dev/null | grep -q ":${port} "; then
+                port_in_use=true
+                blocking=$(ss -tlnp 2>/dev/null | grep ":${port} " | grep -oP 'users:\(\("\K[^"]+' || echo "unknown")
+            fi
+        elif command -v netstat &>/dev/null; then
+            if netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
+                port_in_use=true
+                blocking=$(netstat -tlnp 2>/dev/null | grep ":${port} " | awk '{print $NF}' | cut -d/ -f2 || echo "unknown")
+            fi
+        fi
+        if $port_in_use; then
             error "Port $port is already in use by: $blocking"
             port_conflict=true
         else
@@ -608,7 +620,18 @@ menu_install() {
         success "Docker already installed"
     else
         info "Installing Docker..."
-        curl -fsSL https://get.docker.com | $SUDO sh
+        if ! curl -fsSL https://get.docker.com -o /tmp/get-docker.sh; then
+            error "Failed to download Docker installer. Check your internet connection."
+            press_enter
+            return
+        fi
+        if ! $SUDO sh /tmp/get-docker.sh; then
+            error "Docker installation failed. Check the output above."
+            rm -f /tmp/get-docker.sh
+            press_enter
+            return
+        fi
+        rm -f /tmp/get-docker.sh
         $SUDO systemctl enable --now docker
         success "Docker installed"
     fi
@@ -620,9 +643,11 @@ menu_install() {
     if ! command -v ufw &>/dev/null; then
         $SUDO apt-get install -y -qq ufw >/dev/null 2>&1
     fi
-    $SUDO ufw --force reset >/dev/null 2>&1
-    $SUDO ufw default deny incoming >/dev/null 2>&1
-    $SUDO ufw default allow outgoing >/dev/null 2>&1
+    # Only set defaults if UFW is not already active (don't reset existing rules)
+    if ! $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
+        $SUDO ufw default deny incoming >/dev/null 2>&1
+        $SUDO ufw default allow outgoing >/dev/null 2>&1
+    fi
     $SUDO ufw allow 22/tcp   comment 'SSH' >/dev/null 2>&1
     $SUDO ufw allow 80/tcp   comment 'HTTP' >/dev/null 2>&1
     $SUDO ufw allow 443/tcp  comment 'HTTPS' >/dev/null 2>&1
@@ -638,7 +663,10 @@ menu_install() {
 
     # Swap
     if [ "$TOTAL_RAM" -lt 2048 ] && ! swapon --show 2>/dev/null | grep -q "/swapfile"; then
-        $SUDO fallocate -l 2G /swapfile && $SUDO chmod 600 /swapfile
+        if ! $SUDO fallocate -l 2G /swapfile 2>/dev/null; then
+            $SUDO dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none 2>/dev/null
+        fi
+        $SUDO chmod 600 /swapfile
         $SUDO mkswap /swapfile >/dev/null 2>&1 && $SUDO swapon /swapfile
         grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" | $SUDO tee -a /etc/fstab > /dev/null
         success "Swap 2GB configured"
@@ -873,19 +901,33 @@ EOF
 
     # ─── Start ───
     step "Starting Services"
-    $SUDO docker compose pull 2>&1 | grep -E 'Pull|Done|Error' || true
-    $SUDO docker compose up -d 2>&1
+    if ! $SUDO docker compose pull 2>&1 | grep -E 'Pull|Done|Error'; then
+        warn "Some images may have failed to pull. Continuing..."
+    fi
+    if ! $SUDO docker compose up -d 2>&1; then
+        error "Failed to start services. Check: sudo docker compose -f $COMPOSE_FILE logs"
+        press_enter
+        return
+    fi
     
     info "Waiting for Let's Encrypt certificate (up to 60s)..."
+    local https_ok=false
     for i in $(seq 1 12); do
         sleep 5
         if curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null | grep -q "200"; then
             success "HTTPS is working!"
+            https_ok=true
             break
         fi
         echo -n "."
     done
     echo
+    if ! $https_ok; then
+        warn "HTTPS not responding yet. This is normal if DNS hasn't propagated."
+        echo -e "  ${DIM}Caddy will keep trying to get a certificate in the background.${NC}"
+        echo -e "  ${DIM}Check later with: sudo docker logs caddy${NC}"
+        echo -e "  ${DIM}Or run Health Check from the main menu.${NC}"
+    fi
 
     # Copy TLS certs for Coturn
     CERT_DIR="/var/lib/docker/volumes/conduit_caddy-data/_data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MATRIX_HOST}"
@@ -1453,8 +1495,16 @@ do_restore() {
 
     # Restore files
     info "Restoring from backup..."
-    $SUDO rm -rf "$INSTALL_DIR"
-    $SUDO tar xzf "$RESTORE_FILE" -C / 2>/dev/null
+    if [ -n "$INSTALL_DIR" ] && [ "$INSTALL_DIR" != "/" ]; then
+        $SUDO rm -rf "$INSTALL_DIR"
+    else
+        error "Invalid install directory. Aborting."
+        return 1
+    fi
+    if ! $SUDO tar xzf "$RESTORE_FILE" -C / 2>/dev/null; then
+        error "Failed to extract backup. File may be corrupted."
+        return 1
+    fi
     success "Files restored"
 
     # Check for pinned image versions
@@ -1526,10 +1576,16 @@ check_for_updates() {
         local tag=$(echo "$img" | cut -d: -f2)
         # Handle official images (no slash = library/)
         [[ "$repo" != */* ]] && repo="library/$repo"
-        local token=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" 2>/dev/null | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-        local remote_digest=$(curl -s -H "Authorization: Bearer $token" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/${repo}/manifests/${tag}" 2>/dev/null | grep -o '"digest":"sha256:[^"]*"' | head -1 | cut -d'"' -f4)
+        local token=$(curl -s --connect-timeout 10 "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" 2>/dev/null | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+        if [ -z "$token" ]; then
+            echo -e "${RED}[X] Could not reach Docker Hub (network issue?)${NC}"
+            continue
+        fi
+        local remote_digest=$(curl -s --connect-timeout 10 -H "Authorization: Bearer $token" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/${repo}/manifests/${tag}" 2>/dev/null | grep -o '"digest":"sha256:[^"]*"' | head -1 | cut -d'"' -f4)
 
-        if [ -z "$local_digest" ]; then
+        if [ -z "$remote_digest" ]; then
+            echo -e "${YELLOW}[!] Could not check remote version${NC}"
+        elif [ -z "$local_digest" ]; then
             echo -e "${CYAN}[NEW]  New image${NC}"
             has_updates=true
             services+=("$svc")

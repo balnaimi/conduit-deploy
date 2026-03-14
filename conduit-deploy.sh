@@ -416,12 +416,51 @@ menu_install() {
         fi
     fi
 
+    # ─── Media Settings ───
     echo
-    echo -e "  ${DIM}Default: 100MB. Matrix supports up to 1GB.${NC}"
+    separator
+    echo -e "\n  ${BOLD}Media Settings${NC}\n"
+
+    echo -e "  ${DIM}Maximum file size a user can upload (images, videos, documents).${NC}"
+    echo -e "  ${DIM}Matrix supports up to 1GB. Default: 100MB.${NC}"
     ask "Max upload size in MB [100]:"
     read -r MAX_UPLOAD_MB
     MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
     MAX_UPLOAD_BYTES=$((MAX_UPLOAD_MB * 1024 * 1024))
+
+    echo
+    echo -e "  ${DIM}Total disk space allowed for all media files.${NC}"
+    echo -e "  ${DIM}When this limit is reached, oldest files are removed first.${NC}"
+    ask "Max media storage in GB [10]:"
+    read -r MEDIA_SPACE_GB
+    MEDIA_SPACE_GB=${MEDIA_SPACE_GB:-10}
+
+    echo
+    echo -e "  ${BOLD}Media retention — when should old files be cleaned up?${NC}"
+    echo
+    echo -e "  ${DIM}Remote media = files from other Matrix servers (federation).${NC}"
+    echo -e "  ${DIM}Local media  = files uploaded by your users.${NC}"
+    echo
+
+    echo -e "  ${DIM}Remote media: delete if not accessed for X days. Default: 30.${NC}"
+    ask "Remote media access expiry in days [30]:"
+    read -r REMOTE_ACCESS_DAYS
+    REMOTE_ACCESS_DAYS=${REMOTE_ACCESS_DAYS:-30}
+
+    echo -e "  ${DIM}Remote media: delete if older than X days (regardless of access). Default: 90.${NC}"
+    ask "Remote media max age in days [90]:"
+    read -r REMOTE_CREATED_DAYS
+    REMOTE_CREATED_DAYS=${REMOTE_CREATED_DAYS:-90}
+
+    echo -e "  ${DIM}Local media: delete if not accessed for X days. Default: 365.${NC}"
+    ask "Local media access expiry in days [365]:"
+    read -r LOCAL_ACCESS_DAYS
+    LOCAL_ACCESS_DAYS=${LOCAL_ACCESS_DAYS:-365}
+
+    echo -e "  ${DIM}Max space for thumbnails (auto-generated previews). Default: 1GB.${NC}"
+    ask "Thumbnail storage in GB [1]:"
+    read -r THUMB_SPACE_GB
+    THUMB_SPACE_GB=${THUMB_SPACE_GB:-1}
 
     REGISTRATION_TOKEN=$(openssl rand -hex 32)
     TURN_SECRET=$(openssl rand -hex 32)
@@ -434,6 +473,9 @@ menu_install() {
     echo -e "  Matrix URL:  ${GREEN}https://${MATRIX_HOST}${NC}"
     echo -e "  VPS IP:      ${GREEN}${VPS_IP}${NC}"
     echo -e "  Max upload:  ${GREEN}${MAX_UPLOAD_MB}MB${NC}"
+    echo -e "  Media space: ${GREEN}${MEDIA_SPACE_GB}GB${NC} (thumbnails: ${THUMB_SPACE_GB}GB)"
+    echo -e "  Remote media:${GREEN} delete after ${REMOTE_ACCESS_DAYS}d idle / ${REMOTE_CREATED_DAYS}d max${NC}"
+    echo -e "  Local media: ${GREEN} delete after ${LOCAL_ACCESS_DAYS}d idle${NC}"
     if [[ "$WELLKNOWN_MODE" == "A" ]]; then
         echo -e "  .well-known: ${GREEN}Caddy (automatic)${NC}"
     elif [[ "$WELLKNOWN_MODE" == "B" ]]; then
@@ -774,27 +816,27 @@ EOF
     success "Created turnserver.conf"
 
     # conduit.toml
-    $SUDO tee conduit.toml > /dev/null << 'EOF'
+    $SUDO tee conduit.toml > /dev/null << EOF
 [global]
 
 [global.media]
 backend = "filesystem"
 
 [[global.media.retention]]
-space = "10GB"
+space = "${MEDIA_SPACE_GB}GB"
 
 [[global.media.retention]]
 scope = "remote"
-accessed = "30d"
-created = "90d"
+accessed = "${REMOTE_ACCESS_DAYS}d"
+created = "${REMOTE_CREATED_DAYS}d"
 
 [[global.media.retention]]
 scope = "local"
-accessed = "365d"
+accessed = "${LOCAL_ACCESS_DAYS}d"
 
 [[global.media.retention]]
 scope = "thumbnail"
-space = "1GB"
+space = "${THUMB_SPACE_GB}GB"
 EOF
     success "Created conduit.toml"
 

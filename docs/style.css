@@ -29,18 +29,36 @@
 }
 
 /* ─── Preview Banner ─── */
+/* Preview banner height — remove this block when going stable */
+:root { --banner-h: 36px; }
 .preview-banner {
   background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
   color: #fff;
   text-align: center;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--banner-h);
   z-index: 1001;
   box-shadow: 0 2px 8px rgba(180,83,9,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+/* Offset inline padding-tops on all pages for the banner */
+.preview-banner ~ * [style*="padding-top"] {
+  scroll-margin-top: var(--banner-h);
+}
+body {
+  padding-top: var(--banner-h, 0);
+}
+
 .preview-banner .banner-icon {
   margin-right: 0.5rem;
   font-size: 1.1rem;
@@ -77,7 +95,7 @@ a:hover { color: var(--blue-light); text-decoration: underline; }
    ============================================ */
 .navbar {
   position: fixed;
-  top: 0;
+  top: var(--banner-h, 0); /* Below preview banner — set --banner-h to 0 when removing banner */
   left: 0;
   right: 0;
   z-index: 100;

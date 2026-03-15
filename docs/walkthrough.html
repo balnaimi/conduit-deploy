@@ -620,6 +620,14 @@ Type 'RESTORE' to confirm: <strong>RESTORE</strong>
           <p class="desc">Run a Health Check (<strong><code>3</code></strong>) to confirm everything is working. All your accounts, messages, and rooms should be exactly as they were when the backup was taken.</p>
         </div>
 
+        <div class="step">
+          <h3>💡 What About Updates After Restore?</h3>
+          <p class="desc">Restore brings you back to the <strong>exact software versions</strong> from the backup (pinned by SHA256 digest). But your server isn't frozen there — after verifying everything works, you can update normally:</p>
+          <pre class="code-block"><span class="comment"># After restore, update to latest versions anytime:</span>
+Menu → Services → Update containers (pull latest)</pre>
+          <p class="desc" style="margin-top:0.75rem;">The pinning only applies during the restore itself — to give you a <strong>known-good starting point</strong>. After that, your server works like any other and you control when to update.</p>
+        </div>
+
       </div><!-- /steps -->
     </div><!-- /tab-restore -->
 
@@ -717,6 +725,10 @@ Choose: <strong>8</strong></pre>
             <li>Federation port 8448 accessible ✅</li>
             <li>All your accounts, messages, and rooms present ✅</li>
           </ul>
+        </div>
+
+        <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;margin-bottom:2rem;">
+          <strong>💡 Updates after migration:</strong> The restore uses the exact Docker images from your backup (pinned by SHA256). Once you've verified everything works, you can update to the latest versions anytime via <strong>Services → Update containers</strong>. Your server is not locked to the old versions — the pinning just ensures a safe, known-good starting point.
         </div>
 
         <div class="step">

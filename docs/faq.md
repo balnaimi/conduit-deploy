@@ -101,6 +101,8 @@ This saves everything to `/opt/conduit-backups/` — a **separate folder** from 
 
 The backup includes: database, media, config, TLS certificates, and **pinned Docker image versions** (SHA256 digests). This means restoring gives you back the exact same software, not a newer version.
 
+> **After restoring**, you're not locked to the old versions. Run **Services → Update containers** to pull the latest anytime. The pinning just ensures a safe starting point — after that, your server works normally.
+
 ```
 /opt/
 ├── conduit/              ← installation

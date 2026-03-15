@@ -132,6 +132,8 @@ When you restore, the script pulls the **exact same Docker images** (by SHA256 d
 - ✅ Database format matches the software version
 - ✅ You can update later on your own terms
 
+> **After restoring**, your server isn't locked to the old versions. Run **Services → Update containers** anytime to pull the latest. The pinning only applies during the restore itself — to give you a known-good starting point.
+
 ### Backup & Restore from the menu:
 
 ```

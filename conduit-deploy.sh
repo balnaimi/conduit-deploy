@@ -1809,7 +1809,7 @@ do_restore() {
             [[ "$svc" =~ ^#.*$ || -z "$svc" ]] && continue
             ((pinned_count++))
             echo -ne "  Pulling ${BOLD}${svc}${NC}... "
-            if timeout 120 $SUDO docker pull "$digest" >/dev/null 2>&1; then
+            if $SUDO setsid docker pull "$digest" </dev/null >/dev/null 2>&1; then
                 # Tag it back to the compose-expected name
                 local expected_img=""
                 case "$svc" in

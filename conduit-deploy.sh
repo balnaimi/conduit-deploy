@@ -1138,10 +1138,10 @@ menu_healthcheck() {
     # ─── Services ───
     echo -e "  ${BOLD}Services:${NC}"
     for svc in conduit caddy coturn; do
-        if $SUDO docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' "$svc" 2>/dev/null | grep -q "running"; then
+        if timeout 5 $SUDO docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' "$svc" 2>/dev/null | grep -q "running"; then
             success "  $svc is running"
         else
-            error "  $svc is NOT running"
+            error "  $svc is NOT running (or Docker is slow)"
             all_ok=false
             issues+=("$svc is down")
         fi
@@ -1218,12 +1218,12 @@ menu_healthcheck() {
         fi
     fi
 
-    # Auto updates
+    # OS security patches
     if dpkg -l 2>/dev/null | grep -q unattended-upgrades; then
-        success "  Auto security updates enabled"
+        success "  OS security patches enabled (no auto-reboot)"
     else
-        warn "  Auto security updates not installed"
-        issues+=("No auto updates")
+        warn "  OS security patches not installed"
+        issues+=("No security patches")
     fi
 
     # Check if reboot is needed
@@ -1256,18 +1256,28 @@ menu_healthcheck() {
     echo -e "  ${BOLD}TLS Certificates:${NC}"
     if [ -f "$INSTALL_DIR/certs/turn.crt" ]; then
         CERT_EXPIRY=$(openssl x509 -in "$INSTALL_DIR/certs/turn.crt" -noout -enddate 2>/dev/null | cut -d= -f2)
-        CERT_EPOCH=$(date -d "$CERT_EXPIRY" +%s 2>/dev/null || echo 0)
-        NOW_EPOCH=$(date +%s)
-        DAYS_LEFT=$(( (CERT_EPOCH - NOW_EPOCH) / 86400 ))
-        
-        if [ "$DAYS_LEFT" -gt 14 ]; then
-            success "  Coturn TLS cert valid ($DAYS_LEFT days left)"
-        elif [ "$DAYS_LEFT" -gt 0 ]; then
-            warn "  Coturn TLS cert expires in $DAYS_LEFT days"
-            issues+=("TLS cert expiring soon")
+        if [ -z "$CERT_EXPIRY" ]; then
+            warn "  Coturn TLS cert — could not read expiry"
+            issues+=("Could not check TLS cert")
         else
-            error "  Coturn TLS cert EXPIRED"
-            issues+=("TLS cert expired")
+            CERT_EPOCH=$(date -d "$CERT_EXPIRY" +%s 2>/dev/null)
+            if [ -z "$CERT_EPOCH" ]; then
+                warn "  Coturn TLS cert — date parsing failed (check manually: openssl x509 -in ${INSTALL_DIR}/certs/turn.crt -noout -enddate)"
+                issues+=("Could not parse TLS cert date")
+            else
+                NOW_EPOCH=$(date +%s)
+                DAYS_LEFT=$(( (CERT_EPOCH - NOW_EPOCH) / 86400 ))
+                
+                if [ "$DAYS_LEFT" -gt 14 ]; then
+                    success "  Coturn TLS cert valid ($DAYS_LEFT days left)"
+                elif [ "$DAYS_LEFT" -gt 0 ]; then
+                    warn "  Coturn TLS cert expires in $DAYS_LEFT days"
+                    issues+=("TLS cert expiring soon")
+                else
+                    error "  Coturn TLS cert EXPIRED"
+                    issues+=("TLS cert expired")
+                fi
+            fi
         fi
     else
         warn "  Coturn TLS cert not found"
@@ -1287,7 +1297,7 @@ menu_healthcheck() {
     echo -e "  ${BOLD}Resources:${NC}"
     DISK_USED=$(df -h / | awk 'NR==2{print $3}')
     DISK_AVAIL=$(df -h / | awk 'NR==2{print $4}')
-    DISK_PCT=$(df -h / | awk 'NR==2{print $5}' | tr -d '%')
+    DISK_PCT=$(df / | awk 'NR==2{print $5}' | sed 's/%//')
     if [ "$DISK_PCT" -ge 90 ]; then
         error "  Disk: ${DISK_USED} used / ${DISK_AVAIL} free (${DISK_PCT}%) — CRITICAL!"
         all_ok=false

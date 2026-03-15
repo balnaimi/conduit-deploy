@@ -291,6 +291,12 @@ menu_prepare() {
     echo -e "\n  ${BOLD}${YELLOW}Complete the above steps, then come back and choose 'Install'.${NC}\n"
 
     press_enter
+    # Save choices so Install can use them as defaults
+    mkdir -p /tmp/conduit-prepare 2>/dev/null
+    echo "$PREP_MODE" > /tmp/conduit-prepare/mode
+    echo "$PREP_DOMAIN" > /tmp/conduit-prepare/domain
+    [[ "$PREP_MODE" == "2" ]] && echo "$PREP_SUB" > /tmp/conduit-prepare/subdomain
+    info "Your choices are saved — Install will use them as defaults."
 }
 
 # ═══════════════════════════════════════════════
@@ -347,14 +353,29 @@ menu_install() {
     echo
     echo -e "  ${YELLOW}[!]  This is permanent — you cannot change it later!${NC}"
     echo
-    ask "Choose [1/2]:"
+    # Load defaults from Prepare step (if run previously)
+    local SAVED_MODE="" SAVED_DOMAIN="" SAVED_SUB=""
+    [ -f /tmp/conduit-prepare/mode ] && SAVED_MODE=$(cat /tmp/conduit-prepare/mode)
+    [ -f /tmp/conduit-prepare/domain ] && SAVED_DOMAIN=$(cat /tmp/conduit-prepare/domain)
+    [ -f /tmp/conduit-prepare/subdomain ] && SAVED_SUB=$(cat /tmp/conduit-prepare/subdomain)
+
+    if [ -n "$SAVED_MODE" ]; then
+        ask "Choose [1/2] (from Prepare: ${SAVED_MODE}):"
+    else
+        ask "Choose [1/2]:"
+    fi
     read -r DOMAIN_MODE
-    DOMAIN_MODE=${DOMAIN_MODE:-1}
+    DOMAIN_MODE=${DOMAIN_MODE:-${SAVED_MODE:-1}}
 
     echo
     echo -e "  ${DIM}Example: majlis7.net, example.com${NC}"
-    ask "Your domain name:"
+    if [ -n "$SAVED_DOMAIN" ]; then
+        ask "Your domain name [${GREEN}${SAVED_DOMAIN}${NC}]:"
+    else
+        ask "Your domain name:"
+    fi
     read -r DOMAIN
+    DOMAIN=${DOMAIN:-$SAVED_DOMAIN}
     [ -z "$DOMAIN" ] && { error "Domain is required"; press_enter; return; }
     # Basic domain validation
     if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$ ]]; then
@@ -366,9 +387,13 @@ menu_install() {
 
     # Set MATRIX_HOST and SERVER_NAME based on mode
     if [[ "$DOMAIN_MODE" == "2" ]]; then
-        ask "Subdomain for the server (e.g. chat, matrix, msg):"
+        if [ -n "$SAVED_SUB" ]; then
+            ask "Subdomain for the server [${GREEN}${SAVED_SUB}${NC}]:"
+        else
+            ask "Subdomain for the server (e.g. chat, matrix, msg):"
+        fi
         read -r SUBDOMAIN
-        SUBDOMAIN=${SUBDOMAIN:-chat}
+        SUBDOMAIN=${SUBDOMAIN:-${SAVED_SUB:-chat}}
         MATRIX_HOST="${SUBDOMAIN}.${DOMAIN}"
         SERVER_NAME="$MATRIX_HOST"    # username = @user:chat.example.com
         WELLKNOWN_MODE="NONE"
@@ -711,13 +736,19 @@ menu_install() {
 
     # Swap
     if [ "$TOTAL_RAM" -lt 2048 ] && ! swapon --show 2>/dev/null | grep -q "/swapfile"; then
-        if ! $SUDO fallocate -l 2G /swapfile 2>/dev/null; then
-            $SUDO dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none 2>/dev/null
+        if [ -f /swapfile ]; then
+            # Swapfile exists but not active — try to activate it
+            $SUDO chmod 600 /swapfile
+            $SUDO swapon /swapfile 2>/dev/null && success "Swap re-activated" || warn "Existing /swapfile found but could not activate"
+        else
+            if ! $SUDO fallocate -l 2G /swapfile 2>/dev/null; then
+                $SUDO dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none 2>/dev/null
+            fi
+            $SUDO chmod 600 /swapfile
+            $SUDO mkswap /swapfile >/dev/null 2>&1 && $SUDO swapon /swapfile
+            success "Swap 2GB configured"
         fi
-        $SUDO chmod 600 /swapfile
-        $SUDO mkswap /swapfile >/dev/null 2>&1 && $SUDO swapon /swapfile
         grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" | $SUDO tee -a /etc/fstab > /dev/null
-        success "Swap 2GB configured"
     else
         success "Swap OK"
     fi
@@ -891,6 +922,10 @@ EOF
     success "Created Caddyfile"
 
     # turnserver.conf
+    local TURN_IPV6_LINE=""
+    if ip -6 addr show scope global 2>/dev/null | grep -q "inet6"; then
+        TURN_IPV6_LINE="listening-ip=::"
+    fi
     $SUDO tee turnserver.conf > /dev/null << EOF
 # Coturn TURN/STUN Configuration
 listening-port=3478
@@ -900,9 +935,9 @@ tls-listening-port=5349
 cert=/etc/turn-certs/turn.crt
 pkey=/etc/turn-certs/turn.key
 
-# Listen on IPv4 + IPv6
+# Listen on IPv4${TURN_IPV6_LINE:+ + IPv6}
 listening-ip=0.0.0.0
-listening-ip=::
+${TURN_IPV6_LINE}
 
 # Relay
 min-port=49152
@@ -968,12 +1003,13 @@ EOF
     local https_ok=false
     for i in $(seq 1 12); do
         sleep 5
-        if curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null | grep -q "200"; then
+        local remaining=$(( (12 - i) * 5 ))
+        if curl -s --connect-timeout 5 -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null | grep -q "200"; then
             success "HTTPS is working!"
             https_ok=true
             break
         fi
-        echo -n "."
+        echo -ne "\r  ${DIM}Waiting... ${remaining}s remaining${NC}   "
     done
     echo
     if ! $https_ok; then
@@ -1099,7 +1135,7 @@ menu_healthcheck() {
     # ─── HTTPS ───
     echo -e "  ${BOLD}Connectivity:${NC}"
     if [ -n "$DOMAIN" ]; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null || echo "000")
+        HTTP_CODE=$(curl -s --connect-timeout 10 -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}/_matrix/client/versions" 2>/dev/null || echo "000")
         if [ "$HTTP_CODE" = "200" ]; then
             success "  HTTPS working (${MATRIX_HOST})"
         else
@@ -1108,7 +1144,7 @@ menu_healthcheck() {
             issues+=("HTTPS not working")
         fi
 
-        FED_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}:8448/_matrix/client/versions" 2>/dev/null || echo "000")
+        FED_CODE=$(curl -s --connect-timeout 10 -o /dev/null -w "%{http_code}" "https://${MATRIX_HOST}:8448/_matrix/client/versions" 2>/dev/null || echo "000")
         if [ "$FED_CODE" = "200" ]; then
             success "  Federation port 8448 working"
         else
@@ -1254,7 +1290,8 @@ menu_healthcheck() {
     # ─── Registration Status ───
     echo
     echo -e "  ${BOLD}Registration:${NC}"
-    if grep -q 'ALLOW_REGISTRATION: "true"' "$COMPOSE_FILE" 2>/dev/null; then
+    local reg_env=$($SUDO docker inspect conduit --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "CONDUIT_ALLOW_REGISTRATION=" | head -1)
+    if echo "$reg_env" | grep -qi "true"; then
         warn "  Registration is OPEN"
     else
         success "  Registration is CLOSED"
@@ -1280,6 +1317,7 @@ menu_healthcheck() {
 #  MENU 4: REGISTRATION MANAGEMENT
 # ═══════════════════════════════════════════════
 menu_registration() {
+  while true; do
     show_header
 
     if [ ! -f "$COMPOSE_FILE" ]; then
@@ -1350,6 +1388,7 @@ menu_registration() {
             return
             ;;
     esac
+  done
 }
 
 # ─── Create account via Conduit admin API ───
@@ -1366,17 +1405,30 @@ menu_create_account() {
         $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
         cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
         sleep 3
-        info "Temporarily opened registration..."
+        info "Temporarily opened registration (will close again after account creation)..."
+        echo -e "  ${DIM}Note: Registration is briefly open. A token is still required to register.${NC}"
     fi
 
     ask "Username (without @):"
     read -r NEW_USER
     [ -z "$NEW_USER" ] && { error "Username required"; press_enter; return; }
 
-    ask "Password:"
-    read -rs NEW_PASS
-    echo
+    ask "Password (min 8 characters):"
+    # Hide password input (stty fallback for shells where read -s doesn't work)
+    if read -rs NEW_PASS 2>/dev/null; then
+        echo
+    else
+        stty -echo 2>/dev/null
+        read -r NEW_PASS
+        stty echo 2>/dev/null
+        echo
+    fi
     [ -z "$NEW_PASS" ] && { error "Password required"; press_enter; return; }
+    if [ ${#NEW_PASS} -lt 8 ]; then
+        error "Password must be at least 8 characters (got ${#NEW_PASS})"
+        press_enter
+        return
+    fi
 
     # Escape special characters for JSON
     NEW_PASS_ESCAPED=$(echo "$NEW_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
@@ -1519,7 +1571,7 @@ do_backup() {
     $SUDO mkdir -p /opt/conduit-backups
     BACKUP_FILE="/opt/conduit-backups/conduit-backup-$(date +%F-%H%M%S).tar.gz"
     info "Creating backup at $BACKUP_FILE..."
-    $SUDO tar czf "$BACKUP_FILE" "$INSTALL_DIR" 2>/dev/null
+    $SUDO tar czf "$BACKUP_FILE" -C / "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null
     
     local backup_size=$(du -h "$BACKUP_FILE" 2>/dev/null | awk '{print $1}')
     success "Backup saved: $BACKUP_FILE ($backup_size)"
@@ -1676,11 +1728,7 @@ check_for_updates() {
         else
             echo -e "${GREEN}[OK] Up to date${NC}"
         fi
-    done < <($SUDO docker compose config --services 2>/dev/null | while read svc; do
-        img=$($SUDO docker compose config --format json 2>/dev/null | grep -A5 "\"$svc\"" | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
-        [ -z "$img" ] && img=$($SUDO docker compose images "$svc" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
-        echo "$svc $img"
-    done)
+    done < <($SUDO docker compose images --format '{{.Service}} {{.Repository}}:{{.Tag}}' 2>/dev/null)
 
     echo
     if $has_updates; then
@@ -1695,7 +1743,9 @@ check_for_updates() {
                 do_backup "pre-update"
                 echo
             fi
-            info "Restarting containers with new images..."
+            info "Pulling new images..."
+            $SUDO docker compose pull 2>&1
+            info "Restarting containers..."
             $SUDO docker compose up -d 2>&1
             success "Containers updated and restarted!"
             echo
@@ -1712,6 +1762,7 @@ check_for_updates() {
 #  MENU 5: SERVICE MANAGEMENT
 # ═══════════════════════════════════════════════
 menu_services() {
+  while true; do
     show_header
 
     if [ ! -f "$COMPOSE_FILE" ]; then
@@ -1797,6 +1848,7 @@ menu_services() {
             return
             ;;
     esac
+  done
 }
 
 # ═══════════════════════════════════════════════
@@ -1881,7 +1933,7 @@ menu_uninstall() {
     separator
     echo -e "\n  ${GREEN}${BOLD}Uninstall complete.${NC}"
     echo -e "  Docker, fail2ban, and UFW are still installed (shared system packages)."
-    if [[ ! "$backup_confirm" =~ ^[Nn]$ ]]; then
+    if [[ ! "$backup_confirm" =~ ^[Nn]$ ]] && [ -n "$BACKUP_FILE" ]; then
         echo -e "  Backup saved at: ${BOLD}$BACKUP_FILE${NC}"
     fi
 

@@ -1615,7 +1615,15 @@ do_backup() {
     $SUDO mkdir -p /opt/conduit-backups
     BACKUP_FILE="/opt/conduit-backups/conduit-backup-$(date +%F-%H%M%S).tar.gz"
     info "Creating backup at $BACKUP_FILE..."
-    $SUDO tar czf "$BACKUP_FILE" -C / "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null
+    if ! $SUDO tar czf "$BACKUP_FILE" -C / "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null; then
+        error "Failed to create backup archive. Check permissions and disk space."
+        return 1
+    fi
+    
+    if [ ! -f "$BACKUP_FILE" ] || [ ! -s "$BACKUP_FILE" ]; then
+        error "Backup file is empty or doesn't exist"
+        return 1
+    fi
     
     local backup_size=$(du -h "$BACKUP_FILE" 2>/dev/null | awk '{print $1}')
     success "Backup saved: $BACKUP_FILE ($backup_size)"
@@ -1658,10 +1666,14 @@ do_restore() {
     echo
     echo -e "  ${RED}${BOLD}WARNING: This will replace your current installation!${NC}"
     echo -e "  ${YELLOW}All current data, accounts, and messages will be overwritten.${NC}"
+    echo -e "  ${DIM}Restoring from: $(basename "$RESTORE_FILE")${NC}"
     echo
-    ask "Continue with restore? [y/N]:"
+    ask "Type 'RESTORE' to confirm:"
     read -r confirm
-    [[ "$confirm" =~ ^[Yy]$ ]] || return
+    if [ "$confirm" != "RESTORE" ]; then
+        info "Cancelled."
+        return
+    fi
 
     # Stop current services if running
     if [ -f "$COMPOSE_FILE" ]; then
@@ -1690,10 +1702,13 @@ do_restore() {
         echo -e "  ${DIM}Pulling the exact same images that were running at backup time.${NC}"
         echo
 
+        local pinned_count=0
+        local pinned_ok=0
         while IFS='=' read -r svc digest; do
             [[ "$svc" =~ ^#.*$ || -z "$svc" ]] && continue
+            ((pinned_count++))
             echo -ne "  Pulling ${BOLD}${svc}${NC}... "
-            if $SUDO docker pull "$digest" >/dev/null 2>&1; then
+            if timeout 120 $SUDO docker pull "$digest" >/dev/null 2>&1; then
                 # Tag it back to the compose-expected name
                 local expected_img=""
                 case "$svc" in
@@ -1705,10 +1720,17 @@ do_restore() {
                     $SUDO docker tag "$digest" "$expected_img" 2>/dev/null
                 fi
                 echo -e "${GREEN}[OK]${NC}"
+                ((pinned_ok++))
             else
-                echo -e "${YELLOW}[!] Could not pull pinned version, will use latest${NC}"
+                echo -e "${YELLOW}[!] Could not pull pinned version${NC}"
             fi
         done < "$versions_file"
+        
+        # If some pinned images failed, fall back to latest
+        if [ "$pinned_ok" -lt "$pinned_count" ]; then
+            warn "Some pinned images could not be pulled. Falling back to latest..."
+            cd "$INSTALL_DIR" && $SUDO docker compose pull 2>/dev/null || true
+        fi
     else
         warn "No pinned image versions found in backup. Will use latest images."
         info "Pulling latest images..."

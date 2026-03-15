@@ -7,7 +7,8 @@
 
 set -eo pipefail
 
-SCRIPT="/tmp/conduit-work/conduit-deploy.sh"
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT="${SCRIPT_DIR}/conduit-deploy.sh"
 MOCK_DIR="/tmp/conduit-sim"
 RESULTS_FILE="/tmp/conduit-sim/results.log"
 
@@ -818,6 +819,85 @@ test_error_handling() {
     fi
 }
 
+# ─── Test: Subdomain Collision Detection ───
+test_subdomain_collision() {
+    TESTS=$((TESTS+1))
+    info "Testing subdomain collision detection..."
+    
+    # Case: domain starts with subdomain (collision)
+    local domain="matrix.example.com"
+    local sub="matrix"
+    if [[ "$domain" == "${sub}."* ]]; then
+        pass "  Detected collision: $sub + $domain"
+    else
+        fail "  Should detect collision: $sub + $domain"
+    fi
+    
+    # Case: no collision
+    domain="example.com"
+    sub="matrix"
+    if [[ "$domain" == "${sub}."* ]]; then
+        fail "  False collision: $sub + $domain"
+    else
+        pass "  No collision: $sub + $domain (correct)"
+    fi
+    
+    # Case: similar but not collision (e.g. "chat" + "chatserver.com")
+    domain="chatserver.com"
+    sub="chat"
+    if [[ "$domain" == "${sub}."* ]]; then
+        fail "  False collision: $sub + $domain"
+    else
+        pass "  No collision: $sub + $domain (correct)"
+    fi
+    
+    # Script has collision warning
+    if grep -q 'already starts with' "$SCRIPT"; then
+        pass "  Script has subdomain collision warning"
+    else
+        fail "  Script missing subdomain collision warning"
+    fi
+}
+
+# ─── Test: Image Helper Functions Exist ───
+test_image_helpers() {
+    TESTS=$((TESTS+1))
+    info "Testing image helper functions..."
+    
+    if grep -q 'get_compose_image()' "$SCRIPT"; then
+        pass "  get_compose_image function exists"
+    else
+        fail "  get_compose_image function missing"
+    fi
+    
+    if grep -q 'get_all_compose_images()' "$SCRIPT"; then
+        pass "  get_all_compose_images function exists"
+    else
+        fail "  get_all_compose_images function missing"
+    fi
+    
+    # Should use JSON format, not Go templates
+    if grep -q 'format json' "$SCRIPT"; then
+        pass "  Uses --format json (Compose v5 compatible)"
+    else
+        fail "  Missing --format json"
+    fi
+    
+    # Should NOT use Go template syntax for compose images
+    if grep -q "compose images.*Repository.*Tag" "$SCRIPT" | grep -v "^#" 2>/dev/null; then
+        fail "  Still uses Go template syntax (broken on Compose v5)"
+    else
+        pass "  No Go template syntax for compose images"
+    fi
+    
+    # Registration curl has timeouts
+    if grep -q 'connect-timeout.*register\|register.*connect-timeout' "$SCRIPT"; then
+        pass "  Registration API calls have timeouts"
+    else
+        fail "  Registration API calls missing timeouts"
+    fi
+}
+
 # ─── Run all tests ───
 main() {
     echo
@@ -848,6 +928,8 @@ main() {
     test_paths
     test_security
     test_error_handling
+    test_subdomain_collision
+    test_image_helpers
     
     echo
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════${NC}"

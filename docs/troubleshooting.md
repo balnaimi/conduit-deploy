@@ -38,7 +38,11 @@ In your app, the homeserver should be:
 - Mode 1: `example.com` (just the root domain!)
 - Mode 2: `chat.example.com` (your full subdomain)
 
-Common mistake: entering `matrix.example.com` instead of `example.com` in Mode 1.
+Common mistakes:
+- Mode 1: entering `matrix.example.com` instead of `example.com`
+- Mode 2: entering `matrix.example.com` as the domain AND `matrix` as the subdomain → results in `matrix.matrix.example.com`!
+
+**Tip:** The domain field always means the **root domain** (e.g. `example.com`). The script adds the subdomain for you.
 
 ### "HTTPS certificate error"
 

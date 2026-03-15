@@ -40,6 +40,48 @@ separator() {
     echo -e "${DIM}───────────────────────────────────────────────${NC}"
 }
 
+# Get image name for a compose service (compatible with Docker Compose v2+v5)
+# Usage: get_compose_image <service_name>
+# Returns: repository:tag (e.g. "caddy:2-alpine")
+get_compose_image() {
+    local svc="$1"
+    # Try JSON format first (works on Compose v2.21+ and v5+)
+    local img=$($SUDO docker compose images "$svc" --format json 2>/dev/null | \
+        python3 -c "import json,sys; data=json.load(sys.stdin); print(f\"{data[0]['Repository']}:{data[0]['Tag']}\")" 2>/dev/null)
+    if [ -n "$img" ] && [ "$img" != ":" ]; then
+        echo "$img"
+        return
+    fi
+    # Fallback: parse table output
+    img=$($SUDO docker compose images "$svc" 2>/dev/null | tail -n +2 | awk '{print $2":"$3}' | head -1)
+    if [ -n "$img" ] && [ "$img" != ":" ]; then
+        echo "$img"
+        return
+    fi
+    echo ""
+}
+
+# Get all compose service images as "service repository:tag" lines
+# Usage: get_all_compose_images (outputs one line per service)
+get_all_compose_images() {
+    # Try JSON format first
+    local json=$($SUDO docker compose images --format json 2>/dev/null)
+    if [ -n "$json" ]; then
+        echo "$json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for item in data:
+    svc = item.get('ContainerName', item.get('Service', ''))
+    repo = item.get('Repository', '')
+    tag = item.get('Tag', '')
+    if repo and tag:
+        print(f'{svc} {repo}:{tag}')
+" 2>/dev/null && return
+    fi
+    # Fallback: parse table
+    $SUDO docker compose images 2>/dev/null | tail -n +2 | awk '{print $1" "$2":"$3}'
+}
+
 # ─── Privilege helper ───
 # Runs command as root (directly if root, via sudo otherwise)
 SUDO=""
@@ -148,6 +190,7 @@ menu_prepare() {
     fi
     echo
 
+    echo -e "  ${DIM}Enter just the root domain (e.g. example.com), not the full server address${NC}"
     ask "Your domain name (e.g. example.com):"
     read -r PREP_DOMAIN
     if [ -z "$PREP_DOMAIN" ]; then
@@ -160,6 +203,19 @@ menu_prepare() {
         ask "Subdomain for the server (e.g. chat, matrix, msg):"
         read -r PREP_SUB
         PREP_SUB=${PREP_SUB:-chat}
+        # Warn if subdomain is already part of the domain
+        if [[ "$PREP_DOMAIN" == "${PREP_SUB}."* ]]; then
+            warn "It looks like '${PREP_DOMAIN}' already starts with '${PREP_SUB}'"
+            echo -e "  ${DIM}The domain field should be just the root (e.g. example.com)${NC}"
+            echo -e "  ${DIM}Result would be: ${PREP_SUB}.${PREP_DOMAIN} — is this correct?${NC}"
+            ask "Continue anyway? [y/N]:"
+            read -r confirm_domain
+            if [[ ! "$confirm_domain" =~ ^[Yy]$ ]]; then
+                info "Let's try again"
+                press_enter
+                return
+            fi
+        fi
         PREP_FULL="${PREP_SUB}.${PREP_DOMAIN}"
     fi
 
@@ -380,7 +436,7 @@ menu_install() {
     fi
 
     echo
-    echo -e "  ${DIM}Example: majlis7.net, example.com${NC}"
+    echo -e "  ${DIM}Enter just the root domain (e.g. example.com), not the full server address${NC}"
     if [ -n "$SAVED_DOMAIN" ]; then
         ask "Your domain name [${GREEN}${SAVED_DOMAIN}${NC}]:"
     else
@@ -406,6 +462,19 @@ menu_install() {
         fi
         read -r SUBDOMAIN
         SUBDOMAIN=${SUBDOMAIN:-${SAVED_SUB:-chat}}
+        # Warn if subdomain is already part of the domain
+        if [[ "$DOMAIN" == "${SUBDOMAIN}."* ]]; then
+            warn "It looks like '${DOMAIN}' already starts with '${SUBDOMAIN}'"
+            echo -e "  ${DIM}The domain field should be just the root (e.g. example.com)${NC}"
+            echo -e "  ${DIM}Result would be: ${SUBDOMAIN}.${DOMAIN}${NC}"
+            ask "Continue anyway? [y/N]:"
+            read -r confirm_domain
+            if [[ ! "$confirm_domain" =~ ^[Yy]$ ]]; then
+                info "Let's try again"
+                press_enter
+                return
+            fi
+        fi
         MATRIX_HOST="${SUBDOMAIN}.${DOMAIN}"
         SERVER_NAME="$MATRIX_HOST"    # username = @user:chat.example.com
         WELLKNOWN_MODE="NONE"
@@ -1491,9 +1560,9 @@ menu_create_account() {
     NEW_USER_ESCAPED=$(echo "$NEW_USER" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
     # Register via Matrix client API
-    info "Creating account @${NEW_USER}:${DOMAIN}..."
+    info "Creating account @${NEW_USER}:${SERVER_NAME}..."
     
-    REGISTER_RESPONSE=$(curl -s -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+    REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"username\": \"${NEW_USER_ESCAPED}\",
@@ -1506,11 +1575,11 @@ menu_create_account() {
             \"initial_device_display_name\": \"Server Script\"
         }" 2>/dev/null)
 
-    # Check if we need a session
+    # Check if we need a session (UIAA flow)
     SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4)
     
     if [ -n "$SESSION" ]; then
-        REGISTER_RESPONSE=$(curl -s -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
             -H "Content-Type: application/json" \
             -d "{
                 \"username\": \"${NEW_USER_ESCAPED}\",
@@ -1613,8 +1682,11 @@ do_backup() {
     local versions_file="$INSTALL_DIR/.image-versions"
     $SUDO bash -c "echo '# Image versions at backup time: $(date)' > '$versions_file'"
     for svc in conduit caddy coturn; do
-        local img=$($SUDO docker compose images "$svc" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
-        local digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null || echo "")
+        local img=$(cd "$INSTALL_DIR" && get_compose_image "$svc")
+        local digest=""
+        if [ -n "$img" ]; then
+            digest=$($SUDO docker image inspect "$img" --format '{{index .RepoDigests 0}}' 2>/dev/null || echo "")
+        fi
         if [ -n "$digest" ]; then
             echo "${svc}=${digest}" | $SUDO tee -a "$versions_file" >/dev/null
             success "$svc: $img → ${digest##*@sha256:}" | head -c 80
@@ -1807,7 +1879,7 @@ check_for_updates() {
         else
             echo -e "${GREEN}[OK] Up to date${NC}"
         fi
-    done < <($SUDO docker compose images --format '{{.Service}} {{.Repository}}:{{.Tag}}' 2>/dev/null)
+    done < <(cd "$INSTALL_DIR" && get_all_compose_images)
 
     echo
     if $has_updates; then

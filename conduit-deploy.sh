@@ -1752,13 +1752,48 @@ do_backup() {
         fi
     done
 
+    # Ask about media files
+    local include_media="yes"
+    local media_dir="$INSTALL_DIR/data/media"  # Conduit media path inside data volume
+    local media_size=""
+    
+    # Check if there are media files and their size
+    if [ -d "$INSTALL_DIR/data" ]; then
+        media_size=$($SUDO du -sh "$INSTALL_DIR/data/media" 2>/dev/null | awk '{print $1}')
+        if [ -n "$media_size" ] && [ "$media_size" != "0" ]; then
+            echo
+            echo -e "  ${BOLD}Media files:${NC} ${media_size}"
+            echo -e "  ${DIM}Media includes user uploads (images, videos, documents) and cached federation files.${NC}"
+            echo -e "  ${DIM}Without media, the backup will be much smaller but messages/accounts are still saved.${NC}"
+            echo
+            ask "Include media files in backup? [Y/n]:"
+            read -r media_confirm
+            if [[ "$media_confirm" =~ ^[Nn]$ ]]; then
+                include_media="no"
+            fi
+        fi
+    fi
+
     # Create backup archive
     $SUDO mkdir -p /opt/conduit-backups
-    BACKUP_FILE="/opt/conduit-backups/conduit-backup-$(date +%F-%H%M%S).tar.gz"
+    local timestamp=$(date +%F-%H%M%S)
+    if [ "$include_media" = "yes" ]; then
+        BACKUP_FILE="/opt/conduit-backups/conduit-backup-${timestamp}.tar.gz"
+    else
+        BACKUP_FILE="/opt/conduit-backups/conduit-backup-${timestamp}-no-media.tar.gz"
+    fi
     info "Creating backup at $BACKUP_FILE..."
-    if ! $SUDO tar czf "$BACKUP_FILE" -C / "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null; then
-        error "Failed to create backup archive. Check permissions and disk space."
-        return 1
+    if [ "$include_media" = "yes" ]; then
+        if ! $SUDO tar czf "$BACKUP_FILE" -C / "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null; then
+            error "Failed to create backup archive. Check permissions and disk space."
+            return 1
+        fi
+    else
+        # Exclude media directory
+        if ! $SUDO tar czf "$BACKUP_FILE" -C / --exclude="$(echo "$INSTALL_DIR" | sed 's|^/||')/data/media" "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null; then
+            error "Failed to create backup archive. Check permissions and disk space."
+            return 1
+        fi
     fi
     
     if [ ! -f "$BACKUP_FILE" ] || [ ! -s "$BACKUP_FILE" ]; then
@@ -1770,9 +1805,14 @@ do_backup() {
     success "Backup saved: $BACKUP_FILE ($backup_size)"
     echo
     info "This backup includes:"
-    echo -e "  • Database, media, and configuration files"
+    echo -e "  • Database and configuration files"
     echo -e "  • Pinned image versions (for exact rollback)"
     echo -e "  • TLS certificates and secrets"
+    if [ "$include_media" = "yes" ]; then
+        echo -e "  • Media files (user uploads + cached files)"
+    else
+        echo -e "  • ${YELLOW}Media files EXCLUDED${NC} (accounts and messages are saved)"
+    fi
     echo
     echo -e "  ${DIM}Backups are stored separately from the installation:${NC}"
     echo -e "  ${DIM}  /opt/conduit/          = installation (database, config, media)${NC}"

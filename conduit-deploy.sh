@@ -1965,31 +1965,48 @@ menu_services() {
   while true; do
     show_header
 
+    local is_installed=true
     if [ ! -f "$COMPOSE_FILE" ]; then
-        error "Conduit is not installed."
-        press_enter
-        return
+        is_installed=false
     fi
 
-    load_config
+    if $is_installed; then
+        load_config
+    fi
 
     step "* Service Management"
 
-    echo -e "  ${CYAN}1${NC}) Start all services"
-    echo -e "  ${CYAN}2${NC}) Stop all services"
-    echo -e "  ${CYAN}3${NC}) Restart all services"
-    echo -e "  ${CYAN}4${NC}) View logs (live)"
-    echo -e "  ${CYAN}5${NC}) Update containers (pull latest)"
-    echo -e "  ${CYAN}6${NC}) * Check for updates"
-    echo -e "  ${CYAN}7${NC}) Backup (with version pinning)"
+    if $is_installed; then
+        echo -e "  ${CYAN}1${NC}) Start all services"
+        echo -e "  ${CYAN}2${NC}) Stop all services"
+        echo -e "  ${CYAN}3${NC}) Restart all services"
+        echo -e "  ${CYAN}4${NC}) View logs (live)"
+        echo -e "  ${CYAN}5${NC}) Update containers (pull latest)"
+        echo -e "  ${CYAN}6${NC}) * Check for updates"
+        echo -e "  ${CYAN}7${NC}) Backup (with version pinning)"
+    else
+        echo -e "  ${DIM}  Conduit is not installed. Only restore is available.${NC}"
+        echo
+    fi
     echo -e "  ${CYAN}8${NC}) Restore from backup"
-    echo -e "  ${CYAN}9${NC}) Show resource usage"
+    if $is_installed; then
+        echo -e "  ${CYAN}9${NC}) Show resource usage"
+    fi
     echo -e "  ${CYAN}0${NC}) Back to main menu"
     echo
     ask "Choose [0-9]:"
     read -r choice
 
-    cd "$INSTALL_DIR"
+    # Block options that need installation
+    if ! $is_installed && [[ "$choice" =~ ^[1-7]$ || "$choice" == "9" ]]; then
+        error "Conduit is not installed. Choose Restore (8) or go back (0)."
+        press_enter
+        continue
+    fi
+
+    if $is_installed; then
+        cd "$INSTALL_DIR"
+    fi
 
     case $choice in
         1)

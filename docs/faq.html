@@ -133,7 +133,7 @@
 
     <div class="option-card">
       <h3>How do I restore from a backup?</h3>
-      <p class="desc">If an update broke something and you want to go back to exactly how it was before:</p>
+      <p class="desc">If an update broke something and you want to go back to exactly how it was before. You'll need to type <code>RESTORE</code> to confirm (to prevent accidents):</p>
       <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
 <span class="comment"># Choose: Services → Restore from backup</span></pre>
       <p style="color:var(--text-dim);font-size:0.92rem;margin:1rem 0;">The restore process:</p>
@@ -207,6 +207,7 @@
         <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
           <li><strong>Backup</strong> — saves your data + current image versions</li>
           <li><strong>Update</strong> — pulls latest Docker images and restarts</li>
+          <li><strong>Verify</strong> — checks all 3 services are running after update</li>
           <li><strong>If something breaks</strong> — restore from backup (gets exact previous versions)</li>
         </ol>
       </div>

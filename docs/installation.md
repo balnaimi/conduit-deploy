@@ -79,6 +79,8 @@ Choose **1** to see a personalized checklist. Enter your domain and the script w
 
 Choose **2** and the script will ask you:
 
+> **Tip:** If you ran **Prepare** first, your domain and mode choices will be pre-filled as defaults — just press Enter to keep them.
+
 ### Question 1: Username mode
 
 ```
@@ -176,11 +178,14 @@ Choose **4** (Registration) → **3** (Create account):
 
 ```
 Username (without @): alice
-Password: ********
+Password (min 8 characters): ********
 
 ✅ Account created: @alice:example.com
 ```
 
+> **Usernames:** lowercase letters, numbers, dots, hyphens, underscores only (max 64 characters).
+> **Passwords:** minimum 8 characters.
+>
 > **Tip:** After creating accounts for your family/friends, close registration (option 2) so strangers can't sign up.
 
 ## What's next?

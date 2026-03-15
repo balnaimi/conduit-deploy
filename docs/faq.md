@@ -114,8 +114,15 @@ The script automatically offers to clean up old backups when you have 3 or more.
 Use the script menu:
 ```bash
 sudo bash conduit-deploy.sh
-# Choose 5 → 5 (Update containers)
+# Choose 5 → 6 (Check for updates) — see what's available first
+# Choose 5 → 5 (Update containers) — pull and restart
 ```
+
+The script will:
+1. Offer to create a backup first (recommended)
+2. Pull new images
+3. Restart containers
+4. **Verify all 3 services are running** after the update
 
 Or manually:
 ```bash

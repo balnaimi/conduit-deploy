@@ -1907,9 +1907,12 @@ PULLEOF
         $SUDO setsid bash "$pull_script" "$pull_log" "${pull_args[@]}" </dev/null >/dev/null 2>/dev/null &
         local pull_pid=$!
         
-        # Wait and show progress
+        # Wait and show progress (|| true prevents set -e from killing on grep no-match)
         echo -ne "  Pulling images"
-        while ! grep -q "DONE" "$pull_log" 2>/dev/null; do
+        while true; do
+            if grep -q "DONE" "$pull_log" 2>/dev/null; then
+                break
+            fi
             echo -n "."
             sleep 2
         done

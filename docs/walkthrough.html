@@ -52,7 +52,11 @@
 
     <!-- TAB NAVIGATION -->
     <div class="tab-nav">
-      <button class="tab-btn active" onclick="switchTab('subdomain')">
+      <button class="tab-btn active" onclick="switchTab('clean')">
+        <span class="tab-icon">✨</span>
+        Install (Clean Username)
+      </button>
+      <button class="tab-btn" onclick="switchTab('subdomain')">
         <span class="tab-icon">🚀</span>
         Install (Subdomain)
       </button>
@@ -74,7 +78,211 @@
     <!-- ══════════════════════════════════════════════ -->
     <!-- TAB 1: INSTALL (SUBDOMAIN MODE)               -->
     <!-- ══════════════════════════════════════════════ -->
-    <div class="tab-content active" id="tab-subdomain">
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TAB 0: INSTALL (CLEAN USERNAME MODE)          -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-clean">
+
+      <div class="option-card" style="margin-bottom:2rem;">
+        <h3>📋 What We'll Do</h3>
+        <p class="desc" style="margin-top:0.5rem;">Get clean usernames like <code>@user:example.com</code> while the server runs at <code>matrix.example.com</code>. This uses <strong>.well-known delegation</strong> — Caddy handles it automatically.</p>
+        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+          <li>Prerequisites — What you need before starting</li>
+          <li>DNS Setup — Two A records needed</li>
+          <li>Run the Installer — Mode 1 with delegation</li>
+          <li>Health Check — Verify everything works</li>
+          <li>Create Accounts — Add users to your server</li>
+          <li>Sign In &amp; Chat — Connect with a Matrix client</li>
+        </ol>
+      </div>
+
+      <div class="steps">
+
+        <div class="step">
+          <h3>1. Prerequisites</h3>
+          <p class="desc">Same as subdomain mode, plus <strong>one extra DNS record</strong>:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>What</th><th>Details</th></tr></thead>
+              <tbody>
+                <tr><td><strong>A VPS / server</strong></td><td>Debian 13 or Ubuntu 22.04+ with at least 512MB RAM and 10GB disk</td></tr>
+                <tr><td><strong>Root access</strong></td><td>Either logged in as <code>root</code>, or a user with <code>sudo</code></td></tr>
+                <tr><td><strong>A domain name</strong></td><td>Any domain you own (e.g., <code>example.com</code>)</td></tr>
+                <tr><td><strong>DNS access</strong></td><td>You'll need <strong>two</strong> A records — one for the root domain and one for the subdomain</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>⚠️ Key difference from Subdomain Mode:</strong> Your root domain (<code>example.com</code>) must also point to this server. If you already have a website at <code>example.com</code>, choose <strong>Option B</strong> during install (see Step 3).
+          </div>
+        </div>
+
+        <div class="step">
+          <h3>2. DNS Setup</h3>
+          <p class="desc">Add <strong>both</strong> records to your DNS provider:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td><code>A</code></td><td><code>@</code> (root)</td><td>Your server IP</td><td>Serves <code>.well-known</code> delegation files</td></tr>
+                <tr><td><code>A</code></td><td><code>matrix</code></td><td>Your server IP</td><td>Runs the actual Matrix server</td></tr>
+                <tr><td><code>AAAA</code></td><td><code>@</code> (root)</td><td>IPv6 (if available)</td><td>Optional but recommended</td></tr>
+                <tr><td><code>AAAA</code></td><td><code>matrix</code></td><td>IPv6 (if available)</td><td>Optional but recommended</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>⚠️ Cloudflare users:</strong> Set both records to <strong>DNS Only</strong> (grey cloud 🔘), not Proxied (orange cloud). Port 8448 for federation won't work through Cloudflare's proxy.
+          </div>
+          <pre class="code-block" style="margin-top:1rem;"><span class="comment"># Verify both records resolve</span>
+dig example.com +short        <span class="comment"># → your server IP</span>
+dig matrix.example.com +short <span class="comment"># → your server IP</span></pre>
+        </div>
+
+        <div class="step">
+          <h3>3. Run the Installer</h3>
+          <pre class="code-block">ssh root@your-server-ip
+curl -sL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh | bash</pre>
+
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3a. Choose Mode 1 (Clean Username)</h4>
+          <pre class="code-block">* How do you want your usernames to look?
+
+  1) Clean username — @user:<strong>example.com</strong> (server at matrix.example.com)
+  2) Subdomain only — @user:<strong>chat.example.com</strong> (simpler, no delegation)
+
+  ⚠ This is permanent — you cannot change it later!
+
+Choose [1/2]: <strong>1</strong></pre>
+
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3b. Enter Your Domain</h4>
+          <pre class="code-block">Your domain name: <strong>example.com</strong>
+VPS public IP [188.166.248.91]: <strong>↵ (press Enter to accept)</strong></pre>
+
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3c. Delegation Method</h4>
+          <p class="desc">The script asks how you want to handle <code>.well-known</code> delegation:</p>
+          <pre class="code-block">* .well-known Delegation
+  Your usernames will be @user:example.com but the server runs at matrix.example.com
+  The root domain needs to tell clients where to find the server.
+
+  A) Root domain (example.com) has <strong>NO existing website</strong> — Caddy handles it
+  B) Root domain (example.com) has <strong>an existing website</strong> — I'll give you instructions
+
+Choose [A/B]: <strong>A</strong></pre>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
+            <strong>💡 Option A vs B:</strong>
+            <ul style="margin:0.5rem 0 0 1.25rem;color:var(--text-dim);font-size:0.9rem;line-height:1.8;">
+              <li><strong>A</strong> — Caddy serves <code>.well-known</code> files on your root domain automatically. Best if this server is your only use for <code>example.com</code>.</li>
+              <li><strong>B</strong> — The script tells you exactly what <code>.well-known</code> JSON files to add to your existing web server. Use this if <code>example.com</code> already hosts a website elsewhere.</li>
+            </ul>
+          </div>
+
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3d. Media Settings</h4>
+          <p class="desc">Same as subdomain mode — defaults are fine for most setups:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Setting</th><th>Default</th></tr></thead>
+              <tbody>
+                <tr><td>Max upload size</td><td>100 MB</td></tr>
+                <tr><td>Max media storage</td><td>10 GB</td></tr>
+                <tr><td>Cached files idle expiry</td><td>30 days</td></tr>
+                <tr><td>Cached files max age</td><td>90 days</td></tr>
+                <tr><td>User files idle expiry</td><td>365 days</td></tr>
+                <tr><td>Thumbnail storage</td><td>1 GB</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3e. Confirm &amp; Install</h4>
+          <pre class="code-block">Summary:
+  Server name: <strong>balnaimi.me</strong>
+  Usernames:   <strong>@user:balnaimi.me</strong>
+  Matrix URL:  <strong>https://matrix.balnaimi.me</strong>
+  VPS IP:      188.166.248.91
+  .well-known: <strong>Caddy (automatic)</strong>
+
+Start installation? [Y/n] <strong>Y</strong></pre>
+          <p class="desc" style="margin-top:0.75rem;">Installation takes about 5–10 minutes. The script will:</p>
+          <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+            <li>Install dependencies (Docker, UFW, Fail2ban)</li>
+            <li>Verify ports and DNS</li>
+            <li>Generate config files with <code>.well-known</code> delegation</li>
+            <li>Pull Docker images and start services</li>
+            <li>Obtain TLS certificates for <strong>both</strong> <code>example.com</code> and <code>matrix.example.com</code></li>
+            <li>Set up TURN server for voice/video calls</li>
+          </ol>
+        </div>
+
+        <div class="step">
+          <h3>4. Verify .well-known Delegation</h3>
+          <p class="desc">After install, verify that delegation is working:</p>
+          <pre class="code-block"><span class="comment"># These should return JSON responses</span>
+curl -s https://example.com/.well-known/matrix/server
+<span class="comment"># → {"m.server": "matrix.example.com:443"}</span>
+
+curl -s https://example.com/.well-known/matrix/client
+<span class="comment"># → {"m.homeserver": {"base_url": "https://matrix.example.com"}}</span></pre>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>💡 How it works:</strong> When someone messages <code>@user:example.com</code>, their client checks <code>example.com/.well-known/matrix/server</code> to find where the actual server is (<code>matrix.example.com</code>). Caddy serves these files automatically.
+          </div>
+        </div>
+
+        <div class="step">
+          <h3>5. Health Check</h3>
+          <p class="desc">From the main menu, choose <strong><code>3</code></strong>:</p>
+          <pre class="code-block">Services:
+  ✅ conduit is running
+  ✅ caddy is running
+  ✅ coturn is running
+
+Connectivity:
+  ✅ HTTPS working (matrix.example.com)
+  ✅ Federation port 8448 working
+  ✅ IPv6 working
+
+Security:
+  ✅ UFW firewall active
+  ✅ Fail2ban active
+  ✅ SSH password auth disabled</pre>
+        </div>
+
+        <div class="step">
+          <h3>6. Create Accounts</h3>
+          <p class="desc">From the main menu: <strong><code>4</code></strong> → <strong><code>3</code></strong> (Create account via API)</p>
+          <pre class="code-block">Username: <strong>alice</strong>
+Password: <strong>MySecurePass123!</strong>
+
+ℹ Temporarily opening registration...
+ℹ Creating account @alice:example.com...
+✅ Account created: @alice:example.com
+ℹ Registration closed again</pre>
+          <p class="desc" style="margin-top:0.75rem;">Notice the <strong>clean username</strong>: <code>@alice:example.com</code> — no "matrix" subdomain in the user ID! 🎉</p>
+        </div>
+
+        <div class="step">
+          <h3>7. Sign In &amp; Chat</h3>
+          <p class="desc">Open any Matrix client (Element, SchildiChat, FluffyChat):</p>
+          <ol style="margin:1rem 0 0 1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.4;">
+            <li>Tap <strong>"Sign In"</strong></li>
+            <li>Change homeserver to: <code><strong>example.com</strong></code></li>
+            <li>Enter username and password</li>
+            <li>You're in! 🎉</li>
+          </ol>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>💡 Homeserver = root domain:</strong> Even though the server runs at <code>matrix.example.com</code>, users enter <code>example.com</code> as the homeserver. The client follows the <code>.well-known</code> redirect automatically.
+          </div>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
+            <strong>🌐 Federation works too:</strong> Other Matrix servers will find yours via the <code>.well-known</code> delegation. Message anyone on <code>matrix.org</code> and it just works!
+          </div>
+        </div>
+
+      </div><!-- /steps -->
+    </div><!-- /tab-clean -->
+
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TAB 1: INSTALL (SUBDOMAIN MODE)               -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-subdomain">
 
       <div class="option-card" style="margin-bottom:2rem;">
         <h3>📋 What We'll Do</h3>

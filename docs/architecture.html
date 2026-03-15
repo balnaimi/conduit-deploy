@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — Conduit Deploy</title>
+<meta name="description" content="Deploy your own private Matrix messaging server in minutes. E2EE, voice/video calls, federation — one script, fully automated.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Conduit Deploy
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="index.html">Home</a>
+    <a href="domain.html">Domain Setup</a>
+    <a href="after-install.html">After Install</a>
+    <a href="faq.html">FAQ</a>
+    <a href="architecture.html" class="active">Architecture</a>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </div>
+  <a href="https://github.com/balnaimi/conduit-deploy" target="_blank" class="nav-github">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    GitHub
+  </a>
+  <div class="hamburger" id="hamburger" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<section class="section" style="padding-top:7rem;" style="padding-top:7rem;" class="section section-dark" id="arch">
+  <div class="container-sm">
+    <div class="section-header">
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-desc">Three containers, one Docker network, zero exposed services.</p>
+    </div>
+
+    <div class="arch-diagram">
+<span style="color:var(--blue-light);">┌─────────────────────────────────────────────────────────────────┐</span>
+<span style="color:var(--blue-light);">│</span>                        <span style="color:#fff;font-weight:600;">Internet</span>                                <span style="color:var(--blue-light);">│</span>
+<span style="color:var(--blue-light);">│</span>              Ports 80, 443, 8448, 3478, 5349                   <span style="color:var(--blue-light);">│</span>
+<span style="color:var(--blue-light);">└───────────────────────────┬─────────────────────────────────────┘</span>
+                            │
+                 <span style="color:var(--blue-light);">┌──────────▼──────────┐</span>
+                 <span style="color:var(--blue-light);">│</span>  <span style="color:#fff;font-weight:600;">Caddy</span> (Reverse     <span style="color:var(--blue-light);">│</span>  ← Auto HTTPS & TLS
+                 <span style="color:var(--blue-light);">│</span>     Proxy)          <span style="color:var(--blue-light);">│</span>  ← Routes all traffic
+                 <span style="color:var(--blue-light);">└──────────┬──────────┘</span>
+                            │
+                 <span style="color:var(--orange-light);">┌──────────▼──────────┐</span>
+                 <span style="color:var(--orange-light);">│</span>  <span style="color:#fff;font-weight:600;">Conduit</span> (Matrix    <span style="color:var(--orange-light);">│</span>  ← No ports exposed!
+                 <span style="color:var(--orange-light);">│</span>   Homeserver)       <span style="color:var(--orange-light);">│</span>  ← Internal network only
+                 <span style="color:var(--orange-light);">└─────────────────────┘</span>
+                            │
+                 <span style="color:#28c840;">┌──────────▼──────────┐</span>
+                 <span style="color:#28c840;">│</span>  <span style="color:#fff;font-weight:600;">Coturn</span> (TURN/      <span style="color:#28c840;">│</span>  ← Voice/video relay
+                 <span style="color:#28c840;">│</span>   STUN server)      <span style="color:#28c840;">│</span>  ← NAT traversal
+                 <span style="color:#28c840;">└─────────────────────┘</span></div>
+
+    <h3 class="subtitle">Port Table</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>80</strong></td><td>TCP</td><td>Caddy</td><td>HTTP → HTTPS redirect</td></tr>
+          <tr><td><strong>443</strong></td><td>TCP</td><td>Caddy</td><td>HTTPS (Client-Server API)</td></tr>
+          <tr><td><strong>8448</strong></td><td>TCP</td><td>Caddy</td><td>Matrix federation (S2S)</td></tr>
+          <tr><td><strong>3478</strong></td><td>UDP</td><td>Coturn</td><td>STUN (NAT discovery)</td></tr>
+          <tr><td><strong>5349</strong></td><td>TCP/UDP</td><td>Coturn</td><td>TURNS (encrypted relay)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subtitle">Docker Compose Setup</h3>
+    <p style="color:rgba(244,246,241,0.65);font-size:0.92rem;margin-bottom:1rem;">Everything lives in <code style="background:rgba(255,255,255,0.1);color:#8ec8f0;padding:2px 6px;border-radius:4px;">/opt/conduit/</code> — one folder, easy to find:</p>
+    <pre class="code-block" style="font-size:0.88rem;line-height:1.8;"><span style="color:#8ec8f0;">/opt/conduit/</span>
+├── <span style="color:#7ec8f0;">docker-compose.yml</span>  <span class="comment"># All 3 containers, networks, volumes, ports</span>
+├── <span style="color:#7ec8f0;">.env</span>                <span class="comment"># Your config: domain, secrets, IP</span>
+├── <span style="color:#7ec8f0;">Caddyfile</span>           <span class="comment"># Reverse proxy + TLS (auto-generated)</span>
+├── <span style="color:#7ec8f0;">turnserver.conf</span>     <span class="comment"># TURN/STUN for voice/video calls</span>
+├── <span style="color:#7ec8f0;">conduit.toml</span>        <span class="comment"># Media retention settings</span>
+├── <span style="color:#7ec8f0;">CREDENTIALS.txt</span>     <span class="comment"># Your registration token (delete after saving!)</span>
+├── <span style="color:#e8a86e;">certs/</span>              <span class="comment"># TLS certificates for Coturn</span>
+│   ├── turn.crt
+│   └── turn.key
+└── <span style="color:#e8a86e;">.image-versions</span>    <span class="comment"># Pinned Docker image digests (created by backup)</span>
+
+<span style="color:#8ec8f0;">/opt/conduit-backups/</span>   <span class="comment"># Backups (separate folder, survives uninstall)</span>
+└── conduit-backup-2025-03-15-020000.tar.gz</pre>
+
+    <p style="color:rgba(244,246,241,0.65);font-size:0.92rem;margin:1.25rem 0 0.75rem;">Common Docker Compose commands (run from <code style="background:rgba(255,255,255,0.08);color:var(--blue-light);padding:2px 6px;border-radius:4px;">/opt/conduit/</code>):</p>
+    <pre class="code-block"><span class="cmd">sudo</span> docker compose up -d       <span class="comment"># Start all containers</span>
+<span class="cmd">sudo</span> docker compose down         <span class="comment"># Stop all containers</span>
+<span class="cmd">sudo</span> docker compose restart      <span class="comment"># Restart all containers</span>
+<span class="cmd">sudo</span> docker compose logs -f      <span class="comment"># View live logs</span>
+<span class="cmd">sudo</span> docker compose pull         <span class="comment"># Pull latest images (update)</span>
+<span class="cmd">sudo</span> docker compose ps           <span class="comment"># Show container status</span>
+<span class="cmd">sudo</span> docker stats --no-stream    <span class="comment"># Show CPU/RAM usage</span></pre>
+
+    <h3 class="subtitle">System Requirements</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Minimum</th><th>Recommended</th></tr></thead>
+        <tbody>
+          <tr><td><strong>CPU</strong></td><td>1 core (ARM or x86)</td><td>2+ cores</td></tr>
+          <tr><td><strong>RAM</strong></td><td>512MB</td><td>1–2GB</td></tr>
+          <tr><td><strong>Disk</strong></td><td>2GB</td><td>10GB+ (media)</td></tr>
+          <tr><td><strong>OS</strong></td><td>Linux (Docker)</td><td>Ubuntu 22.04+ / Debian 12+</td></tr>
+          <tr><td><strong>Network</strong></td><td>Public IP + domain</td><td>Static IP preferred</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info" style="border-color:rgba(22,137,206,0.3);background:rgba(22,137,206,0.08);">
+      <div class="callout-icon">🧪</div>
+      <div>Tested on: Raspberry Pi 4, AWS t3.micro, DigitalOcean Droplet, Hetzner CX11, home Ubuntu server.</div>
+    </div>
+
+    <h3 class="subtitle">What the Script Installs</h3>
+    <p style="color:rgba(244,246,241,0.7);margin-bottom:1rem;">The script will automatically install any missing packages. Here's exactly what gets added to your system:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Package</th><th>What it does</th><th>Why it's needed</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Docker</strong></td><td>Container runtime</td><td>Runs Conduit, Caddy, and Coturn in isolated containers</td></tr>
+          <tr><td><strong>UFW</strong></td><td>Firewall</td><td>Blocks unauthorized access, opens only needed ports</td></tr>
+          <tr><td><strong>Fail2ban</strong></td><td>Brute-force protection</td><td>Automatically bans IPs that try too many failed logins</td></tr>
+          <tr><td><strong>unattended-upgrades</strong></td><td>Auto security updates</td><td>Keeps your OS patched without manual intervention</td></tr>
+          <tr><td><strong>iptables-persistent</strong></td><td>Firewall rules persistence</td><td>Saves the UDP 443→5349 redirect rule across reboots</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:rgba(244,246,241,0.65);font-size:0.88rem;margin:1rem 0 0.5rem;">System utilities (installed if missing):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Package</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>curl</code></td><td>curl</td><td>Downloading files, API calls, connectivity checks</td></tr>
+          <tr><td><code>openssl</code></td><td>openssl</td><td>Generating secure tokens and secrets</td></tr>
+          <tr><td><code>dig</code></td><td>dnsutils</td><td>DNS verification before install</td></tr>
+          <tr><td><code>ss</code></td><td>iproute2</td><td>Checking if ports are available</td></tr>
+          <tr><td><code>tar</code></td><td>tar</td><td>Creating and restoring backups</td></tr>
+          <tr><td><code>free</code></td><td>procps</td><td>Checking available RAM</td></tr>
+          <tr><td><code>awk</code></td><td>gawk</td><td>Text processing (parsing outputs)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-info" style="margin-top:1rem;border-color:rgba(22,137,206,0.3);background:rgba(22,137,206,0.08);">
+      <div class="callout-icon">📋</div>
+      <div>Most of these are already pre-installed on Debian and Ubuntu. The script checks each one and only installs what's missing. Nothing is installed without showing you first.</div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-brand">Conduit Deploy</div>
+  <div class="footer-links">
+    <a href="https://github.com/balnaimi/conduit-deploy" target="_blank">GitHub</a>
+    <a href="https://conduit.rs/" target="_blank">Conduit</a>
+    <a href="https://matrix.org/" target="_blank">Matrix Protocol</a>
+    <a href="https://caddyserver.com/" target="_blank">Caddy</a>
+    <a href="https://letsencrypt.org/" target="_blank">Let's Encrypt</a>
+    <a href="https://github.com/coturn/coturn" target="_blank">Coturn</a>
+  </div>
+  <p style="font-size:0.88rem;">Built with 💜 for the Matrix community — Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></p>
+  <p class="footer-copy">Matrix is a trademark of The Matrix.org Foundation. This is an unofficial deployment guide.</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// NAVBAR SCROLL
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// MOBILE NAV
+function toggleNav() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// SMOOTH SCROLL (close mobile nav)
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('navLinks').classList.remove('open');
+  });
+});
+
+// COPY BUTTONS
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '📋 Copy';
+    btn.onclick = () => {
+      const text = block.textContent.replace('📋 Copy', '').replace('✅ Copied!', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+      });
+    };
+    block.appendChild(btn);
+  });
+});
+
+// TOAST
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

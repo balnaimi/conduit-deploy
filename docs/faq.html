@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ — Conduit Deploy</title>
+<meta name="description" content="Deploy your own private Matrix messaging server in minutes. E2EE, voice/video calls, federation — one script, fully automated.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Conduit Deploy
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="index.html">Home</a>
+    <a href="domain.html">Domain Setup</a>
+    <a href="after-install.html">After Install</a>
+    <a href="faq.html" class="active">FAQ</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </div>
+  <a href="https://github.com/balnaimi/conduit-deploy" target="_blank" class="nav-github">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    GitHub
+  </a>
+  <div class="hamburger" id="hamburger" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<section class="section" style="padding-top:7rem;" style="padding-top:7rem;" class="section section-cool" id="faq">
+  <div class="container-sm">
+    <div class="section-header">
+      <div class="section-label">FAQ</div>
+      <h2 class="section-title">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="option-card">
+      <h3>What is Matrix?</h3>
+      <p class="desc" style="margin-bottom:0;">Matrix is an <strong>open protocol</strong> for secure, decentralized communication. Like email — anyone can run a server, and all servers talk to each other. Unlike WhatsApp or Telegram, you own your data.</p>
+    </div>
+
+    <div class="option-card">
+      <h3>Why run your own server?</h3>
+      <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+        <li>🔐 <strong>Privacy</strong> — Messages stay on your server, not someone else's</li>
+        <li>🛡️ <strong>Control</strong> — You decide who registers and what's enabled</li>
+        <li>🌐 <strong>Federation</strong> — Still talk to users on matrix.org and others</li>
+        <li>💰 <strong>Free</strong> — If you already have a VPS or home server</li>
+      </ul>
+    </div>
+
+    <div class="option-card">
+      <h3>How does it compare?</h3>
+      <div class="table-wrap" style="margin-top:1rem;">
+        <table>
+          <thead><tr><th>Feature</th><th>Matrix</th><th>WhatsApp</th><th>Telegram</th><th>Signal</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Self-hosted</strong></td><td class="check">✅ Yes</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+            <tr><td><strong>E2E Encrypted</strong></td><td class="check">✅ Yes</td><td class="check">✅ Yes</td><td class="partial">⚠️ Optional</td><td class="check">✅ Yes</td></tr>
+            <tr><td><strong>Federation</strong></td><td class="check">✅ Yes</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+            <tr><td><strong>Phone required</strong></td><td class="check">❌ No</td><td class="cross">✅ Yes</td><td class="cross">✅ Yes</td><td class="cross">✅ Yes</td></tr>
+            <tr><td><strong>Open protocol</strong></td><td class="check">✅ Yes</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+            <tr><td><strong>Own your data</strong></td><td class="check">✅ Yes</td><td class="cross">❌</td><td class="cross">❌</td><td class="partial">⚠️ Partial</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How many users can it handle?</h3>
+      <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+        <li>1–10 users: <strong>1GB RAM</strong>, any CPU (Raspberry Pi works)</li>
+        <li>10–100 users: <strong>2–4GB RAM</strong>, 2+ cores</li>
+        <li>100–500 users: <strong>4–8GB RAM</strong>, 4+ cores</li>
+      </ul>
+      <div class="callout callout-info" style="margin-top:1rem;">
+        <div class="callout-icon">📊</div>
+        <div>This deployment uses ~50MB (Conduit) + ~30MB (Caddy) + ~20MB (Coturn) = <strong>~100MB total</strong>.</div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>Can I change the server name later?</h3>
+      <div class="callout callout-danger" style="margin:0.75rem 0 0.5rem;">
+        <div class="callout-icon">🚫</div>
+        <div><strong>No.</strong> Your Matrix server name is permanent. Changing it means losing all accounts, rooms, and data. Choose a domain you'll keep long-term.</div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I backup my server?</h3>
+      <p class="desc">The easiest way is through the script menu:</p>
+      <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Backup (with version pinning)</span></pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin:1rem 0;">This saves <strong>everything</strong> into a single <code>.tar.gz</code> file:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>What's included</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Database</strong> (RocksDB)</td><td>All accounts, messages, room history</td></tr>
+            <tr><td><strong>Media files</strong></td><td>Uploaded images, videos, documents</td></tr>
+            <tr><td><strong>Configuration</strong> (.env, Caddyfile, etc.)</td><td>Your domain, secrets, settings</td></tr>
+            <tr><td><strong>TLS certificates</strong></td><td>Let's Encrypt certs for HTTPS</td></tr>
+            <tr><td><strong>Docker image versions</strong></td><td>Exact SHA256 digest of each container image</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout callout-info">
+        <div class="callout-icon">📌</div>
+        <div><strong>Version pinning:</strong> The backup records the <strong>exact version</strong> (SHA256 digest) of each Docker image running at backup time. This means when you restore, you get back the <strong>exact same software</strong> — not a newer version that might have issues.</div>
+      </div>
+      <div class="callout callout-warn" style="margin-top:0.5rem;">
+        <div class="callout-icon">📂</div>
+        <div>
+          <strong>Where are backups stored?</strong> Backups are saved to <code>/opt/conduit-backups/</code> — a <strong>separate folder</strong> from the installation at <code>/opt/conduit/</code>. This is intentional: if the installation is damaged or uninstalled, your backups are safe and untouched. When uninstalling, you'll be asked if you want to delete backups too — for a completely clean removal.
+          <pre style="margin:0.75rem 0 0 0;font-size:0.82rem;line-height:1.5;color:var(--text-dim);background:var(--bg-alt);padding:0.75rem;border-radius:6px;">/opt/
+├── conduit/              ← installation (database, config, media)
+└── conduit-backups/      ← backups (separate, survives uninstall)
+    ├── conduit-backup-2025-03-15-020000.tar.gz
+    └── conduit-backup-2025-03-14-100000.tar.gz</pre>
+          <p style="margin:0.5rem 0 0 0;font-size:0.85rem;">The script automatically manages old backups — when you have 3 or more, it offers to keep only the latest 2 to save disk space.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I restore from a backup?</h3>
+      <p class="desc">If an update broke something and you want to go back to exactly how it was before:</p>
+      <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Restore from backup</span></pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin:1rem 0;">The restore process:</p>
+      <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+        <li>Stops current services</li>
+        <li>Replaces all files from the backup</li>
+        <li>Pulls the <strong>exact same Docker images</strong> that were running at backup time (not latest)</li>
+        <li>Starts services — you're back to exactly where you were</li>
+      </ol>
+      <div class="callout callout-info">
+        <div class="callout-icon">🔄</div>
+        <div><strong>Why this matters:</strong> Without version pinning, restoring your data but running a <em>newer</em> image could cause the same problem you're trying to fix. Pinned versions ensure a true rollback — same data <strong>and</strong> same software.</div>
+      </div>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:1rem;">Or manually:</p>
+      <pre class="code-block"><span class="comment"># Stop and remove current installation</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose down
+<span class="cmd">sudo</span> rm -rf /opt/conduit
+
+<span class="comment"># Restore files from backup</span>
+<span class="cmd">sudo</span> tar xzf /opt/conduit-backups/conduit-backup-2025-01-15-120000.tar.gz -C /
+
+<span class="comment"># Start services (uses pinned images if available)</span>
+<span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose up -d</pre>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I migrate to a different server?</h3>
+      <p class="desc">Moving your Matrix server to a new VPS or machine:</p>
+      <div style="margin-top:1rem;">
+        <strong style="color:var(--blue);font-size:0.88rem;">On the old server:</strong>
+        <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Backup (with version pinning)</span>
+
+<span class="comment"># Copy backup to new server</span>
+<span class="cmd">scp</span> /opt/conduit-backups/conduit-backup-*.tar.gz user@new-server:~/</pre>
+      </div>
+      <div style="margin-top:1.5rem;">
+        <strong style="color:var(--blue);font-size:0.88rem;">On the new server:</strong>
+        <pre class="code-block"><span class="comment"># Install Docker</span>
+<span class="cmd">curl</span> -fsSL https://get.docker.com | sh
+
+<span class="comment"># Download the deploy script</span>
+<span class="cmd">curl</span> <span class="flag">-o</span> conduit-deploy.sh https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh
+<span class="cmd">chmod</span> <span class="flag">+x</span> conduit-deploy.sh
+
+<span class="comment"># Restore from backup (pulls exact same image versions)</span>
+<span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Restore from backup</span></pre>
+      </div>
+      <div class="callout callout-danger" style="margin-top:1rem;">
+        <div class="callout-icon">🔑</div>
+        <div><strong>Don't forget DNS!</strong> Update your domain's A record to point to the new server's IP. Caddy will automatically obtain new Let's Encrypt certificates.</div>
+      </div>
+    </div>
+
+    <div class="option-card">
+      <h3>How do I check for & apply updates?</h3>
+      <p class="desc">Updates are <strong>not automatic</strong> — you decide when to update. The script can check Docker Hub for newer images and tell you which containers have updates available.</p>
+      <div style="margin-top:1rem;">
+        <strong style="color:var(--blue);font-size:0.88rem;">Check for updates</strong>
+        <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose: Services → Check for updates</span></pre>
+        <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">This compares your local images with Docker Hub:</p>
+        <pre class="code-block" style="font-size:0.82rem;line-height:1.5;"><span class="comment">  Checking</span> <span class="cmd">caddy</span> (caddy:2-alpine)...       <span style="color:#16a34a;">[OK] Up to date</span>
+<span class="comment">  Checking</span> <span class="cmd">conduit</span> (matrix-conduit:latest)... <span style="color:#d97706;">[UP] Update available!</span>
+<span class="comment">  Checking</span> <span class="cmd">coturn</span> (coturn:alpine)...        <span style="color:#16a34a;">[OK] Up to date</span></pre>
+      </div>
+      <div style="margin-top:1.5rem;">
+        <strong style="color:var(--blue);font-size:0.88rem;">The safe update flow</strong>
+        <p style="color:var(--text-dim);font-size:0.92rem;margin:0.5rem 0;">When you choose to update, the script asks to <strong>create a backup first</strong>. This means:</p>
+        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+          <li><strong>Backup</strong> — saves your data + current image versions</li>
+          <li><strong>Update</strong> — pulls latest Docker images and restarts</li>
+          <li><strong>If something breaks</strong> — restore from backup (gets exact previous versions)</li>
+        </ol>
+      </div>
+      <div class="callout callout-info" style="margin-top:1rem;">
+        <div class="callout-icon">📦</div>
+        <div><strong>What gets updated:</strong> The Docker images for Conduit (<code>latest</code>), Caddy (<code>2-alpine</code>), and Coturn (<code>alpine</code>). These tags always point to the newest release. Your database, config, certificates, and user data are <strong>never touched</strong>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-brand">Conduit Deploy</div>
+  <div class="footer-links">
+    <a href="https://github.com/balnaimi/conduit-deploy" target="_blank">GitHub</a>
+    <a href="https://conduit.rs/" target="_blank">Conduit</a>
+    <a href="https://matrix.org/" target="_blank">Matrix Protocol</a>
+    <a href="https://caddyserver.com/" target="_blank">Caddy</a>
+    <a href="https://letsencrypt.org/" target="_blank">Let's Encrypt</a>
+    <a href="https://github.com/coturn/coturn" target="_blank">Coturn</a>
+  </div>
+  <p style="font-size:0.88rem;">Built with 💜 for the Matrix community — Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></p>
+  <p class="footer-copy">Matrix is a trademark of The Matrix.org Foundation. This is an unofficial deployment guide.</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// NAVBAR SCROLL
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// MOBILE NAV
+function toggleNav() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// SMOOTH SCROLL (close mobile nav)
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('navLinks').classList.remove('open');
+  });
+});
+
+// COPY BUTTONS
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '📋 Copy';
+    btn.onclick = () => {
+      const text = block.textContent.replace('📋 Copy', '').replace('✅ Copied!', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+      });
+    };
+    block.appendChild(btn);
+  });
+});
+
+// TOAST
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

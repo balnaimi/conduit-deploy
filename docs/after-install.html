@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>After Install — Conduit Deploy</title>
+<meta name="description" content="Deploy your own private Matrix messaging server in minutes. E2EE, voice/video calls, federation — one script, fully automated.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Conduit Deploy
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="index.html">Home</a>
+    <a href="domain.html">Domain Setup</a>
+    <a href="after-install.html" class="active">After Install</a>
+    <a href="faq.html">FAQ</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </div>
+  <a href="https://github.com/balnaimi/conduit-deploy" target="_blank" class="nav-github">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    GitHub
+  </a>
+  <div class="hamburger" id="hamburger" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<section class="section" style="padding-top:7rem;" style="padding-top:7rem;" class="section section-warm" id="after">
+  <div class="container-sm">
+    <div class="section-header">
+      <div class="section-label">Next Steps</div>
+      <h2 class="section-title">After Install</h2>
+      <p class="section-desc">Your server is running. Here's how to start using it.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Download a Matrix Client</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Client</th><th>Platforms</th><th>Link</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Element</strong></td><td>Web, Desktop, iOS, Android</td><td><a href="https://element.io/download" target="_blank">element.io/download</a></td></tr>
+              <tr><td><strong>SchildiChat</strong></td><td>Desktop, iOS, Android</td><td><a href="https://schildi.chat/" target="_blank">schildi.chat</a></td></tr>
+              <tr><td><strong>FluffyChat</strong></td><td>iOS, Android, Linux</td><td><a href="https://fluffychat.im/" target="_blank">fluffychat.im</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>Sign In to Your Server</h3>
+        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+          <li>Open your Matrix client (e.g., Element)</li>
+          <li>Click <strong>"Sign In"</strong> → <strong>"Edit"</strong> homeserver URL</li>
+          <li>Enter your server name:
+            <ul style="margin:0.25rem 0 0 1.25rem;line-height:2;">
+              <li>Mode 1: <code>example.com</code></li>
+              <li>Mode 2: <code>matrix.example.com</code></li>
+            </ul>
+          </li>
+          <li>Sign in with your installer-generated credentials</li>
+        </ol>
+        <div class="callout callout-info" style="margin-top:1rem;">
+          <div class="callout-icon">🔑</div>
+          <div>Your first account was created by the installer. Check the output for your username and password!</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>Create More Accounts</h3>
+        <p>Registration is <strong>disabled by default</strong> for security. Two ways to add users:</p>
+        <div style="margin-top:1rem;">
+          <strong style="color:var(--blue);font-size:0.88rem;">Option A: Enable registration temporarily</strong>
+          <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
+<span class="comment"># Choose option 2 (Change configuration)</span>
+<span class="comment"># Set "allow_registration = true"</span>
+<span class="comment"># Disable again after creating accounts!</span></pre>
+        </div>
+        <div style="margin-top:1.5rem;">
+          <strong style="color:var(--blue);font-size:0.88rem;">Option B: Create via command line</strong>
+          <pre class="code-block"><span class="cmd">docker</span> exec -it conduit /bin/sh
+conduit database create-user @newuser:example.com newpassword
+exit</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>Security Best Practices</h3>
+        <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+          <li>🔒 Keep registration disabled unless actively creating accounts</li>
+          <li>🔑 Use strong passwords for all accounts</li>
+          <li>✅ Enable cross-signing for device verification</li>
+          <li>💾 Backup your encryption keys (Settings → Security → Backup)</li>
+          <li>🛡️ Only ports 80, 443, 8448, 3478, 5349 should be open</li>
+          <li>🔄 Keep Conduit updated regularly</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-brand">Conduit Deploy</div>
+  <div class="footer-links">
+    <a href="https://github.com/balnaimi/conduit-deploy" target="_blank">GitHub</a>
+    <a href="https://conduit.rs/" target="_blank">Conduit</a>
+    <a href="https://matrix.org/" target="_blank">Matrix Protocol</a>
+    <a href="https://caddyserver.com/" target="_blank">Caddy</a>
+    <a href="https://letsencrypt.org/" target="_blank">Let's Encrypt</a>
+    <a href="https://github.com/coturn/coturn" target="_blank">Coturn</a>
+  </div>
+  <p style="font-size:0.88rem;">Built with 💜 for the Matrix community — Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></p>
+  <p class="footer-copy">Matrix is a trademark of The Matrix.org Foundation. This is an unofficial deployment guide.</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// NAVBAR SCROLL
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// MOBILE NAV
+function toggleNav() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// SMOOTH SCROLL (close mobile nav)
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('navLinks').classList.remove('open');
+  });
+});
+
+// COPY BUTTONS
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '📋 Copy';
+    btn.onclick = () => {
+      const text = block.textContent.replace('📋 Copy', '').replace('✅ Copied!', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+      });
+    };
+    block.appendChild(btn);
+  });
+});
+
+// TOAST
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

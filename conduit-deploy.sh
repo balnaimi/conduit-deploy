@@ -1815,31 +1815,67 @@ do_restore() {
         done < "$versions_file"
         
         pinned_count=${#pin_services[@]}
+        
+        # Docker CLI v5 writes progress directly to /dev/tty, bypassing redirects.
+        # Run all pulls in a detached helper script to fully isolate from TTY.
+        local pull_script="/tmp/.conduit-restore-pull-$$.sh"
+        local pull_log="/tmp/.conduit-restore-pull-$$.log"
+        
+        cat > "$pull_script" << 'PULLEOF'
+#!/bin/bash
+LOG="$1"; shift
+> "$LOG"
+while [ $# -gt 0 ]; do
+    svc="$1"; digest="$2"; expected="$3"; shift 3
+    if docker pull "$digest" >/dev/null 2>&1; then
+        [ -n "$expected" ] && docker tag "$digest" "$expected" 2>/dev/null
+        echo "OK $svc" >> "$LOG"
+    else
+        echo "FAIL $svc" >> "$LOG"
+    fi
+done
+echo "DONE" >> "$LOG"
+PULLEOF
+        chmod +x "$pull_script"
+        
+        # Build arguments: svc digest expected_img triplets
+        local pull_args=()
         for i in "${!pin_services[@]}"; do
             local svc="${pin_services[$i]}"
             local digest="${pin_digests[$i]}"
-            echo -ne "  Pulling ${BOLD}${svc}${NC}... "
-            # Use nohup+background to fully isolate from TTY, then wait for it
-            $SUDO docker pull "$digest" </dev/null >/dev/null 2>&1 &
-            wait $!
-            local pull_exit=$?
-            if [ $pull_exit -eq 0 ]; then
-                # Tag it back to the compose-expected name
-                local expected_img=""
-                case "$svc" in
-                    conduit) expected_img="matrixconduit/matrix-conduit:latest" ;;
-                    caddy)   expected_img="caddy:2-alpine" ;;
-                    coturn)  expected_img="coturn/coturn:alpine" ;;
-                esac
-                if [ -n "$expected_img" ]; then
-                    $SUDO docker tag "$digest" "$expected_img" 2>/dev/null
-                fi
-                echo -e "${GREEN}[OK]${NC}"
-                ((pinned_ok++))
-            else
-                echo -e "${YELLOW}[!] Could not pull pinned version${NC}"
-            fi
+            local expected_img=""
+            case "$svc" in
+                conduit) expected_img="matrixconduit/matrix-conduit:latest" ;;
+                caddy)   expected_img="caddy:2-alpine" ;;
+                coturn)  expected_img="coturn/coturn:alpine" ;;
+            esac
+            pull_args+=("$svc" "$digest" "$expected_img")
         done
+        
+        # Run detached from TTY
+        $SUDO setsid bash "$pull_script" "$pull_log" "${pull_args[@]}" </dev/null >/dev/null 2>/dev/null &
+        local pull_pid=$!
+        
+        # Wait and show progress
+        echo -ne "  Pulling images"
+        while ! grep -q "DONE" "$pull_log" 2>/dev/null; do
+            echo -n "."
+            sleep 2
+        done
+        wait $pull_pid 2>/dev/null
+        echo
+        
+        # Show results
+        while IFS=' ' read -r status svc; do
+            if [ "$status" = "OK" ]; then
+                echo -e "  ${GREEN}[OK]${NC} $svc"
+                ((pinned_ok++))
+            elif [ "$status" = "FAIL" ]; then
+                echo -e "  ${YELLOW}[!]${NC} $svc — could not pull pinned version"
+            fi
+        done < <(grep -v "DONE" "$pull_log")
+        
+        rm -f "$pull_script" "$pull_log"
         
         # If some pinned images failed, fall back to latest
         if [ "$pinned_ok" -lt "$pinned_count" ]; then

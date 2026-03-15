@@ -1591,7 +1591,7 @@ menu_create_account() {
         }" 2>/dev/null)
 
     # Check if we need a session (UIAA flow)
-    SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4)
+    SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4 || true)
     
     if [ -n "$SESSION" ]; then
         REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
@@ -1608,11 +1608,11 @@ menu_create_account() {
             }" 2>/dev/null)
     fi
 
-    if echo "$REGISTER_RESPONSE" | grep -q "user_id"; then
-        USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4)
+    if echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null; then
+        USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
         success "Account created: ${USER_ID}"
     else
-        ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4)
+        ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
         error "Failed: ${ERROR_MSG:-Unknown error}"
         echo -e "  ${DIM}Response: ${REGISTER_RESPONSE}${NC}"
     fi

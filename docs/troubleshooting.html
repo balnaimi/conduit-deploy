@@ -130,6 +130,16 @@
 <span class="cmd">sudo</span> docker compose logs -f caddy
 <span class="cmd">sudo</span> docker compose logs -f coturn</pre>
     </div>
+
+    <div class="option-card">
+      <h3>SSH drops during script operations</h3>
+      <p class="desc">If your SSH disconnects while using the script, it's usually an <strong>idle timeout</strong> — not the script itself.</p>
+      <p class="desc" style="margin-top:0.5rem;">Fix it by adding this to your local <code>~/.ssh/config</code>:</p>
+      <pre class="code-block">Host *
+    ServerAliveInterval 15
+    ServerAliveCountMax 10</pre>
+      <p class="desc" style="margin-top:0.5rem;">Or connect with: <code>ssh -o ServerAliveInterval=15 user@your-server</code></p>
+    </div>
   </div>
 </section>
 

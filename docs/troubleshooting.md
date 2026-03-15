@@ -173,6 +173,26 @@ sudo docker compose logs -f caddy
 sudo docker compose logs -f coturn
 ```
 
+## SSH session drops during script operations
+
+If your SSH connection drops while running the script, this is usually caused by **idle timeouts** on your SSH server.
+
+**Quick fix** — add this to your local `~/.ssh/config`:
+```
+Host *
+    ServerAliveInterval 15
+    ServerAliveCountMax 10
+```
+
+Or connect with:
+```bash
+ssh -o ServerAliveInterval=15 user@your-server
+```
+
+> **Note:** The script isolates all Docker operations from the terminal to prevent disconnects. If the script itself causes SSH to drop (not just idle timeout), please [report it](https://github.com/balnaimi/conduit-deploy/issues).
+
+---
+
 ## Getting help
 
 1. Check the [FAQ](faq.md)

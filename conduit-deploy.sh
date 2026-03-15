@@ -1380,21 +1380,34 @@ menu_registration() {
 
     case $choice in
         1)
-            $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-            cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
-            success "Registration OPENED"
+            if ! grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
+                warn "Registration is already OPEN"
+            else
+                $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
+                cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+                success "Registration OPENED"
+            fi
             echo
             echo -e "  ${BOLD}Registration Token:${NC}"
-            echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
-            echo
-            echo -e "  ${DIM}Users can register at: https://app.element.io/#/register${NC}"
-            echo -e "  ${DIM}Homeserver: ${SERVER_NAME}${NC}"
+            if [ -z "$REGISTRATION_TOKEN" ]; then
+                error "Token not found in .env (corrupted?)"
+                error "Run Health Check and investigate /opt/conduit/.env"
+            else
+                echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
+                echo
+                echo -e "  ${DIM}Users can register at: https://app.element.io/#/register${NC}"
+                echo -e "  ${DIM}Homeserver: ${SERVER_NAME}${NC}"
+            fi
             press_enter
             ;;
         2)
-            $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-            cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
-            success "Registration CLOSED"
+            if ! grep -q 'ALLOW_REGISTRATION: "true"' "$COMPOSE_FILE" 2>/dev/null; then
+                warn "Registration is already CLOSED"
+            else
+                $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
+                cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+                success "Registration CLOSED"
+            fi
             press_enter
             ;;
         3)

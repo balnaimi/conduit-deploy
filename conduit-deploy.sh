@@ -718,14 +718,13 @@ menu_install() {
 
     # Auto updates
     dpkg -l | grep -q unattended-upgrades || $SUDO apt-get install -y -qq unattended-upgrades >/dev/null 2>&1
-    # Enable automatic reboot when needed (at 4 AM to minimize disruption)
+    # Clean up old kernels/deps but never auto-reboot
     $SUDO tee /etc/apt/apt.conf.d/50unattended-upgrades-local > /dev/null << 'APTEOF'
-Unattended-Upgrade::Automatic-Reboot "true";
-Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+Unattended-Upgrade::Automatic-Reboot "false";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 APTEOF
-    success "Auto security updates enabled (auto-reboot at 4:00 AM if needed)"
+    success "Auto security patches enabled (no auto-reboot — you decide when)"
 
     # ─── Config files ───
     step "Creating Configuration Files"
@@ -1159,6 +1158,7 @@ menu_healthcheck() {
     if [ -f /var/run/reboot-required ]; then
         warn "  System reboot required (kernel or critical update pending)"
         issues+=("Reboot required")
+        echo -e "     ${DIM}Run 'sudo reboot' when you're ready — your services will restart automatically.${NC}"
     else
         success "  No reboot pending"
     fi

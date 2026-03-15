@@ -904,11 +904,11 @@ test_image_helpers() {
         fail "  Missing _compose_quiet wrapper"
     fi
     
-    # _compose_quiet uses setsid to detach from TTY
-    if grep -q 'setsid docker compose' "$SCRIPT"; then
-        pass "  _compose_quiet uses setsid (TTY detach)"
+    # _compose_quiet uses setsid for TTY isolation
+    if grep -q 'setsid bash' "$SCRIPT" && grep -q '_compose_quiet' "$SCRIPT"; then
+        pass "  Docker commands use setsid+script isolation (TTY safe)"
     else
-        fail "  _compose_quiet missing setsid"
+        fail "  Missing setsid TTY isolation"
     fi
     
     # Orphaned registration safety check

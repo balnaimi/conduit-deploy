@@ -40,15 +40,67 @@ separator() {
     echo -e "${DIM}───────────────────────────────────────────────${NC}"
 }
 
-# Run docker compose silently (detached from TTY to prevent progress bar interference)
-# Docker Compose v5+ writes progress directly to /dev/tty even with >/dev/null 2>&1
-# This wrapper uses setsid to detach from the controlling terminal
+# ─── Docker TTY Isolation ───
+# Docker Compose v5+ writes progress directly to /dev/tty, bypassing all
+# stdout/stderr redirects. This kills SSH PTY sessions. These wrappers
+# fully isolate Docker commands from the terminal.
+
+# Silent docker compose (no output) — for background operations
 _compose_quiet() {
-    if command -v setsid &>/dev/null; then
-        $SUDO setsid docker compose "$@" </dev/null >/dev/null 2>&1 || true
-    else
-        $SUDO docker compose --progress quiet "$@" </dev/null >/dev/null 2>&1 || true
+    local tmpscript="/tmp/.conduit-dq-$$.sh"
+    echo '#!/bin/bash' > "$tmpscript"
+    echo "cd \"$INSTALL_DIR\" && docker compose \"\$@\" >/dev/null 2>&1" >> "$tmpscript"
+    chmod +x "$tmpscript"
+    $SUDO setsid bash "$tmpscript" "$@" </dev/null >/dev/null 2>/dev/null
+    local rc=$?
+    rm -f "$tmpscript"
+    return $rc
+}
+
+# Docker compose with visible output — for user-facing operations (install, update)
+# Runs in detached script, streams output back via temp file
+_compose_visible() {
+    local tmpscript="/tmp/.conduit-dv-$$.sh"
+    local tmplog="/tmp/.conduit-dv-$$.log"
+    echo '#!/bin/bash' > "$tmpscript"
+    echo "cd \"$INSTALL_DIR\" && docker compose \"\$@\" >\"$tmplog\" 2>&1; echo \"\$?\" >> \"$tmplog\"" >> "$tmpscript"
+    chmod +x "$tmpscript"
+    $SUDO setsid bash "$tmpscript" "$@" </dev/null >/dev/null 2>/dev/null &
+    local pid=$!
+    # Stream output to user while docker runs
+    sleep 0.5
+    while kill -0 $pid 2>/dev/null; do
+        if [ -f "$tmplog" ]; then
+            # Show last few lines of progress
+            tail -3 "$tmplog" 2>/dev/null | head -1
+        fi
+        sleep 1
+    done
+    wait $pid 2>/dev/null
+    # Show final output
+    if [ -f "$tmplog" ]; then
+        # Last line is exit code
+        local exit_code=$(tail -1 "$tmplog")
+        # Print all except last line
+        head -n -1 "$tmplog"
+        rm -f "$tmplog"
+        rm -f "$tmpscript"
+        return ${exit_code:-1}
     fi
+    rm -f "$tmpscript" "$tmplog"
+    return 1
+}
+
+# Docker pull with TTY isolation
+_docker_pull() {
+    local tmpscript="/tmp/.conduit-dp-$$.sh"
+    echo '#!/bin/bash' > "$tmpscript"
+    echo "docker pull \"\$@\" >/dev/null 2>&1" >> "$tmpscript"
+    chmod +x "$tmpscript"
+    $SUDO setsid bash "$tmpscript" "$@" </dev/null >/dev/null 2>/dev/null
+    local rc=$?
+    rm -f "$tmpscript"
+    return $rc
 }
 
 # Get image name for a compose service (compatible with Docker Compose v2+v5)
@@ -1084,11 +1136,10 @@ EOF
 
     # ─── Start ───
     step "Starting Services"
-    info "Pulling Docker images..."
-    if ! $SUDO docker compose pull 2>&1; then
-        warn "Some images may have failed to pull. Continuing..."
-    fi
-    if ! $SUDO docker compose up -d 2>&1; then
+    info "Pulling Docker images (this may take a minute)..."
+    _compose_visible pull
+    info "Starting containers..."
+    if ! _compose_visible up -d; then
         error "Failed to start services. Check: sudo docker compose -f $COMPOSE_FILE logs"
         press_enter
         return
@@ -1121,7 +1172,7 @@ EOF
         $SUDO cp "$CERT_DIR/${MATRIX_HOST}.crt" "$INSTALL_DIR/certs/turn.crt"
         $SUDO cp "$CERT_DIR/${MATRIX_HOST}.key" "$INSTALL_DIR/certs/turn.key"
         $SUDO chmod 644 "$INSTALL_DIR/certs/turn."*
-        $SUDO docker compose restart coturn >/dev/null 2>&1
+        _compose_quiet restart coturn
         success "TLS certificates synced to Coturn"
     else
         warn "TLS certs not ready yet — Coturn will work without TLS."
@@ -1779,7 +1830,7 @@ do_restore() {
     # Stop current services if running
     if [ -f "$COMPOSE_FILE" ]; then
         info "Stopping current services..."
-        cd "$INSTALL_DIR" && $SUDO docker compose down 2>/dev/null || true
+        cd "$INSTALL_DIR" && _compose_quiet down
     fi
 
     # Restore files
@@ -1974,7 +2025,7 @@ check_for_updates() {
                 echo
             fi
             info "Pulling new images..."
-            if ! $SUDO docker compose pull 2>&1; then
+            if ! _compose_visible pull; then
                 error "Failed to pull images. Update aborted."
                 if [ -n "$BACKUP_FILE" ]; then
                     warn "A backup was created before update: $BACKUP_FILE"
@@ -1983,7 +2034,7 @@ check_for_updates() {
                 return
             fi
             info "Restarting containers..."
-            if ! $SUDO docker compose up -d 2>&1; then
+            if ! _compose_visible up -d; then
                 error "Failed to restart containers after update!"
                 warn "Backup available if you need to rollback: $BACKUP_FILE"
                 press_enter
@@ -2073,17 +2124,20 @@ menu_services() {
 
     case $choice in
         1)
-            $SUDO docker compose up -d 2>&1
+            info "Starting services..."
+            _compose_visible up -d
             success "Services started"
             press_enter
             ;;
         2)
-            $SUDO docker compose down 2>&1
+            info "Stopping services..."
+            _compose_visible down
             success "Services stopped"
             press_enter
             ;;
         3)
-            $SUDO docker compose restart 2>&1
+            info "Restarting services..."
+            _compose_visible restart
             success "Services restarted"
             press_enter
             ;;
@@ -2103,14 +2157,14 @@ menu_services() {
                 echo
             fi
             info "Pulling latest images..."
-            if ! $SUDO docker compose pull 2>&1; then
+            if ! _compose_visible pull; then
                 error "Failed to pull images. Update aborted."
                 [ -n "$bk_file" ] && warn "Backup available: $bk_file"
                 press_enter
                 continue
             fi
             info "Restarting containers..."
-            if ! $SUDO docker compose up -d 2>&1; then
+            if ! _compose_visible up -d; then
                 error "Failed to restart containers!"
                 [ -n "$bk_file" ] && warn "Use 'Restore from backup' to rollback: $bk_file"
                 press_enter
@@ -2201,7 +2255,7 @@ menu_uninstall() {
     # Stop and remove containers + volumes
     info "Stopping and removing containers..."
     cd "$INSTALL_DIR"
-    $SUDO docker compose down -v 2>/dev/null || true
+    _compose_quiet down -v
     success "Containers and volumes removed"
 
     # Remove cert watcher

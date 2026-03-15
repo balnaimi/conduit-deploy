@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Walkthrough — Conduit Deploy</title>
-<meta name="description" content="Step-by-step walkthrough: install your Matrix server, create accounts, and start chatting. Real example with subdomain mode.">
+<meta name="description" content="Step-by-step guides: install your Matrix server, create accounts, backup, restore, and migrate.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -28,7 +28,6 @@
     <a href="index.html">Home</a>
     <a href="domain.html">Domain Setup</a>
     <a href="walkthrough.html" class="active">Walkthrough</a>
-    <a href="backup-restore.html">Backup &amp; Restore</a>
     <a href="after-install.html">After Install</a>
     <a href="faq.html">FAQ</a>
     <a href="architecture.html">Architecture</a>
@@ -47,169 +46,157 @@
   <div class="container-sm">
     <div class="section-header">
       <div class="section-label">Step by Step</div>
-      <h2 class="section-title">Walkthrough: Subdomain Mode</h2>
-      <p class="section-desc">A complete real-world example — from a blank server to sending your first message.<br>This guide uses <strong>subdomain mode</strong> with <code>matrix.example.com</code>.</p>
+      <h2 class="section-title">Walkthrough</h2>
+      <p class="section-desc">Choose a scenario below. Each guide walks you through every step with real examples.</p>
     </div>
 
-    <!-- TABLE OF CONTENTS -->
-    <div class="option-card" style="margin-bottom:2.5rem;">
-      <h3>📋 What We'll Do</h3>
-      <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-        <li><a href="#prereqs" style="color:var(--blue);">Prerequisites</a> — What you need before starting</li>
-        <li><a href="#dns" style="color:var(--blue);">DNS Setup</a> — Point your domain to your server</li>
-        <li><a href="#install" style="color:var(--blue);">Run the Installer</a> — Launch the script and configure</li>
-        <li><a href="#health" style="color:var(--blue);">Health Check</a> — Verify everything works</li>
-        <li><a href="#accounts" style="color:var(--blue);">Create Accounts</a> — Add users to your server</li>
-        <li><a href="#login" style="color:var(--blue);">Sign In &amp; Chat</a> — Connect with a Matrix client</li>
-      </ol>
+    <!-- TAB NAVIGATION -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('subdomain')">
+        <span class="tab-icon">🚀</span>
+        Install (Subdomain)
+      </button>
+      <button class="tab-btn" onclick="switchTab('backup')">
+        <span class="tab-icon">💾</span>
+        Backup
+      </button>
+      <button class="tab-btn" onclick="switchTab('restore')">
+        <span class="tab-icon">🔄</span>
+        Restore
+      </button>
+      <button class="tab-btn" onclick="switchTab('migrate')">
+        <span class="tab-icon">🚚</span>
+        Migrate to New Server
+      </button>
     </div>
 
-    <div class="steps">
 
-      <!-- STEP 1: PREREQUISITES -->
-      <div class="step" id="prereqs">
-        <h3>1. Prerequisites</h3>
-        <p class="desc">Before you start, make sure you have:</p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>What</th><th>Details</th></tr></thead>
-            <tbody>
-              <tr><td><strong>A VPS / server</strong></td><td>Debian 13 or Ubuntu 22.04+ with at least 512MB RAM and 10GB disk. Any provider works (DigitalOcean, Hetzner, Linode, etc.)</td></tr>
-              <tr><td><strong>Root access</strong></td><td>Either logged in as <code>root</code>, or a user with <code>sudo</code></td></tr>
-              <tr><td><strong>A domain name</strong></td><td>Any domain you own (e.g., <code>example.com</code>). You'll create a subdomain like <code>matrix.example.com</code></td></tr>
-              <tr><td><strong>DNS access</strong></td><td>Ability to add DNS records (A and AAAA) at your domain registrar or DNS provider</td></tr>
-            </tbody>
-          </table>
-        </div>
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TAB 1: INSTALL (SUBDOMAIN MODE)               -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-subdomain">
 
-        <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>💡 Tip:</strong> Not sure which mode to choose? Check the <a href="domain.html">Domain Setup</a> page first. This walkthrough uses <strong>Subdomain Mode</strong> (Mode 2), which gives you usernames like <code>@user:matrix.example.com</code>.
-        </div>
+      <div class="option-card" style="margin-bottom:2rem;">
+        <h3>📋 What We'll Do</h3>
+        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+          <li>Prerequisites — What you need before starting</li>
+          <li>DNS Setup — Point your domain to your server</li>
+          <li>Run the Installer — Launch the script and configure</li>
+          <li>Health Check — Verify everything works</li>
+          <li>Create Accounts — Add users to your server</li>
+          <li>Sign In &amp; Chat — Connect with a Matrix client</li>
+        </ol>
       </div>
 
-      <!-- STEP 2: DNS -->
-      <div class="step" id="dns">
-        <h3>2. DNS Setup</h3>
-        <p class="desc">Go to your DNS provider and add these records pointing to your server's IP address:</p>
+      <div class="steps">
 
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>TTL</th></tr></thead>
-            <tbody>
-              <tr><td><code>A</code></td><td><code>matrix</code></td><td>Your server's IPv4 (e.g. <code>188.166.248.91</code>)</td><td>3600</td></tr>
-              <tr><td><code>AAAA</code></td><td><code>matrix</code></td><td>Your server's IPv6 (if available)</td><td>3600</td></tr>
-            </tbody>
-          </table>
+        <div class="step">
+          <h3>1. Prerequisites</h3>
+          <p class="desc">Before you start, make sure you have:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>What</th><th>Details</th></tr></thead>
+              <tbody>
+                <tr><td><strong>A VPS / server</strong></td><td>Debian 13 or Ubuntu 22.04+ with at least 512MB RAM and 10GB disk. Any provider works (DigitalOcean, Hetzner, Linode, etc.)</td></tr>
+                <tr><td><strong>Root access</strong></td><td>Either logged in as <code>root</code>, or a user with <code>sudo</code></td></tr>
+                <tr><td><strong>A domain name</strong></td><td>Any domain you own (e.g., <code>example.com</code>). You'll create a subdomain like <code>matrix.example.com</code></td></tr>
+                <tr><td><strong>DNS access</strong></td><td>Ability to add DNS records (A and AAAA) at your domain registrar or DNS provider</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>💡 Tip:</strong> Not sure which mode to choose? Check the <a href="domain.html">Domain Setup</a> page first. This walkthrough uses <strong>Subdomain Mode</strong> (Mode 2), which gives you usernames like <code>@user:matrix.example.com</code>.
+          </div>
         </div>
 
-        <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>⏱️ Wait for DNS:</strong> After adding the records, wait a few minutes for them to propagate. You can verify with:<br>
-          <code style="display:inline-block;margin-top:0.5rem;background:rgba(0,0,0,0.06);padding:0.25rem 0.75rem;border-radius:6px;">dig matrix.example.com +short</code><br>
-          <span style="color:var(--text-dim);font-size:0.85rem;">This should return your server's IP address.</span>
+        <div class="step">
+          <h3>2. DNS Setup</h3>
+          <p class="desc">Go to your DNS provider and add these records pointing to your server's IP address:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>TTL</th></tr></thead>
+              <tbody>
+                <tr><td><code>A</code></td><td><code>matrix</code></td><td>Your server's IPv4 (e.g. <code>188.166.248.91</code>)</td><td>3600</td></tr>
+                <tr><td><code>AAAA</code></td><td><code>matrix</code></td><td>Your server's IPv6 (if available)</td><td>3600</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>⏱️ Wait for DNS:</strong> After adding the records, wait a few minutes for them to propagate. Verify with:<br>
+            <code style="display:inline-block;margin-top:0.5rem;background:rgba(0,0,0,0.06);padding:0.25rem 0.75rem;border-radius:6px;">dig matrix.example.com +short</code>
+          </div>
         </div>
-      </div>
 
-      <!-- STEP 3: INSTALL -->
-      <div class="step" id="install">
-        <h3>3. Run the Installer</h3>
-        <p class="desc">SSH into your server and run the script:</p>
-
-        <pre class="code-block"><span class="comment"># SSH into your server</span>
+        <div class="step">
+          <h3>3. Run the Installer</h3>
+          <p class="desc">SSH into your server and run the script:</p>
+          <pre class="code-block"><span class="comment"># SSH into your server</span>
 ssh root@your-server-ip
 
 <span class="comment"># Download and run the installer</span>
 curl -sL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh | bash</pre>
 
-        <p class="desc" style="margin-top:1.5rem;"><strong>The script will show you a menu. Choose option <code>2</code> (Install).</strong></p>
-
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3a. Choose Your Mode</h4>
-        <p class="desc">The script asks how you want usernames to look:</p>
-        <pre class="code-block">* How do you want your usernames to look?
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3a. Choose Your Mode</h4>
+          <pre class="code-block">* How do you want your usernames to look?
 
   1) Clean username — @user:example.com (server at matrix.example.com)
   2) Subdomain only — @user:matrix.example.com (simpler, no delegation)
 
-Choose [1/2]:</pre>
-        <p class="desc">For this walkthrough, choose <strong><code>2</code></strong> (Subdomain mode).</p>
+Choose [1/2]: <strong>2</strong></pre>
 
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3b. Enter Your Domain</h4>
-        <p class="desc">The script asks for your domain and subdomain:</p>
-        <pre class="code-block">Your domain name: <strong>example.com</strong>
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3b. Enter Your Domain</h4>
+          <pre class="code-block">Your domain name: <strong>example.com</strong>
 Subdomain for the server [matrix]: <strong>matrix</strong>
 VPS public IP [188.166.248.91]: <strong>↵ (press Enter to accept)</strong></pre>
-        <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
-          <strong>💡 Note:</strong> Enter just the root domain (e.g. <code>example.com</code>), not the full address. The script combines it with the subdomain automatically.
-        </div>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
+            <strong>💡 Note:</strong> Enter just the root domain (e.g. <code>example.com</code>), not the full address.
+          </div>
 
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3c. Media Settings</h4>
-        <p class="desc">The script asks about file upload limits and storage. The defaults are good for most setups — just press Enter to accept each one:</p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Setting</th><th>Default</th><th>What It Means</th></tr></thead>
-            <tbody>
-              <tr><td>Max upload size</td><td>100 MB</td><td>Largest file a user can send</td></tr>
-              <tr><td>Max media storage</td><td>10 GB</td><td>Total space for all files (auto-cleans oldest)</td></tr>
-              <tr><td>Cached files idle expiry</td><td>30 days</td><td>Delete cached files from other servers if nobody opened them in 30 days</td></tr>
-              <tr><td>Cached files max age</td><td>90 days</td><td>Delete cached files older than 90 days regardless</td></tr>
-              <tr><td>User files idle expiry</td><td>365 days</td><td>Delete your users' uploaded files if nobody opened them in a year</td></tr>
-              <tr><td>Thumbnail storage</td><td>1 GB</td><td>Space for auto-generated image previews</td></tr>
-            </tbody>
-          </table>
-        </div>
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3c. Media Settings</h4>
+          <p class="desc">The defaults are good for most setups — just press Enter to accept each one:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Setting</th><th>Default</th><th>What It Means</th></tr></thead>
+              <tbody>
+                <tr><td>Max upload size</td><td>100 MB</td><td>Largest file a user can send</td></tr>
+                <tr><td>Max media storage</td><td>10 GB</td><td>Total space for all files (auto-cleans oldest)</td></tr>
+                <tr><td>Cached files idle expiry</td><td>30 days</td><td>Delete cached federation files after 30 days idle</td></tr>
+                <tr><td>Cached files max age</td><td>90 days</td><td>Hard limit for cached federation files</td></tr>
+                <tr><td>User files idle expiry</td><td>365 days</td><td>Delete user uploads after 1 year idle</td></tr>
+                <tr><td>Thumbnail storage</td><td>1 GB</td><td>Auto-generated image previews</td></tr>
+              </tbody>
+            </table>
+          </div>
 
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3d. Confirm &amp; Install</h4>
-        <p class="desc">The script shows a summary of your settings:</p>
-        <pre class="code-block">Summary:
+          <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">3d. Confirm &amp; Install</h4>
+          <pre class="code-block">Summary:
   Server name: matrix.example.com
   Usernames:   @user:matrix.example.com
   Matrix URL:  https://matrix.example.com
   VPS IP:      188.166.248.91
   .well-known: Not needed (subdomain mode)
 
-Start installation? [Y/n]</pre>
-        <p class="desc">Press <strong><code>Y</code></strong> to start. The installer will:</p>
-        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-          <li>Check all dependencies and install missing ones (Docker, UFW, Fail2ban, etc.)</li>
-          <li>Verify ports 80, 443, and 8448 are available</li>
-          <li>Verify DNS resolves to your IP</li>
-          <li>Optionally set your timezone</li>
-          <li>Generate configuration files and secrets</li>
-          <li>Pull Docker images and start services</li>
-          <li>Obtain a Let's Encrypt TLS certificate automatically</li>
-          <li>Set up TURN server (for voice/video calls)</li>
-        </ol>
-
-        <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>⏱️ How long?</strong> First install takes about 5–10 minutes depending on your server speed and internet connection. Most of the time is spent pulling Docker images.
-        </div>
-      </div>
-
-      <!-- STEP 4: HEALTH CHECK -->
-      <div class="step" id="health">
-        <h3>4. Health Check</h3>
-        <p class="desc">After install, run a health check to make sure everything is working. From the main menu, choose <strong><code>3</code></strong> (Health Check).</p>
-
-        <p class="desc" style="margin-top:1rem;">The health check verifies:</p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Check</th><th>What It Tests</th></tr></thead>
-            <tbody>
-              <tr><td>🟢 Services</td><td>All 3 containers running (Conduit, Caddy, Coturn)</td></tr>
-              <tr><td>🟢 HTTPS</td><td>Your domain responds with a valid certificate</td></tr>
-              <tr><td>🟢 Federation</td><td>Port 8448 accessible (so other servers can reach you)</td></tr>
-              <tr><td>🟢 IPv6</td><td>IPv6 connectivity (if available)</td></tr>
-              <tr><td>🟢 Firewall</td><td>UFW active with correct rules</td></tr>
-              <tr><td>🟢 Fail2ban</td><td>Brute-force protection running</td></tr>
-              <tr><td>🟢 SSH</td><td>Password authentication disabled</td></tr>
-              <tr><td>🟢 TLS Cert</td><td>Certificate validity and auto-sync for TURN</td></tr>
-              <tr><td>🟢 Resources</td><td>Disk space and RAM usage</td></tr>
-              <tr><td>🟢 Registration</td><td>Whether registration is open or closed</td></tr>
-            </tbody>
-          </table>
+Start installation? [Y/n] <strong>Y</strong></pre>
+          <p class="desc" style="margin-top:0.75rem;">The installer will:</p>
+          <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+            <li>Install missing dependencies (Docker, UFW, Fail2ban, etc.)</li>
+            <li>Verify ports 80, 443, and 8448 are available</li>
+            <li>Verify DNS resolves to your IP</li>
+            <li>Optionally set your timezone</li>
+            <li>Generate configuration files and secrets</li>
+            <li>Pull Docker images and start services</li>
+            <li>Obtain a Let's Encrypt TLS certificate</li>
+            <li>Set up TURN server (for voice/video calls)</li>
+          </ol>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>⏱️ How long?</strong> About 5–10 minutes depending on your server speed.
+          </div>
         </div>
 
-        <p class="desc" style="margin-top:1rem;">Example output:</p>
-        <pre class="code-block">Services:
+        <div class="step">
+          <h3>4. Health Check</h3>
+          <p class="desc">From the main menu, choose <strong><code>3</code></strong> (Health Check):</p>
+          <pre class="code-block">Services:
   ✅ conduit is running
   ✅ caddy is running
   ✅ coturn is running
@@ -234,116 +221,326 @@ Resources:
 
 Registration:
   ✅ Registration is CLOSED</pre>
-
-        <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>💡 All green?</strong> Your server is ready! If any check fails, see the <a href="troubleshooting.html">Troubleshooting</a> page.
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>💡 All green?</strong> Your server is ready! If any check fails, see <a href="troubleshooting.html">Troubleshooting</a>.
+          </div>
         </div>
-      </div>
 
-      <!-- STEP 5: CREATE ACCOUNTS -->
-      <div class="step" id="accounts">
-        <h3>5. Create Accounts</h3>
-        <p class="desc">Your server is running but has no users yet. Let's create some accounts.</p>
-
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">Option A: Using the Script (Recommended)</h4>
-        <p class="desc">From the main menu, choose <strong><code>4</code></strong> (Registration), then <strong><code>3</code></strong> (Create account via API).</p>
-
-        <pre class="code-block"><span class="comment"># The script prompts you:</span>
-Username (without @, lowercase letters/numbers/dots/hyphens): <strong>alice</strong>
+        <div class="step">
+          <h3>5. Create Accounts</h3>
+          <p class="desc">From the main menu: <strong><code>4</code></strong> (Registration) → <strong><code>3</code></strong> (Create account via API)</p>
+          <pre class="code-block">Username (without @, lowercase letters/numbers/dots/hyphens): <strong>alice</strong>
 Password (min 8 characters): <strong>MySecurePass123!</strong></pre>
-
-        <p class="desc" style="margin-top:0.75rem;">The script handles everything automatically:</p>
-        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-          <li>Temporarily opens registration (with token protection)</li>
-          <li>Creates the account via the Matrix API</li>
-          <li>Closes registration again immediately</li>
-        </ol>
-
-        <pre class="code-block"><span class="comment"># Output:</span>
-ℹ Temporarily opening registration...
+          <pre class="code-block">ℹ Temporarily opening registration...
   Registration briefly open (token still required). Will close after account creation.
 ℹ Creating account @alice:matrix.example.com...
 ✅ Account created: @alice:matrix.example.com
 ℹ Registration closed again</pre>
-
-        <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>🔒 Security:</strong> Registration stays closed between account creations. Even while it's briefly open, a registration token is required — random signups cannot get in.
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>🔒 Security:</strong> Registration stays closed between account creations. Even while briefly open, a token is required — random signups cannot get in.
+          </div>
+          <p class="desc" style="margin-top:1rem;">Create as many accounts as you need — choose <code>3</code> again for each one.</p>
         </div>
 
-        <p class="desc" style="margin-top:1.5rem;"><strong>Create as many accounts as you need:</strong> After each one, you're returned to the Registration menu. Choose <code>3</code> again for the next account.</p>
-
-        <h4 style="margin-top:2rem;color:var(--navy);font-size:1rem;">Option B: Open Registration (Self-Service)</h4>
-        <p class="desc">If you want users to sign up themselves, you can open registration:</p>
-        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-          <li>From the Registration menu, choose <strong><code>1</code></strong> (Open registration)</li>
-          <li>Share your server address and registration token with your users</li>
-          <li>When done, choose <strong><code>2</code></strong> (Close registration) to lock it down</li>
-        </ol>
-
-        <p class="desc" style="margin-top:0.75rem;">To see your registration token:</p>
-        <pre class="code-block"><span class="comment"># From the Registration menu, choose 4 (Show registration token)</span>
-Registration token: abc123xyz...
-
-<span class="comment"># Users enter this token during sign-up in their Matrix client.</span></pre>
-
-        <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>⚠️ Don't forget!</strong> Always close registration when you're done. An open server can be found by scanners and filled with spam accounts. The script will warn you on startup if registration is left open.
+        <div class="step">
+          <h3>6. Sign In &amp; Chat</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Client</th><th>Platforms</th><th>Link</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Element</strong></td><td>Web, Desktop, iOS, Android</td><td><a href="https://element.io/download" target="_blank">element.io</a></td></tr>
+                <tr><td><strong>SchildiChat</strong></td><td>Desktop, iOS, Android</td><td><a href="https://schildi.chat/" target="_blank">schildi.chat</a></td></tr>
+                <tr><td><strong>FluffyChat</strong></td><td>iOS, Android, Linux</td><td><a href="https://fluffychat.im/" target="_blank">fluffychat.im</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ol style="margin:1rem 0 0 1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.4;">
+            <li>Open the app → <strong>"Sign In"</strong></li>
+            <li>Change homeserver to: <code>matrix.example.com</code></li>
+            <li>Enter your <strong>username</strong> and <strong>password</strong></li>
+            <li>You're in! 🎉 Messages are end-to-end encrypted by default 🔐</li>
+          </ol>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>🌐 Federation:</strong> Your server can talk to any other Matrix server. Try messaging someone on <code>matrix.org</code> — it just works!
+          </div>
         </div>
-      </div>
 
-      <!-- STEP 6: SIGN IN -->
-      <div class="step" id="login">
-        <h3>6. Sign In &amp; Chat</h3>
-        <p class="desc">Now sign in with a Matrix client and start chatting!</p>
+      </div><!-- /steps -->
+    </div><!-- /tab-subdomain -->
 
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">6a. Download a Client</h4>
-        <div class="table-wrap">
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TAB 2: BACKUP                                 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-backup">
+
+      <div class="option-card" style="margin-bottom:2rem;">
+        <h3>📋 What's in a Backup</h3>
+        <div class="table-wrap" style="margin-top:1rem;">
           <table>
-            <thead><tr><th>Client</th><th>Platforms</th><th>Link</th></tr></thead>
+            <thead><tr><th>Component</th><th>What It Contains</th></tr></thead>
             <tbody>
-              <tr><td><strong>Element</strong></td><td>Web, Desktop, iOS, Android</td><td><a href="https://element.io/download" target="_blank">element.io</a></td></tr>
-              <tr><td><strong>SchildiChat</strong></td><td>Desktop, iOS, Android</td><td><a href="https://schildi.chat/" target="_blank">schildi.chat</a></td></tr>
-              <tr><td><strong>FluffyChat</strong></td><td>iOS, Android, Linux</td><td><a href="https://fluffychat.im/" target="_blank">fluffychat.im</a></td></tr>
+              <tr><td><strong>Database</strong></td><td>All rooms, messages, user accounts, encryption keys</td></tr>
+              <tr><td><strong>Media files</strong></td><td>Images, videos, documents uploaded by users</td></tr>
+              <tr><td><strong>Configuration</strong></td><td><code>.env</code>, <code>docker-compose.yml</code>, <code>conduit.toml</code>, <code>Caddyfile</code>, <code>turnserver.conf</code></td></tr>
+              <tr><td><strong>TLS certificates</strong></td><td>Let's Encrypt certs and Caddy data</td></tr>
+              <tr><td><strong>Secrets</strong></td><td>Registration token, TURN secret</td></tr>
+              <tr><td><strong>Pinned image versions</strong></td><td>SHA256 digests of the exact Docker images that were running</td></tr>
             </tbody>
           </table>
         </div>
+        <pre class="code-block" style="margin-top:1rem;">/opt/conduit/          ← Your live installation (database, config, media)
+/opt/conduit-backups/  ← Your backups (separate — survives uninstall!)</pre>
+      </div>
 
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">6b. Sign In</h4>
-        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.4;">
-          <li>Open the app and tap <strong>"Sign In"</strong></li>
-          <li>Look for <strong>"Homeserver"</strong> or <strong>"Edit server"</strong> and change it to:<br>
-            <code style="display:inline-block;margin:0.25rem 0;background:rgba(0,0,0,0.06);padding:0.25rem 0.75rem;border-radius:6px;font-size:1rem;">matrix.example.com</code></li>
-          <li>Enter your <strong>username</strong> (e.g. <code>alice</code>) and <strong>password</strong></li>
-          <li>You're in! 🎉</li>
-        </ol>
+      <div class="steps">
 
-        <h4 style="margin-top:1.5rem;color:var(--navy);font-size:1rem;">6c. Send a Message</h4>
-        <p class="desc">To test, create a room or message another user on your server:</p>
-        <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-          <li>Click <strong>"+"</strong> → <strong>"New direct message"</strong></li>
-          <li>Type the other user's full Matrix ID: <code>@bob:matrix.example.com</code></li>
-          <li>Send a message — it's end-to-end encrypted by default! 🔐</li>
-        </ol>
+        <div class="step">
+          <h3>1. Create a Backup</h3>
+          <p class="desc">From the main menu: <strong><code>5</code></strong> (Services) → <strong><code>7</code></strong> (Backup with version pinning)</p>
+          <pre class="code-block"><span class="comment"># The script checks disk space first</span>
+✅ Disk space OK (need ~0MB, have 19814MB free)
 
-        <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-          <strong>🌐 Federation:</strong> Your server can also talk to any other Matrix server. Try messaging someone on <code>matrix.org</code> — it just works!
+<span class="comment"># If you have 3+ old backups, it offers cleanup</span>
+⚠ You have 3 old backups in /opt/conduit-backups/
+Delete old backups? Keep only the latest 2. [y/N]: y
+✅ Deleted: conduit-backup-2026-03-15-082818.tar.gz
+
+<span class="comment"># Saves the exact Docker image versions</span>
+═══ Saving current image versions ═══
+✅ conduit: matrixconduit/matrix-conduit:latest → 4078e80577cc
+✅ caddy: caddy:2-alpine → fce4f15aad23
+✅ coturn: coturn/coturn:alpine → 229f87ef2428
+
+<span class="comment"># Creates the backup</span>
+ℹ Creating backup...
+✅ Backup saved: conduit-backup-2026-03-15-180609.tar.gz (8.0K)</pre>
         </div>
+
+        <div class="step">
+          <h3>2. Why Pinned Image Versions?</h3>
+          <p class="desc">When you restore, the script pulls the <strong>exact same Docker images</strong> (by SHA256 digest) that were running when the backup was taken:</p>
+          <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+            <li>No surprise breaking changes from a newer version</li>
+            <li>Your database format matches the software version</li>
+            <li>You can update later on your own terms</li>
+          </ul>
+        </div>
+
+        <div class="step">
+          <h3>3. When to Backup</h3>
+          <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+            <li><strong>Before updating containers</strong> — the script offers this automatically</li>
+            <li><strong>Before configuration changes</strong> — in case something breaks</li>
+            <li><strong>Periodically</strong> — weekly or monthly for peace of mind</li>
+            <li><strong>Before migrating</strong> — see the <a href="#" onclick="switchTab('migrate');return false;" style="color:var(--blue);">Migrate tab</a></li>
+          </ul>
+        </div>
+
+        <div class="step">
+          <h3>4. Download a Copy Off-Server</h3>
+          <p class="desc">For extra safety, keep a copy on your local machine:</p>
+          <pre class="code-block"><span class="comment"># From your local machine (not the server)</span>
+scp root@your-server:/opt/conduit-backups/conduit-backup-*.tar.gz ~/backups/</pre>
+        </div>
+
+      </div><!-- /steps -->
+    </div><!-- /tab-backup -->
+
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TAB 3: RESTORE                                -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-restore">
+
+      <div class="option-card" style="margin-bottom:2rem;">
+        <h3>🔄 When to Use</h3>
+        <p class="desc" style="margin-top:0.5rem;">Something broke after an update, configuration change, or you just want to roll back to a known good state. Your server is the same machine — you just want to go back in time.</p>
       </div>
 
-      <!-- WHAT'S NEXT -->
-      <div class="step" id="next">
-        <h3>🎉 You're Done!</h3>
-        <p class="desc">Your Matrix server is running, secured, and ready to use. Here's what you might want to do next:</p>
-        <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-          <li><strong>Set up verification keys</strong> — Enable cross-signing in your client for maximum security</li>
-          <li><strong>Create a backup</strong> — See the <a href="backup-restore.html">Backup &amp; Restore</a> guide for full instructions</li>
-          <li><strong>Set up SSH keys</strong> — If you haven't already, see <a href="backup-restore.html">Backup &amp; Restore</a>
-    <a href="after-install.html">After Install</a></li>
-          <li><strong>Explore the architecture</strong> — Learn what's running under the hood on the <a href="architecture.html">Architecture</a> page</li>
-        </ul>
+      <div class="steps">
+
+        <div class="step">
+          <h3>1. Open the Script</h3>
+          <pre class="code-block">ssh root@your-server
+bash conduit-deploy.sh</pre>
+        </div>
+
+        <div class="step">
+          <h3>2. Go to Restore</h3>
+          <p class="desc">From the main menu: <strong><code>5</code></strong> (Services) → <strong><code>8</code></strong> (Restore from backup)</p>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
+            <strong>💡 Even if Conduit is not installed</strong> (e.g., after an Uninstall), the Services menu still shows Restore as an option.
+          </div>
+        </div>
+
+        <div class="step">
+          <h3>3. Choose Your Backup</h3>
+          <pre class="code-block">═══ Restore from Backup ═══
+
+  Backups are stored in: /opt/conduit-backups/
+
+  Available backups:
+  conduit-backup-2026-03-15-180609.tar.gz
+  conduit-backup-2026-03-15-145926.tar.gz
+
+Backup file path: <strong>/opt/conduit-backups/conduit-backup-2026-03-15-180609.tar.gz</strong></pre>
+        </div>
+
+        <div class="step">
+          <h3>4. Confirm &amp; Wait</h3>
+          <pre class="code-block">⛔ WARNING: This will replace your current installation!
+  All current data, accounts, and messages will be overwritten.
+
+Type 'RESTORE' to confirm: <strong>RESTORE</strong>
+
+ℹ Restoring from backup...
+✅ Files restored
+
+═══ Restoring pinned image versions ═══
+  Pulling the exact same images that were running at backup time.
+  ✅ conduit
+  ✅ caddy
+  ✅ coturn
+
+ℹ Starting services...
+✅ Restore complete! Services are running.</pre>
+        </div>
+
+        <div class="step">
+          <h3>5. Verify</h3>
+          <p class="desc">Run a Health Check (<strong><code>3</code></strong>) to confirm everything is working. All your accounts, messages, and rooms should be exactly as they were when the backup was taken.</p>
+        </div>
+
+      </div><!-- /steps -->
+    </div><!-- /tab-restore -->
+
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TAB 4: MIGRATE TO NEW SERVER                  -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-migrate">
+
+      <div class="option-card" style="margin-bottom:2rem;">
+        <h3>🚚 When to Use</h3>
+        <p class="desc" style="margin-top:0.5rem;">Moving to a bigger VPS, switching providers, or setting up a disaster recovery server. Everything transfers: accounts, messages, rooms, media, and settings.</p>
       </div>
 
-    </div>
+      <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-bottom:2rem;">
+        <strong>⚠️ Important:</strong> Your domain DNS must point to the <strong>new server's IP</strong> before you restore — otherwise HTTPS certificates won't work and federation will break.
+      </div>
+
+      <div class="steps">
+
+        <div class="step">
+          <h3>1. Backup the Old Server</h3>
+          <p class="desc">On your <strong>current/old</strong> server, create a fresh backup:</p>
+          <pre class="code-block"><span class="comment"># On the old server</span>
+bash conduit-deploy.sh
+<span class="comment"># Menu: 5 (Services) → 7 (Backup)</span></pre>
+        </div>
+
+        <div class="step">
+          <h3>2. Copy Backup to New Server</h3>
+          <pre class="code-block"><span class="comment"># From your local machine — download from old, upload to new</span>
+scp root@old-server:/opt/conduit-backups/conduit-backup-*.tar.gz /tmp/
+
+<span class="comment"># Upload to the new server</span>
+ssh root@new-server "mkdir -p /opt/conduit-backups"
+scp /tmp/conduit-backup-*.tar.gz root@new-server:/opt/conduit-backups/</pre>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
+            <strong>💡 Or direct server-to-server:</strong><br>
+            <code style="display:inline-block;margin-top:0.5rem;background:rgba(0,0,0,0.06);padding:0.25rem 0.75rem;border-radius:6px;font-size:0.88rem;">scp root@old-server:/opt/conduit-backups/*.tar.gz root@new-server:/opt/conduit-backups/</code>
+          </div>
+        </div>
+
+        <div class="step">
+          <h3>3. Update DNS</h3>
+          <p class="desc">Point your domain to the <strong>new server's IP address</strong>:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Name</th><th>New Value</th></tr></thead>
+              <tbody>
+                <tr><td><code>A</code></td><td><code>matrix</code> (or your subdomain)</td><td>New server's IPv4</td></tr>
+                <tr><td><code>AAAA</code></td><td><code>matrix</code> (or your subdomain)</td><td>New server's IPv6</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre class="code-block" style="margin-top:0.75rem;"><span class="comment"># Verify DNS points to the new server</span>
+dig matrix.example.com +short
+<span class="comment"># Should return the NEW server's IP</span></pre>
+        </div>
+
+        <div class="step">
+          <h3>4. Download Script on New Server</h3>
+          <pre class="code-block">ssh root@new-server
+curl -sL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh -o conduit-deploy.sh
+chmod +x conduit-deploy.sh
+bash conduit-deploy.sh</pre>
+        </div>
+
+        <div class="step">
+          <h3>5. Restore from Backup</h3>
+          <p class="desc">The script detects Conduit is <strong>not installed</strong>. Go to <strong><code>5</code></strong> (Services) — only Restore is available:</p>
+          <pre class="code-block">═══ Service Management ═══
+
+  Conduit is not installed. Only restore is available.
+
+  8) Restore from backup
+  0) Back to main menu
+
+Choose: <strong>8</strong></pre>
+          <p class="desc" style="margin-top:1rem;">Select your backup file and confirm:</p>
+          <pre class="code-block">Type 'RESTORE' to confirm: <strong>RESTORE</strong>
+
+ℹ Restoring from backup...
+✅ Files restored
+✅ conduit, caddy, coturn pulled
+ℹ Starting services...
+✅ Restore complete! Services are running.</pre>
+        </div>
+
+        <div class="step">
+          <h3>6. Verify</h3>
+          <p class="desc">Run Health Check (<strong><code>3</code></strong>) on the new server:</p>
+          <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
+            <li>All services running ✅</li>
+            <li>HTTPS working (Caddy gets new certs automatically) ✅</li>
+            <li>Federation port 8448 accessible ✅</li>
+            <li>All your accounts, messages, and rooms present ✅</li>
+          </ul>
+        </div>
+
+        <div class="step">
+          <h3>7. Shut Down the Old Server</h3>
+          <pre class="code-block"><span class="comment"># On the OLD server — stop services</span>
+bash conduit-deploy.sh
+<span class="comment"># Menu: 5 → 2 (Stop all services)</span>
+<span class="comment"># Or: Menu: 6 (Uninstall) to remove everything</span></pre>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>⚠️ Don't run both servers at the same time</strong> with the same domain — this causes federation conflicts and split-brain data issues.
+          </div>
+        </div>
+
+        <div class="step">
+          <h3>📋 Migration Checklist</h3>
+          <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.4;">
+            <li>☐ Create backup on old server</li>
+            <li>☐ Copy backup file to new server (<code>/opt/conduit-backups/</code>)</li>
+            <li>☐ Update DNS records to new server's IP</li>
+            <li>☐ Verify DNS propagation (<code>dig matrix.example.com +short</code>)</li>
+            <li>☐ Download script on new server</li>
+            <li>☐ Restore from backup (Services → Restore)</li>
+            <li>☐ Run Health Check — all green?</li>
+            <li>☐ Test login with a Matrix client</li>
+            <li>☐ Stop/uninstall old server</li>
+            <li>☐ 🎉 Done!</li>
+          </ol>
+        </div>
+
+      </div><!-- /steps -->
+    </div><!-- /tab-migrate -->
+
   </div>
 </section>
 
@@ -372,12 +569,35 @@ window.addEventListener('scroll', () => {
 function toggleNav() {
   document.getElementById('navLinks').classList.toggle('open');
 }
-
-// SMOOTH SCROLL (close mobile nav)
 document.querySelectorAll('.nav-links a').forEach(a => {
   a.addEventListener('click', () => {
     document.getElementById('navLinks').classList.remove('open');
   });
+});
+
+// TAB SWITCHING
+function switchTab(tabId) {
+  // Deactivate all tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  // Activate selected
+  document.getElementById('tab-' + tabId).classList.add('active');
+  // Find the button that matches
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active');
+  });
+  // Scroll to top of tabs
+  document.querySelector('.tab-nav').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Update URL hash
+  history.replaceState(null, '', '#' + tabId);
+}
+
+// Load tab from URL hash
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = location.hash.replace('#', '');
+  if (hash && document.getElementById('tab-' + hash)) {
+    switchTab(hash);
+  }
 });
 
 // COPY BUTTONS

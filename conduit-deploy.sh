@@ -1830,12 +1830,12 @@ do_restore() {
         # If some pinned images failed, fall back to latest
         if [ "$pinned_ok" -lt "$pinned_count" ]; then
             warn "Some pinned images could not be pulled. Falling back to latest..."
-            cd "$INSTALL_DIR" && $SUDO docker compose pull 2>/dev/null || true
+            cd "$INSTALL_DIR" && _compose_quiet pull || true
         fi
     else
         warn "No pinned image versions found in backup. Will use latest images."
         info "Pulling latest images..."
-        cd "$INSTALL_DIR" && $SUDO docker compose pull 2>/dev/null
+        cd "$INSTALL_DIR" && _compose_quiet pull
     fi
 
     # Start services (use setsid to prevent Docker TTY output from killing SSH)

@@ -100,6 +100,21 @@ The server handles most things automatically:
 - ✅ Security updates install automatically
 - ✅ Services restart automatically if they crash
 
+## 8. Backups
+
+Take regular backups from the menu: **Services → Backup (with version pinning)**
+
+Each backup saves:
+- All messages, accounts, rooms, and encryption keys
+- Media files and configuration
+- **Pinned Docker image versions** (SHA256 digests) — so restoring gives you back the exact same software, not a newer version
+
+Backups are stored at `/opt/conduit-backups/` (separate from your installation — survives even uninstall).
+
+You can restore on the same server or migrate to a new one: **Services → Restore from backup**
+
+> 📖 See the full [Backup & Restore Walkthrough](https://balnaimi.github.io/conduit-deploy/walkthrough.html#backup) for step-by-step instructions.
+
 ---
 
 **Need help?** Check the [FAQ](faq.md) or [Troubleshooting](troubleshooting.md) guide.

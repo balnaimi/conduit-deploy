@@ -111,6 +111,38 @@ The script automatically installs missing dependencies. Here's exactly what it a
 
 > Most utilities are already on a fresh Debian/Ubuntu install. The script checks each one and only installs what's missing.
 
+## 💾 Backup & Restore
+
+The script creates **complete backups** that include everything needed to restore your server:
+
+| What's Saved | Details |
+|---|---|
+| **Database** | All rooms, messages, accounts, encryption keys |
+| **Media** | User uploads, images, videos, documents |
+| **Configuration** | `.env`, `docker-compose.yml`, `conduit.toml`, `Caddyfile`, `turnserver.conf` |
+| **TLS Certificates** | Let's Encrypt certs and Caddy data |
+| **Secrets** | Registration token, TURN secret |
+| **Pinned Image Versions** | SHA256 digests of the exact Docker images running at backup time |
+
+### Why Pinned Image Versions?
+
+When you restore, the script pulls the **exact same Docker images** (by SHA256 digest) that were running when the backup was taken:
+
+- ✅ No surprise breaking changes from a newer version
+- ✅ Database format matches the software version
+- ✅ You can update later on your own terms
+
+### Backup & Restore from the menu:
+
+```
+Services → Backup (with version pinning)    # Create a backup
+Services → Restore from backup              # Restore on same or new server
+```
+
+Backups are stored separately at `/opt/conduit-backups/` — they survive uninstall and are never mixed with your live installation.
+
+> 📖 Full walkthrough with screenshots: [Backup & Restore Guide](https://balnaimi.github.io/conduit-deploy/walkthrough.html#backup)
+
 ## License
 
 MIT — Use it, share it, modify it.

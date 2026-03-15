@@ -99,7 +99,9 @@ sudo bash conduit-deploy.sh
 
 This saves everything to `/opt/conduit-backups/` — a **separate folder** from the installation at `/opt/conduit/`. Your backups are safe even if the installation is damaged or uninstalled.
 
-The backup includes: database, media, config, TLS certificates, and **pinned Docker image versions** (SHA256 digests). This means restoring gives you back the exact same software, not a newer version.
+The backup exports Docker volume data (database, media, TLS certificates) and includes config files and **pinned Docker image versions** (SHA256 digests). This means restoring gives you back the exact same software, not a newer version.
+
+You can choose to **exclude media files** (user uploads, images, videos) for a much smaller backup. Accounts and messages are always saved regardless. Backups without media have a `-no-media` suffix in the filename.
 
 > **After restoring**, you're not locked to the old versions. Run **Services → Update containers** to pull the latest anytime. The pinning just ensures a safe starting point — after that, your server works normally.
 

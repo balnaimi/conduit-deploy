@@ -113,16 +113,23 @@ The script automatically installs missing dependencies. Here's exactly what it a
 
 ## 💾 Backup & Restore
 
-The script creates **complete backups** that include everything needed to restore your server:
+The script creates **complete backups** including Docker volume data (database, media, TLS certificates):
 
 | What's Saved | Details |
 |---|---|
-| **Database** | All rooms, messages, accounts, encryption keys |
-| **Media** | User uploads, images, videos, documents |
+| **Database** | All rooms, messages, accounts, encryption keys (from Docker volume) |
+| **Media** | User uploads, images, videos, documents (optional — you can exclude to save space) |
 | **Configuration** | `.env`, `docker-compose.yml`, `conduit.toml`, `Caddyfile`, `turnserver.conf` |
-| **TLS Certificates** | Let's Encrypt certs and Caddy data |
+| **TLS Certificates** | Let's Encrypt certs and Caddy data (from Docker volume) |
 | **Secrets** | Registration token, TURN secret |
 | **Pinned Image Versions** | SHA256 digests of the exact Docker images running at backup time |
+
+### Media: Include or Exclude
+
+The backup will show you the size of your media files and ask whether to include them:
+
+- **With media**: Full backup — everything restored exactly as it was
+- **Without media**: Much smaller backup — accounts, messages, and config are saved, but uploaded files (images, videos, documents) are excluded. File names `-no-media` suffix.
 
 ### Why Pinned Image Versions?
 
@@ -142,6 +149,16 @@ Services → Restore from backup              # Restore on same or new server
 ```
 
 Backups are stored separately at `/opt/conduit-backups/` — they survive uninstall and are never mixed with your live installation.
+
+### What Restore Does
+
+Restore is a **complete recovery** — it handles everything, even after a full uninstall:
+
+- ✅ Extracts config files and imports database + certificates into Docker volumes
+- ✅ Pulls pinned Docker images (exact versions from backup time)
+- ✅ Re-creates firewall rules (UFW ports for HTTP, HTTPS, Federation, TURN)
+- ✅ Re-creates TLS cert auto-sync (systemd watcher)
+- ✅ Re-adds iptables UDP redirect for TURN-over-TLS
 
 > 📖 Full walkthrough with screenshots: [Backup & Restore Guide](https://balnaimi.github.io/conduit-deploy/walkthrough.html#backup)
 

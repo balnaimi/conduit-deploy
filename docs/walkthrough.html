@@ -488,10 +488,10 @@ Password (min 8 characters): <strong>MySecurePass123!</strong></pre>
           <table>
             <thead><tr><th>Component</th><th>What It Contains</th></tr></thead>
             <tbody>
-              <tr><td><strong>Database</strong></td><td>All rooms, messages, user accounts, encryption keys</td></tr>
-              <tr><td><strong>Media files</strong></td><td>Images, videos, documents uploaded by users</td></tr>
+              <tr><td><strong>Database</strong></td><td>All rooms, messages, user accounts, encryption keys (exported from Docker volume)</td></tr>
+              <tr><td><strong>Media files</strong></td><td>Images, videos, documents uploaded by users (optional — can be excluded)</td></tr>
               <tr><td><strong>Configuration</strong></td><td><code>.env</code>, <code>docker-compose.yml</code>, <code>conduit.toml</code>, <code>Caddyfile</code>, <code>turnserver.conf</code></td></tr>
-              <tr><td><strong>TLS certificates</strong></td><td>Let's Encrypt certs and Caddy data</td></tr>
+              <tr><td><strong>TLS certificates</strong></td><td>Let's Encrypt certs and Caddy data (exported from Docker volume)</td></tr>
               <tr><td><strong>Secrets</strong></td><td>Registration token, TURN secret</td></tr>
               <tr><td><strong>Pinned image versions</strong></td><td>SHA256 digests of the exact Docker images that were running</td></tr>
             </tbody>
@@ -506,8 +506,8 @@ Password (min 8 characters): <strong>MySecurePass123!</strong></pre>
         <div class="step">
           <h3>1. Create a Backup</h3>
           <p class="desc">From the main menu: <strong><code>5</code></strong> (Services) → <strong><code>7</code></strong> (Backup with version pinning)</p>
-          <pre class="code-block"><span class="comment"># The script checks disk space first</span>
-✅ Disk space OK (need ~0MB, have 19814MB free)
+          <pre class="code-block"><span class="comment"># The script checks disk space (includes Docker volume sizes)</span>
+✅ Disk space OK (need ~84MB, have 19604MB free)
 
 <span class="comment"># If you have 3+ old backups, it offers cleanup</span>
 ⚠ You have 3 old backups in /opt/conduit-backups/
@@ -520,9 +520,25 @@ Delete old backups? Keep only the latest 2. [y/N]: y
 ✅ caddy: caddy:2-alpine → fce4f15aad23
 ✅ coturn: coturn/coturn:alpine → 229f87ef2428
 
+<span class="comment"># Exports database and certificates from Docker volumes</span>
+ℹ Exporting database and certificates from Docker volumes...
+✅ Database exported
+✅ TLS certificates exported
+
+<span class="comment"># If you have media files, you can choose to include or exclude them</span>
+  Media files: 30M
+  Media includes user uploads (images, videos, documents)
+  and cached federation files.
+
+Include media files in backup? [Y/n]: y
+
 <span class="comment"># Creates the backup</span>
 ℹ Creating backup...
-✅ Backup saved: conduit-backup-2026-03-15-180609.tar.gz (8.0K)</pre>
+✅ Backup saved: conduit-backup-2026-03-16-022313.tar.gz (30M)</pre>
+
+          <div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(59,130,246,0.08);border-left:3px solid var(--blue);border-radius:6px;font-size:0.88rem;color:var(--text-dim);">
+            <strong style="color:var(--text);">💡 Media Exclusion:</strong> Choose <code>n</code> to skip media files for a much smaller backup. Accounts and messages are always saved. No-media backups get a <code>-no-media</code> suffix.
+          </div>
         </div>
 
         <div class="step">
@@ -605,6 +621,11 @@ Type 'RESTORE' to confirm: <strong>RESTORE</strong>
 ℹ Restoring from backup...
 ✅ Files restored
 
+<span class="comment"># Imports database and certificates into Docker volumes</span>
+ℹ Importing database from backup...
+✅ Database imported
+✅ TLS certificates imported
+
 ═══ Restoring pinned image versions ═══
   Pulling the exact same images that were running at backup time.
   ✅ conduit
@@ -612,7 +633,12 @@ Type 'RESTORE' to confirm: <strong>RESTORE</strong>
   ✅ coturn
 
 ℹ Starting services...
-✅ Restore complete! Services are running.</pre>
+✅ Restore complete! Services are running.
+
+<span class="comment"># Re-creates infrastructure (firewall, TLS sync, iptables)</span>
+✅ Firewall rules verified
+✅ TLS cert auto-sync restored
+✅ UDP redirect rule restored</pre>
         </div>
 
         <div class="step">
@@ -711,9 +737,14 @@ Choose: <strong>8</strong></pre>
 
 ℹ Restoring from backup...
 ✅ Files restored
+✅ Database imported
+✅ TLS certificates imported
 ✅ conduit, caddy, coturn pulled
 ℹ Starting services...
-✅ Restore complete! Services are running.</pre>
+✅ Restore complete! Services are running.
+✅ Firewall rules verified
+✅ TLS cert auto-sync restored
+✅ UDP redirect rule restored</pre>
         </div>
 
         <div class="step">

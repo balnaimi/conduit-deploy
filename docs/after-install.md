@@ -104,9 +104,10 @@ The server handles most things automatically:
 
 Take regular backups from the menu: **Services → Backup (with version pinning)**
 
-Each backup saves:
-- All messages, accounts, rooms, and encryption keys
-- Media files and configuration
+Each backup exports Docker volume data and saves:
+- All messages, accounts, rooms, and encryption keys (from database volume)
+- Media files — optional, you can exclude to save space (accounts/messages still saved without media)
+- Configuration and TLS certificates
 - **Pinned Docker image versions** (SHA256 digests) — so restoring gives you back the exact same software, not a newer version
 
 Backups are stored at `/opt/conduit-backups/` (separate from your installation — survives even uninstall).

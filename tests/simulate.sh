@@ -897,11 +897,18 @@ test_image_helpers() {
         fail "  Registration API calls missing timeouts"
     fi
     
-    # Docker compose uses --progress quiet for silent operations
-    if grep -q 'progress quiet.*up -d conduit' "$SCRIPT"; then
-        pass "  Uses --progress quiet for silent compose operations"
+    # Docker compose uses _compose_quiet for silent operations (setsid/TTY detach)
+    if grep -q '_compose_quiet' "$SCRIPT"; then
+        pass "  Uses _compose_quiet wrapper for silent compose operations"
     else
-        fail "  Missing --progress quiet"
+        fail "  Missing _compose_quiet wrapper"
+    fi
+    
+    # _compose_quiet uses setsid to detach from TTY
+    if grep -q 'setsid docker compose' "$SCRIPT"; then
+        pass "  _compose_quiet uses setsid (TTY detach)"
+    else
+        fail "  _compose_quiet missing setsid"
     fi
     
     # Orphaned registration safety check

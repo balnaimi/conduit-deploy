@@ -40,6 +40,17 @@ separator() {
     echo -e "${DIM}───────────────────────────────────────────────${NC}"
 }
 
+# Run docker compose silently (detached from TTY to prevent progress bar interference)
+# Docker Compose v5+ writes progress directly to /dev/tty even with >/dev/null 2>&1
+# This wrapper uses setsid to detach from the controlling terminal
+_compose_quiet() {
+    if command -v setsid &>/dev/null; then
+        $SUDO setsid docker compose "$@" </dev/null >/dev/null 2>&1
+    else
+        $SUDO docker compose --progress quiet "$@" </dev/null >/dev/null 2>&1
+    fi
+}
+
 # Get image name for a compose service (compatible with Docker Compose v2+v5)
 # Usage: get_compose_image <service_name>
 # Returns: repository:tag (e.g. "caddy:2-alpine")
@@ -1453,7 +1464,7 @@ menu_registration() {
                 warn "Registration is already OPEN"
             else
                 $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-                cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+                cd "$INSTALL_DIR" && _compose_quiet up -d conduit
                 success "Registration OPENED"
             fi
             echo
@@ -1474,7 +1485,7 @@ menu_registration() {
                 warn "Registration is already CLOSED"
             else
                 $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-                cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+                cd "$INSTALL_DIR" && _compose_quiet up -d conduit
                 success "Registration CLOSED"
             fi
             press_enter
@@ -1504,7 +1515,7 @@ _reclose_registration() {
     echo
     warn "Interrupted — closing registration..."
     $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE" 2>/dev/null
-    cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+    cd "$INSTALL_DIR" && _compose_quiet up -d conduit
     info "Registration closed."
     trap - INT
 }
@@ -1554,7 +1565,7 @@ menu_create_account() {
         trap '_reclose_registration' INT
         info "Temporarily opening registration..."
         $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
         sleep 3
         echo -e "  ${DIM}Registration briefly open (token still required). Will close after account creation.${NC}"
     fi
@@ -1606,7 +1617,7 @@ menu_create_account() {
     if $was_closed; then
         trap - INT
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
         info "Registration closed again"
     fi
 
@@ -2181,7 +2192,7 @@ _check_orphaned_registration() {
         read -r close_reg
         if [[ ! "$close_reg" =~ ^[Nn]$ ]]; then
             $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-            cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+            cd "$INSTALL_DIR" && _compose_quiet up -d conduit
             success "Registration closed"
         fi
     fi

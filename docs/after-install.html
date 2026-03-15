@@ -79,19 +79,25 @@
 
       <div class="step">
         <h3>Create More Accounts</h3>
-        <p>Registration is <strong>disabled by default</strong> for security. Two ways to add users:</p>
+        <p>Registration is <strong>closed by default</strong> for security. Two ways to add users:</p>
         <div style="margin-top:1rem;">
-          <strong style="color:var(--blue);font-size:0.88rem;">Option A: Enable registration temporarily</strong>
-          <pre class="code-block"><span class="cmd">sudo</span> ./conduit-deploy.sh
-<span class="comment"># Choose option 2 (Change configuration)</span>
-<span class="comment"># Set "allow_registration = true"</span>
-<span class="comment"># Disable again after creating accounts!</span></pre>
+          <strong style="color:var(--blue);font-size:0.88rem;">Option A: Create via the script (recommended)</strong>
+          <pre class="code-block"><span class="cmd">sudo</span> bash conduit-deploy.sh
+<span class="comment"># Choose: Registration → Create account</span>
+<span class="comment"># Enter username and password</span>
+<span class="comment"># The script handles opening/closing registration automatically</span></pre>
+          <p style="color:var(--text-dim);font-size:0.85rem;margin-top:0.5rem;">
+            The script collects your input first, then briefly opens registration, creates the account via the Matrix API, 
+            and closes registration again — all in one step. A token is still required even while open.
+          </p>
         </div>
         <div style="margin-top:1.5rem;">
-          <strong style="color:var(--blue);font-size:0.88rem;">Option B: Create via command line</strong>
-          <pre class="code-block"><span class="cmd">docker</span> exec -it conduit /bin/sh
-conduit database create-user @newuser:example.com newpassword
-exit</pre>
+          <strong style="color:var(--blue);font-size:0.88rem;">Option B: Share the registration token</strong>
+          <pre class="code-block"><span class="cmd">sudo</span> bash conduit-deploy.sh
+<span class="comment"># Choose: Registration → Open registration</span>
+<span class="comment"># Share the token with your users</span>
+<span class="comment"># They register via Element (Settings → Homeserver → your domain)</span>
+<span class="comment"># Close registration when done!</span></pre>
         </div>
       </div>
 

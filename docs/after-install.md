@@ -37,9 +37,11 @@ After signing in, the app will ask you to **verify your session**. This sets up 
 
 ### If they'll use your server:
 
-1. Share the **registration token** with them
+1. Share the **registration token** with them (Menu → Registration → Show token)
 2. They download an app → Sign up → Enter your domain as homeserver
 3. Use the token when asked
+
+> **Tip:** You can also create accounts from the script directly (Menu → Registration → Create account). The script collects the username and password first, then briefly opens registration, creates the account, and closes registration again — all in one step.
 
 ### If they're on another Matrix server:
 

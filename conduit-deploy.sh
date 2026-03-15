@@ -1453,7 +1453,7 @@ menu_registration() {
                 warn "Registration is already OPEN"
             else
                 $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-                cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+                cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
                 success "Registration OPENED"
             fi
             echo
@@ -1474,7 +1474,7 @@ menu_registration() {
                 warn "Registration is already CLOSED"
             else
                 $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-                cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+                cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
                 success "Registration CLOSED"
             fi
             press_enter
@@ -1504,7 +1504,7 @@ _reclose_registration() {
     echo
     warn "Interrupted — closing registration..."
     $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE" 2>/dev/null
-    cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+    cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
     info "Registration closed."
     trap - INT
 }
@@ -1515,20 +1515,8 @@ menu_create_account() {
     step "Create New Account"
 
     load_config
-    
-    # Temporarily open registration
-    local was_closed=false
-    if grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
-        was_closed=true
-        # Trap Ctrl+C to ensure we re-close registration
-        trap '_reclose_registration' INT
-        $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
-        sleep 3
-        info "Temporarily opened registration (will close again after account creation)..."
-        echo -e "  ${DIM}Note: Registration is briefly open. A token is still required to register.${NC}"
-    fi
 
+    # ─── Collect input FIRST (before touching registration state) ───
     ask "Username (without @, lowercase letters/numbers/dots/hyphens):"
     read -r NEW_USER
     [ -z "$NEW_USER" ] && { error "Username required"; press_enter; return; }
@@ -1558,6 +1546,18 @@ menu_create_account() {
     # Escape special characters for JSON
     NEW_PASS_ESCAPED=$(echo "$NEW_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
     NEW_USER_ESCAPED=$(echo "$NEW_USER" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+    # ─── Now open registration (input already collected, minimal window) ───
+    local was_closed=false
+    if grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
+        was_closed=true
+        trap '_reclose_registration' INT
+        info "Temporarily opening registration..."
+        $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+        sleep 3
+        echo -e "  ${DIM}Registration briefly open (token still required). Will close after account creation.${NC}"
+    fi
 
     # Register via Matrix client API
     info "Creating account @${NEW_USER}:${SERVER_NAME}..."
@@ -1606,7 +1606,7 @@ menu_create_account() {
     if $was_closed; then
         trap - INT
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+        cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
         info "Registration closed again"
     fi
 
@@ -2171,7 +2171,24 @@ menu_uninstall() {
 # ═══════════════════════════════════════════════
 #  MAIN MENU
 # ═══════════════════════════════════════════════
+# ─── Safety: check for orphaned open registration on startup ───
+_check_orphaned_registration() {
+    if [ -f "$COMPOSE_FILE" ] && grep -q 'ALLOW_REGISTRATION: "true"' "$COMPOSE_FILE" 2>/dev/null; then
+        echo
+        warn "Registration is currently OPEN!"
+        echo -e "  ${DIM}This may be left over from a previous interrupted session.${NC}"
+        ask "Close registration now? [Y/n]:"
+        read -r close_reg
+        if [[ ! "$close_reg" =~ ^[Nn]$ ]]; then
+            $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
+            cd "$INSTALL_DIR" && $SUDO docker compose --progress quiet up -d conduit >/dev/null 2>&1
+            success "Registration closed"
+        fi
+    fi
+}
+
 main_menu() {
+    _check_orphaned_registration
     while true; do
         show_header
         echo -e "  ${CYAN}1${NC}) ${BOLD}Prepare${NC}      — What you need before installing"

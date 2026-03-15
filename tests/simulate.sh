@@ -896,6 +896,29 @@ test_image_helpers() {
     else
         fail "  Registration API calls missing timeouts"
     fi
+    
+    # Docker compose uses --progress quiet for silent operations
+    if grep -q 'progress quiet.*up -d conduit' "$SCRIPT"; then
+        pass "  Uses --progress quiet for silent compose operations"
+    else
+        fail "  Missing --progress quiet"
+    fi
+    
+    # Orphaned registration safety check
+    if grep -q '_check_orphaned_registration' "$SCRIPT"; then
+        pass "  Orphaned registration safety check exists"
+    else
+        fail "  Missing orphaned registration safety check"
+    fi
+    
+    # Input collected before opening registration (NEW_PASS_ESCAPED line < Temporarily opening line)
+    local pass_line=$(grep -n 'NEW_PASS_ESCAPED=' "$SCRIPT" | head -1 | cut -d: -f1)
+    local open_line=$(grep -n 'Temporarily opening registration' "$SCRIPT" | head -1 | cut -d: -f1)
+    if [ -n "$pass_line" ] && [ -n "$open_line" ] && [ "$pass_line" -lt "$open_line" ]; then
+        pass "  Input collected before opening registration (L${pass_line} < L${open_line})"
+    else
+        fail "  Registration opens before collecting input (risky)"
+    fi
 }
 
 # ─── Run all tests ───

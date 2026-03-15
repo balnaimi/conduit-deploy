@@ -1685,6 +1685,16 @@ do_backup() {
 
     # ─── Check disk space before backup ───
     local install_size_kb=$($SUDO du -sk "$INSTALL_DIR" 2>/dev/null | awk '{print $1}')
+    # Include Docker volumes in size estimate
+    local vol_size_kb=0
+    for vol in conduit_conduit-data conduit_caddy-data; do
+        local vol_path=$($SUDO docker volume inspect "$vol" --format '{{.Mountpoint}}' 2>/dev/null)
+        if [ -n "$vol_path" ] && [ -d "$vol_path" ]; then
+            local vkb=$($SUDO du -sk "$vol_path" 2>/dev/null | awk '{print $1}')
+            vol_size_kb=$((vol_size_kb + vkb))
+        fi
+    done
+    install_size_kb=$((install_size_kb + vol_size_kb))
     local install_size_mb=$((install_size_kb / 1024))
     local avail_kb=$(df -k "$INSTALL_DIR" | awk 'NR==2{print $4}')
     local avail_mb=$((avail_kb / 1024))
@@ -1752,14 +1762,33 @@ do_backup() {
         fi
     done
 
+    # ─── Export Docker volumes to temp dir for backup ───
+    local backup_staging="$INSTALL_DIR/.backup-staging"
+    $SUDO rm -rf "$backup_staging"
+    $SUDO mkdir -p "$backup_staging"
+
+    info "Exporting database and certificates from Docker volumes..."
+    # Export conduit data volume (database + media)
+    $SUDO docker run --rm \
+        -v conduit_conduit-data:/source:ro \
+        -v "$backup_staging":/dest \
+        alpine sh -c 'cp -a /source/. /dest/conduit-data/' 2>/dev/null
+    success "Database exported"
+
+    # Export caddy data volume (TLS certs)
+    $SUDO docker run --rm \
+        -v conduit_caddy-data:/source:ro \
+        -v "$backup_staging":/dest \
+        alpine sh -c 'cp -a /source/. /dest/caddy-data/' 2>/dev/null
+    success "TLS certificates exported"
+
     # Ask about media files
     local include_media="yes"
-    local media_dir="$INSTALL_DIR/data/media"  # Conduit media path inside data volume
+    local media_dir="$backup_staging/conduit-data/media"
     local media_size=""
-    
-    # Check if there are media files and their size
-    if [ -d "$INSTALL_DIR/data" ]; then
-        media_size=$($SUDO du -sh "$INSTALL_DIR/data/media" 2>/dev/null | awk '{print $1}')
+
+    if [ -d "$media_dir" ]; then
+        media_size=$($SUDO du -sh "$media_dir" 2>/dev/null | awk '{print $1}')
         if [ -n "$media_size" ] && [ "$media_size" != "0" ]; then
             echo
             echo -e "  ${BOLD}Media files:${NC} ${media_size}"
@@ -1783,18 +1812,24 @@ do_backup() {
         BACKUP_FILE="/opt/conduit-backups/conduit-backup-${timestamp}-no-media.tar.gz"
     fi
     info "Creating backup at $BACKUP_FILE..."
-    if [ "$include_media" = "yes" ]; then
-        if ! $SUDO tar czf "$BACKUP_FILE" -C / "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null; then
-            error "Failed to create backup archive. Check permissions and disk space."
-            return 1
-        fi
-    else
-        # Exclude media directory
-        if ! $SUDO tar czf "$BACKUP_FILE" -C / --exclude="$(echo "$INSTALL_DIR" | sed 's|^/||')/data/media" "$(echo "$INSTALL_DIR" | sed 's|^/||')" 2>/dev/null; then
-            error "Failed to create backup archive. Check permissions and disk space."
-            return 1
-        fi
+
+    # Build tar command — always include /opt/conduit/ (config) and staging dir (volumes)
+    local tar_excludes=""
+    if [ "$include_media" = "no" ]; then
+        tar_excludes="--exclude=$(echo "$backup_staging" | sed 's|^/||')/conduit-data/media"
     fi
+
+    if ! $SUDO tar czf "$BACKUP_FILE" -C / \
+        $tar_excludes \
+        "$(echo "$INSTALL_DIR" | sed 's|^/||')" \
+        2>/dev/null; then
+        error "Failed to create backup archive. Check permissions and disk space."
+        $SUDO rm -rf "$backup_staging"
+        return 1
+    fi
+
+    # Clean up staging
+    $SUDO rm -rf "$backup_staging"
     
     if [ ! -f "$BACKUP_FILE" ] || [ ! -s "$BACKUP_FILE" ]; then
         error "Backup file is empty or doesn't exist"
@@ -1875,6 +1910,39 @@ do_restore() {
         return 1
     fi
     success "Files restored"
+
+    # ─── Import Docker volumes from backup staging ───
+    local backup_staging="$INSTALL_DIR/.backup-staging"
+    if [ -d "$backup_staging/conduit-data" ]; then
+        info "Importing database from backup..."
+        # Create volumes if they don't exist (docker compose up later creates them, 
+        # but we need them now for the import)
+        $SUDO docker volume create conduit_conduit-data >/dev/null 2>&1 || true
+        $SUDO docker volume create conduit_caddy-data >/dev/null 2>&1 || true
+        $SUDO docker volume create conduit_caddy-config >/dev/null 2>&1 || true
+
+        # Import conduit data (database + media)
+        $SUDO docker run --rm \
+            -v conduit_conduit-data:/dest \
+            -v "$backup_staging":/source:ro \
+            alpine sh -c 'rm -rf /dest/* && cp -a /source/conduit-data/. /dest/' 2>/dev/null
+        success "Database imported"
+
+        # Import caddy data (TLS certs) if present
+        if [ -d "$backup_staging/caddy-data" ]; then
+            $SUDO docker run --rm \
+                -v conduit_caddy-data:/dest \
+                -v "$backup_staging":/source:ro \
+                alpine sh -c 'rm -rf /dest/* && cp -a /source/caddy-data/. /dest/' 2>/dev/null
+            success "TLS certificates imported"
+        fi
+
+        # Clean up staging
+        $SUDO rm -rf "$backup_staging"
+    else
+        info "Legacy backup format (no volume data). Database will start fresh."
+        warn "Accounts from the backup will NOT be available."
+    fi
 
     # Check for pinned image versions
     local versions_file="$INSTALL_DIR/.image-versions"

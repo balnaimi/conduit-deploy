@@ -1838,10 +1838,23 @@ do_restore() {
         cd "$INSTALL_DIR" && $SUDO docker compose pull 2>/dev/null
     fi
 
-    # Start services
+    # Start services (use setsid to prevent Docker TTY output from killing SSH)
     info "Starting services..."
-    cd "$INSTALL_DIR" && $SUDO docker compose up -d 2>&1
-    success "Restore complete! Services are running."
+    cd "$INSTALL_DIR" && _compose_quiet up -d
+    sleep 3
+    # Verify services started
+    local all_up=true
+    for svc in conduit caddy coturn; do
+        if ! $SUDO docker compose ps "$svc" --format '{{.State}}' 2>/dev/null | grep -q "running"; then
+            all_up=false
+        fi
+    done
+    if $all_up; then
+        success "Restore complete! Services are running."
+    else
+        warn "Restore complete but some services may still be starting."
+        info "Run Health Check to verify, or wait a moment and try again."
+    fi
 
     echo
     info "Run Health Check to verify everything is working."

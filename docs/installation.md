@@ -18,7 +18,7 @@ The script automatically checks for and installs any missing dependencies:
 | Docker | Runs Conduit, Caddy, and Coturn in containers |
 | UFW | Firewall — blocks unauthorized access |
 | Fail2ban | Bans IPs after too many failed login attempts |
-| unattended-upgrades | Automatic security patches |
+| unattended-upgrades | OS security patches (no auto-reboot — you decide when) |
 | iptables-persistent | Saves firewall rules across reboots |
 
 **Utilities (if missing):**

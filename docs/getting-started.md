@@ -51,7 +51,7 @@ Here's what happens when you run the script:
 │  │ (gateway) │→ │ (chat)   │  │ (calls)   │  │
 │  └──────────┘  └──────────┘  └──────────┘  │
 │                                              │
-│  🔒 Firewall  🛡️ Fail2ban  📜 Auto-updates  │
+│  🔒 Firewall  🛡️ Fail2ban  📜 OS Patches     │
 └─────────────────────────────────────────────┘
          ↑
     Your phone/laptop connects here

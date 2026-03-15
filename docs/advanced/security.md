@@ -36,9 +36,18 @@ This prevents Docker from bypassing the firewall (a common security issue).
 
 Automatically blocks IPs that fail SSH login too many times. Protects against brute-force attacks.
 
-### Automatic security updates
+### OS security patches
 
-`unattended-upgrades` is installed and configured to automatically install security patches.
+`unattended-upgrades` is installed and configured to automatically download and install OS security patches. 
+
+**Important:** The system will **never reboot automatically**. If a kernel update requires a reboot, the Health Check will tell you:
+
+```
+[!] System reboot required (kernel or critical update pending)
+    Run 'sudo reboot' when you're ready — your services will restart automatically.
+```
+
+You decide when to reboot — the server won't restart in the middle of a conversation.
 
 ### TLS everywhere
 

@@ -29,7 +29,7 @@ The software is 100% free. You only pay for:
 - **TLS/HTTPS** — All traffic is encrypted in transit
 - **Firewall** — Only necessary ports are open
 - **Fail2ban** — Blocks brute-force attacks
-- **Auto-updates** — Security patches install automatically
+- **OS security patches** — Installed automatically (no auto-reboot — you decide when to restart)
 
 ### Can I message people on other servers?
 

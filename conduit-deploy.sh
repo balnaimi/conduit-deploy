@@ -1810,17 +1810,50 @@ check_for_updates() {
                 echo
             fi
             info "Pulling new images..."
-            $SUDO docker compose pull 2>&1
+            if ! $SUDO docker compose pull 2>&1; then
+                error "Failed to pull images. Update aborted."
+                if [ -n "$BACKUP_FILE" ]; then
+                    warn "A backup was created before update: $BACKUP_FILE"
+                fi
+                press_enter
+                return
+            fi
             info "Restarting containers..."
-            $SUDO docker compose up -d 2>&1
+            if ! $SUDO docker compose up -d 2>&1; then
+                error "Failed to restart containers after update!"
+                warn "Backup available if you need to rollback: $BACKUP_FILE"
+                press_enter
+                return
+            fi
             success "Containers updated and restarted!"
+            
+            # Verify services came back up
+            sleep 3
+            info "Verifying services..."
+            local all_running=true
+            for svc in conduit caddy coturn; do
+                if timeout 3 $SUDO docker compose ps --format '{{.State}}' "$svc" 2>/dev/null | grep -q "running"; then
+                    success "  $svc is running"
+                else
+                    error "  $svc is NOT running"
+                    all_running=false
+                fi
+            done
             echo
-            info "If something goes wrong, use 'Restore from backup' to rollback."
+            if $all_running; then
+                success "All services verified and running!"
+            else
+                error "Some services failed after update. Run Health Check for details."
+                if [ -n "$BACKUP_FILE" ]; then
+                    warn "Use 'Restore from backup' to rollback if needed: $BACKUP_FILE"
+                fi
+            fi
         else
             info "Skipped. Run 'Update containers' when ready."
+            echo -e "  ${DIM}(Go to Services menu → Update containers)${NC}"
         fi
     else
-        success "All containers are up to date! "
+        success "All containers are up to date!"
     fi
 }
 
@@ -1882,16 +1915,43 @@ menu_services() {
             echo
             ask "Create backup before updating? (recommended) [Y/n]:"
             read -r pre_update_backup
+            local bk_file=""
             if [[ ! "$pre_update_backup" =~ ^[Nn]$ ]]; then
-                do_backup "pre-update"
+                do_backup "pre-update" || { error "Backup failed, aborting update"; press_enter; continue; }
+                bk_file="$BACKUP_FILE"
                 echo
             fi
             info "Pulling latest images..."
-            $SUDO docker compose pull 2>&1
-            $SUDO docker compose up -d 2>&1
-            success "Containers updated"
-            echo
-            info "If something goes wrong, use 'Restore from backup' to rollback."
+            if ! $SUDO docker compose pull 2>&1; then
+                error "Failed to pull images. Update aborted."
+                [ -n "$bk_file" ] && warn "Backup available: $bk_file"
+                press_enter
+                continue
+            fi
+            info "Restarting containers..."
+            if ! $SUDO docker compose up -d 2>&1; then
+                error "Failed to restart containers!"
+                [ -n "$bk_file" ] && warn "Use 'Restore from backup' to rollback: $bk_file"
+                press_enter
+                continue
+            fi
+            success "Containers updated and restarted!"
+            
+            # Quick verification
+            sleep 2
+            local verify_ok=true
+            for svc in conduit caddy coturn; do
+                if ! timeout 3 $SUDO docker compose ps --format '{{.State}}' "$svc" 2>/dev/null | grep -q "running"; then
+                    verify_ok=false
+                    break
+                fi
+            done
+            if $verify_ok; then
+                success "All services verified and running!"
+            else
+                warn "Some services may not be running. Run Health Check for details."
+                [ -n "$bk_file" ] && warn "Backup: $bk_file"
+            fi
             press_enter
             ;;
         6)

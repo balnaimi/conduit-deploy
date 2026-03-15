@@ -1805,9 +1805,19 @@ do_restore() {
 
         local pinned_count=0
         local pinned_ok=0
+        # Read all entries first, then pull (avoids stdin conflicts with setsid)
+        local -a pin_services=()
+        local -a pin_digests=()
         while IFS='=' read -r svc digest; do
             [[ "$svc" =~ ^#.*$ || -z "$svc" ]] && continue
-            ((pinned_count++))
+            pin_services+=("$svc")
+            pin_digests+=("$digest")
+        done < "$versions_file"
+        
+        pinned_count=${#pin_services[@]}
+        for i in "${!pin_services[@]}"; do
+            local svc="${pin_services[$i]}"
+            local digest="${pin_digests[$i]}"
             echo -ne "  Pulling ${BOLD}${svc}${NC}... "
             if $SUDO setsid docker pull "$digest" </dev/null >/dev/null 2>&1; then
                 # Tag it back to the compose-expected name
@@ -1825,7 +1835,7 @@ do_restore() {
             else
                 echo -e "${YELLOW}[!] Could not pull pinned version${NC}"
             fi
-        done < "$versions_file"
+        done
         
         # If some pinned images failed, fall back to latest
         if [ "$pinned_ok" -lt "$pinned_count" ]; then

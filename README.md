@@ -22,7 +22,7 @@ One interactive script that sets up a complete, secure Matrix server with **end-
 | 📞 **Voice & Video Calls** | Built-in TURN/STUN that works across networks |
 | 🌐 **Federation** | Talk to anyone on the Matrix network |
 | 🔐 **Auto TLS** | Let's Encrypt via Caddy — zero maintenance |
-| 🛡️ **Hardened** | Firewall, fail2ban, auto-updates — all automatic |
+| 🛡️ **Hardened** | Firewall, fail2ban, OS security patches — all automatic |
 | ⚡ **Lightweight** | ~50MB RAM — runs on a $5/month VPS |
 
 ## 🚀 Quick Start
@@ -73,7 +73,7 @@ See [Domain Setup](docs/domain-setup.md) for full details.
 Internet → Caddy (:80/:443/:8448) → Conduit (:6167, internal only)
            Coturn (:3478/:5349, host network)
 
-🔒 Firewall  🛡️ Fail2ban  📜 Auto-updates  🔄 Cert auto-renewal
+🔒 Firewall  🛡️ Fail2ban  📜 OS Security Patches  🔄 Cert auto-renewal
 ```
 
 Conduit has **no port mapping** — only accessible through Caddy's Docker network.

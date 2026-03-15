@@ -718,7 +718,14 @@ menu_install() {
 
     # Auto updates
     dpkg -l | grep -q unattended-upgrades || $SUDO apt-get install -y -qq unattended-upgrades >/dev/null 2>&1
-    success "Auto security updates enabled"
+    # Enable automatic reboot when needed (at 4 AM to minimize disruption)
+    $SUDO tee /etc/apt/apt.conf.d/50unattended-upgrades-local > /dev/null << 'APTEOF'
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+APTEOF
+    success "Auto security updates enabled (auto-reboot at 4:00 AM if needed)"
 
     # ─── Config files ───
     step "Creating Configuration Files"
@@ -1146,6 +1153,30 @@ menu_healthcheck() {
     else
         warn "  Auto security updates not installed"
         issues+=("No auto updates")
+    fi
+
+    # Check if reboot is needed
+    if [ -f /var/run/reboot-required ]; then
+        warn "  System reboot required (kernel or critical update pending)"
+        issues+=("Reboot required")
+    else
+        success "  No reboot pending"
+    fi
+
+    # Check if services need restart
+    if command -v needrestart &>/dev/null; then
+        local needs_restart=$($SUDO needrestart -b 2>/dev/null | grep "NEEDRESTART-SVC" | wc -l)
+        if [ "$needs_restart" -gt 0 ]; then
+            warn "  $needs_restart service(s) need restart after updates"
+            $SUDO needrestart -b 2>/dev/null | grep "NEEDRESTART-SVC" | while read line; do
+                local svc=$(echo "$line" | awk '{print $2}')
+                echo -e "     ${DIM}• $svc${NC}"
+            done
+            issues+=("Services need restart")
+        fi
+    elif [ -d /run/needrestart ] || [ -f /var/run/needrestart ]; then
+        warn "  Some services may need restart after updates"
+        issues+=("Services may need restart")
     fi
     echo
 

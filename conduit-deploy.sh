@@ -1574,12 +1574,25 @@ menu_create_account() {
         echo -e "  ${DIM}Registration briefly open (token still required). Will close after account creation.${NC}"
     fi
 
-    # Register via Matrix client API (disable pipefail — grep in pipelines can fail safely)
+    # Register via Matrix client API
+    # Temporarily disable pipefail — grep returns 1 on no-match which kills the script
     info "Creating account @${NEW_USER}:${SERVER_NAME}..."
+    
+    set +o pipefail 2>/dev/null
 
-    local REG_RESULT=""
-    REG_RESULT=$(set +e; set +o pipefail
-        RESP=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+    # Step 1: Get UIAA session (send register without auth to get session ID)
+    REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"username\": \"${NEW_USER_ESCAPED}\",
+            \"password\": \"${NEW_PASS_ESCAPED}\"
+        }" 2>/dev/null || true)
+
+    SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4 || true)
+    
+    if [ -n "$SESSION" ]; then
+        # Step 2: Complete registration with token + session
+        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
             -H "Content-Type: application/json" \
             -d "{
                 \"username\": \"${NEW_USER_ESCAPED}\",
@@ -1587,38 +1600,22 @@ menu_create_account() {
                 \"auth\": {
                     \"type\": \"m.login.registration_token\",
                     \"token\": \"${REGISTRATION_TOKEN}\",
-                    \"session\": \"\"
+                    \"session\": \"${SESSION}\"
                 },
                 \"initial_device_display_name\": \"Server Script\"
-            }" 2>/dev/null)
+            }" 2>/dev/null || true)
+    fi
 
-        # Check if we need a session (UIAA flow)
-        SESS=$(echo "$RESP" | grep -o '"session":"[^"]*"' | cut -d'"' -f4)
+    # Re-enable pipefail
+    set -o pipefail 2>/dev/null
 
-        if [ -n "$SESS" ]; then
-            RESP=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
-                -H "Content-Type: application/json" \
-                -d "{
-                    \"username\": \"${NEW_USER_ESCAPED}\",
-                    \"password\": \"${NEW_PASS_ESCAPED}\",
-                    \"auth\": {
-                        \"type\": \"m.login.registration_token\",
-                        \"token\": \"${REGISTRATION_TOKEN}\",
-                        \"session\": \"${SESS}\"
-                    },
-                    \"initial_device_display_name\": \"Server Script\"
-                }" 2>/dev/null)
-        fi
-        echo "$RESP"
-    )
-
-    if echo "$REG_RESULT" | grep -q "user_id" 2>/dev/null; then
-        USER_ID=$(echo "$REG_RESULT" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
+    if echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null; then
+        USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
         success "Account created: ${USER_ID}"
     else
-        ERROR_MSG=$(echo "$REG_RESULT" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
+        ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
         error "Failed: ${ERROR_MSG:-Unknown error}"
-        echo -e "  ${DIM}Response: ${REG_RESULT}${NC}"
+        echo -e "  ${DIM}Response: ${REGISTER_RESPONSE}${NC}"
     fi
 
     # Re-close if was closed

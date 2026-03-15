@@ -1819,7 +1819,11 @@ do_restore() {
             local svc="${pin_services[$i]}"
             local digest="${pin_digests[$i]}"
             echo -ne "  Pulling ${BOLD}${svc}${NC}... "
-            if $SUDO setsid docker pull "$digest" </dev/null >/dev/null 2>&1; then
+            # Use nohup+background to fully isolate from TTY, then wait for it
+            $SUDO docker pull "$digest" </dev/null >/dev/null 2>&1 &
+            wait $!
+            local pull_exit=$?
+            if [ $pull_exit -eq 0 ]; then
                 # Tag it back to the compose-expected name
                 local expected_img=""
                 case "$svc" in

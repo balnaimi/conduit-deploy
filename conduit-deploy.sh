@@ -67,24 +67,13 @@ _compose_visible() {
     chmod +x "$tmpscript"
     $SUDO setsid bash "$tmpscript" "$@" </dev/null >/dev/null 2>/dev/null &
     local pid=$!
-    # Stream output to user while docker runs
-    sleep 0.5
-    while kill -0 $pid 2>/dev/null; do
-        if [ -f "$tmplog" ]; then
-            # Show last few lines of progress
-            tail -3 "$tmplog" 2>/dev/null | head -1
-        fi
-        sleep 1
-    done
-    wait $pid 2>/dev/null
-    # Show final output
+    # Wait for completion (simple wait, no polling that could trigger set -e)
+    wait $pid 2>/dev/null || true
+    # Show output and get exit code
     if [ -f "$tmplog" ]; then
-        # Last line is exit code
-        local exit_code=$(tail -1 "$tmplog")
-        # Print all except last line
-        head -n -1 "$tmplog"
-        rm -f "$tmplog"
-        rm -f "$tmpscript"
+        local exit_code=$(tail -1 "$tmplog" 2>/dev/null || echo "1")
+        head -n -1 "$tmplog" 2>/dev/null || true
+        rm -f "$tmplog" "$tmpscript"
         return ${exit_code:-1}
     fi
     rm -f "$tmpscript" "$tmplog"
@@ -1923,11 +1912,11 @@ PULLEOF
         while IFS=' ' read -r status svc; do
             if [ "$status" = "OK" ]; then
                 echo -e "  ${GREEN}[OK]${NC} $svc"
-                ((pinned_ok++))
+                pinned_ok=$((pinned_ok + 1))
             elif [ "$status" = "FAIL" ]; then
                 echo -e "  ${YELLOW}[!]${NC} $svc — could not pull pinned version"
             fi
-        done < <(grep -v "DONE" "$pull_log")
+        done < <(grep -v "DONE" "$pull_log" 2>/dev/null || true)
         
         rm -f "$pull_script" "$pull_log"
         

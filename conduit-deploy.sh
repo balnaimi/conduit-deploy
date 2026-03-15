@@ -141,6 +141,11 @@ menu_prepare() {
     ask "Choose [1/2]:"
     read -r PREP_MODE
     PREP_MODE=${PREP_MODE:-1}
+    if [[ "$PREP_MODE" != "1" && "$PREP_MODE" != "2" ]]; then
+        error "Invalid choice: $PREP_MODE (expected 1 or 2)"
+        press_enter
+        return
+    fi
     echo
 
     ask "Your domain name (e.g. example.com):"
@@ -159,7 +164,9 @@ menu_prepare() {
     fi
 
     # Detect IP
-    PREP_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || echo "YOUR_VPS_IP")
+    PREP_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || \
+              curl -s -4 --connect-timeout 5 api.ipify.org 2>/dev/null || \
+              curl -s -4 --connect-timeout 5 icanhazip.com 2>/dev/null || echo "YOUR_VPS_IP")
 
     # Detect IPv6
     PREP_IPV6=$(ip -6 addr show scope global 2>/dev/null | awk '/inet6/{print $2}' | cut -d/ -f1 | head -1)
@@ -366,6 +373,11 @@ menu_install() {
     fi
     read -r DOMAIN_MODE
     DOMAIN_MODE=${DOMAIN_MODE:-${SAVED_MODE:-1}}
+    if [[ "$DOMAIN_MODE" != "1" && "$DOMAIN_MODE" != "2" ]]; then
+        error "Invalid choice: $DOMAIN_MODE (expected 1 or 2)"
+        press_enter
+        return
+    fi
 
     echo
     echo -e "  ${DIM}Example: majlis7.net, example.com${NC}"
@@ -402,7 +414,9 @@ menu_install() {
         SERVER_NAME="$DOMAIN"          # username = @user:example.com
     fi
 
-    DETECTED_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || echo "")
+    DETECTED_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || \
+                  curl -s -4 --connect-timeout 5 api.ipify.org 2>/dev/null || \
+                  curl -s -4 --connect-timeout 5 icanhazip.com 2>/dev/null || echo "")
     if [ -n "$DETECTED_IP" ]; then
         ask "VPS public IP [${GREEN}${DETECTED_IP}${NC}]:"
         read -r VPS_IP
@@ -990,7 +1004,8 @@ EOF
 
     # ─── Start ───
     step "Starting Services"
-    if ! $SUDO docker compose pull 2>&1 | grep -E 'Pull|Done|Error'; then
+    info "Pulling Docker images..."
+    if ! $SUDO docker compose pull 2>&1; then
         warn "Some images may have failed to pull. Continuing..."
     fi
     if ! $SUDO docker compose up -d 2>&1; then
@@ -1019,8 +1034,9 @@ EOF
         echo -e "  ${DIM}Or run Health Check from the main menu.${NC}"
     fi
 
-    # Copy TLS certs for Coturn
-    CERT_DIR="/var/lib/docker/volumes/conduit_caddy-data/_data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MATRIX_HOST}"
+    # Copy TLS certs for Coturn — find volume dynamically
+    local CADDY_VOLUME=$($SUDO docker volume inspect --format '{{.Mountpoint}}' "$($SUDO docker inspect caddy --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' 2>/dev/null)" 2>/dev/null)
+    CERT_DIR="${CADDY_VOLUME:-/var/lib/docker/volumes/conduit_caddy-data/_data}/caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MATRIX_HOST}"
     if [ -d "$CERT_DIR" ]; then
         $SUDO cp "$CERT_DIR/${MATRIX_HOST}.crt" "$INSTALL_DIR/certs/turn.crt"
         $SUDO cp "$CERT_DIR/${MATRIX_HOST}.key" "$INSTALL_DIR/certs/turn.key"
@@ -1391,6 +1407,16 @@ menu_registration() {
   done
 }
 
+# Helper: re-close registration if interrupted
+_reclose_registration() {
+    echo
+    warn "Interrupted — closing registration..."
+    $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE" 2>/dev/null
+    cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
+    info "Registration closed."
+    trap - INT
+}
+
 # ─── Create account via Conduit admin API ───
 menu_create_account() {
     echo
@@ -1402,6 +1428,8 @@ menu_create_account() {
     local was_closed=false
     if grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
         was_closed=true
+        # Trap Ctrl+C to ensure we re-close registration
+        trap '_reclose_registration' INT
         $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
         cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
         sleep 3
@@ -1409,9 +1437,14 @@ menu_create_account() {
         echo -e "  ${DIM}Note: Registration is briefly open. A token is still required to register.${NC}"
     fi
 
-    ask "Username (without @):"
+    ask "Username (without @, lowercase letters/numbers/dots/hyphens):"
     read -r NEW_USER
     [ -z "$NEW_USER" ] && { error "Username required"; press_enter; return; }
+    if [[ ! "$NEW_USER" =~ ^[a-z0-9._-]{1,64}$ ]]; then
+        error "Invalid username: only lowercase a-z, 0-9, dots, hyphens, underscores (max 64 chars)"
+        press_enter
+        return
+    fi
 
     ask "Password (min 8 characters):"
     # Hide password input (stty fallback for shells where read -s doesn't work)
@@ -1479,6 +1512,7 @@ menu_create_account() {
 
     # Re-close if was closed
     if $was_closed; then
+        trap - INT
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
         cd "$INSTALL_DIR" && $SUDO docker compose up -d conduit >/dev/null 2>&1
         info "Registration closed again"

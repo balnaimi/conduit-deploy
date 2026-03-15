@@ -45,9 +45,9 @@ separator() {
 # This wrapper uses setsid to detach from the controlling terminal
 _compose_quiet() {
     if command -v setsid &>/dev/null; then
-        $SUDO setsid docker compose "$@" </dev/null >/dev/null 2>&1
+        $SUDO setsid docker compose "$@" </dev/null >/dev/null 2>&1 || true
     else
-        $SUDO docker compose --progress quiet "$@" </dev/null >/dev/null 2>&1
+        $SUDO docker compose --progress quiet "$@" </dev/null >/dev/null 2>&1 || true
     fi
 }
 
@@ -1558,6 +1558,9 @@ menu_create_account() {
     NEW_PASS_ESCAPED=$(echo "$NEW_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
     NEW_USER_ESCAPED=$(echo "$NEW_USER" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
+    # Restore TTY state before docker operations (read -rs may have changed it)
+    stty sane 2>/dev/null || true
+
     # ─── Now open registration (input already collected, minimal window) ───
     local was_closed=false
     if grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
@@ -1566,7 +1569,8 @@ menu_create_account() {
         info "Temporarily opening registration..."
         $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
         cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-        sleep 3
+        # Wait for container to be ready (setsid forks, compose runs in background briefly)
+        sleep 5
         echo -e "  ${DIM}Registration briefly open (token still required). Will close after account creation.${NC}"
     fi
 

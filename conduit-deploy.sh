@@ -1949,6 +1949,55 @@ PULLEOF
         info "Run Health Check to verify, or wait a moment and try again."
     fi
 
+    # Post-restore: ensure firewall rules are in place
+    echo
+    info "Verifying firewall rules..."
+    if command -v ufw &>/dev/null && $SUDO ufw status | grep -q "active"; then
+        $SUDO ufw allow 22/tcp   comment 'SSH' >/dev/null 2>&1
+        $SUDO ufw allow 80/tcp   comment 'HTTP' >/dev/null 2>&1
+        $SUDO ufw allow 443/tcp  comment 'HTTPS' >/dev/null 2>&1
+        $SUDO ufw allow 8448/tcp comment 'Matrix Federation' >/dev/null 2>&1
+        $SUDO ufw allow 3478     comment 'TURN STUN' >/dev/null 2>&1
+        $SUDO ufw allow 5349     comment 'TURN TLS/DTLS' >/dev/null 2>&1
+        $SUDO ufw allow 49152:65535/udp comment 'Media Relay' >/dev/null 2>&1
+        success "Firewall rules verified"
+    fi
+
+    # Post-restore: re-create TLS cert auto-sync watcher
+    load_config  # ensure MATRIX_HOST and other vars are loaded from restored .env
+    local CERT_DIR="/var/lib/docker/volumes/conduit_caddy-data/_data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/${MATRIX_HOST}"
+    if [ -n "${MATRIX_HOST:-}" ]; then
+        info "Setting up TLS cert auto-sync..."
+        $SUDO tee /etc/systemd/system/turn-cert-sync.path > /dev/null << EOF
+[Unit]
+Description=Watch Caddy TLS certs for changes
+
+[Path]
+PathChanged=${CERT_DIR}/${MATRIX_HOST}.crt
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        $SUDO tee /etc/systemd/system/turn-cert-sync.service > /dev/null << EOF
+[Unit]
+Description=Sync TLS certs from Caddy to Coturn
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'cp "${CERT_DIR}/${MATRIX_HOST}.crt" "${INSTALL_DIR}/certs/turn.crt"; cp "${CERT_DIR}/${MATRIX_HOST}.key" "${INSTALL_DIR}/certs/turn.key"; chmod 644 ${INSTALL_DIR}/certs/turn.*; docker restart coturn'
+EOF
+        $SUDO systemctl daemon-reload
+        $SUDO systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
+        success "TLS cert auto-sync restored"
+    fi
+
+    # Post-restore: ensure iptables UDP redirect
+    if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
+        $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
+        $SUDO netfilter-persistent save >/dev/null 2>&1 || true
+        success "UDP redirect rule restored"
+    fi
+
     echo
     info "Run Health Check to verify everything is working."
 

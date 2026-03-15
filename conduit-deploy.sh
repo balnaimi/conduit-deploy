@@ -64,7 +64,11 @@ load_config() {
         source "$ENV_FILE" 2>/dev/null || true
         DOMAIN="${SERVER_NAME:-}"
         MATRIX_HOST="${MATRIX_HOST:-matrix.${DOMAIN}}"
-        VPS_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || echo "")
+        VPS_IP="${PUBLIC_IP:-}"
+        # Only fetch IP from internet if not saved in .env
+        if [ -z "$VPS_IP" ]; then
+            VPS_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || echo "")
+        fi
     fi
 }
 
@@ -87,7 +91,7 @@ show_header() {
         echo -e "  ${DIM}Domain: ${GREEN}${SERVER_NAME:-not set}${NC}"
         
         # Quick status
-        if command -v docker &>/dev/null && $SUDO docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' conduit 2>/dev/null | grep -q "running"; then
+        if command -v docker &>/dev/null && timeout 3 $SUDO docker compose -f "$COMPOSE_FILE" ps --format '{{.State}}' conduit 2>/dev/null | grep -q "running"; then
             echo -e "  ${DIM}Status: ${GREEN}● Running${NC}"
         elif [ -f "$COMPOSE_FILE" ]; then
             echo -e "  ${DIM}Status: ${RED}● Stopped${NC}"
@@ -301,6 +305,9 @@ menu_install() {
         ask "Reinstall? This will OVERWRITE config files. [y/N]"
         read -r reply
         [[ "$reply" =~ ^[Yy]$ ]] || return
+        # Auto-backup before reinstall
+        info "Creating backup before reinstall..."
+        do_backup "pre-reinstall" || true
     fi
 
     # ─── Pre-flight ───
@@ -349,6 +356,13 @@ menu_install() {
     ask "Your domain name:"
     read -r DOMAIN
     [ -z "$DOMAIN" ] && { error "Domain is required"; press_enter; return; }
+    # Basic domain validation
+    if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$ ]]; then
+        error "Invalid domain format: $DOMAIN"
+        echo -e "  ${DIM}Example: example.com, my-server.net${NC}"
+        press_enter
+        return
+    fi
 
     # Set MATRIX_HOST and SERVER_NAME based on mode
     if [[ "$DOMAIN_MODE" == "2" ]]; then
@@ -373,6 +387,11 @@ menu_install() {
         read -r VPS_IP
     fi
     [ -z "$VPS_IP" ] && { error "VPS IP is required"; press_enter; return; }
+    if [[ ! "$VPS_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        error "Invalid IP address format: $VPS_IP"
+        press_enter
+        return
+    fi
 
     # Well-known delegation (only for Mode 1)
     if [[ "$DOMAIN_MODE" != "2" ]]; then
@@ -505,8 +524,8 @@ menu_install() {
     echo -e "  VPS IP:      ${GREEN}${VPS_IP}${NC}"
     echo -e "  Max upload:  ${GREEN}${MAX_UPLOAD_MB}MB${NC}"
     echo -e "  Media space: ${GREEN}${MEDIA_SPACE_GB}GB${NC} (thumbnails: ${THUMB_SPACE_GB}GB)"
-    echo -e "  Remote media:${GREEN} delete after ${REMOTE_ACCESS_DAYS}d idle / ${REMOTE_CREATED_DAYS}d max${NC}"
-    echo -e "  Local media: ${GREEN} delete after ${LOCAL_ACCESS_DAYS}d idle${NC}"
+    echo -e "  Cached files:${GREEN} delete after ${REMOTE_ACCESS_DAYS}d idle / ${REMOTE_CREATED_DAYS}d max${NC}"
+    echo -e "  User files:  ${GREEN} delete after ${LOCAL_ACCESS_DAYS}d idle${NC}"
     if [[ "$WELLKNOWN_MODE" == "A" ]]; then
         echo -e "  .well-known: ${GREEN}Caddy (automatic)${NC}"
     elif [[ "$WELLKNOWN_MODE" == "B" ]]; then
@@ -1040,6 +1059,7 @@ EOF
     echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
     echo
     echo -e "  ${DIM}Credentials saved to: ${CREDS_FILE}${NC}"
+    echo -e "  ${DIM}Token also stored in: ${ENV_FILE} (always recoverable from menu)${NC}"
     echo
     warn "Registration is currently OPEN. Use the menu to close it after creating accounts."
 

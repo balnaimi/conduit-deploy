@@ -102,7 +102,7 @@ Subdomain for the server (e.g. chat, matrix, msg): chat
 
 ### Question 4: Server IP
 
-The script auto-detects this. Just press Enter to confirm.
+The script auto-detects this. Just press Enter to confirm. The script validates both the domain format and IP address before proceeding — typos are caught early.
 
 ### Question 5: .well-known (Mode 1 only)
 
@@ -127,7 +127,7 @@ The script automatically:
 2. ✅ Sets up the firewall (only opens needed ports)
 3. ✅ Adds swap memory (for small servers)
 4. ✅ Installs fail2ban (blocks hackers)
-5. ✅ Enables auto security updates
+5. ✅ Enables OS security patches (no auto-reboot)
 6. ✅ Creates all configuration files
 7. ✅ Starts the services
 8. ✅ Gets TLS certificates (HTTPS)
@@ -164,7 +164,8 @@ Choose **3** (Health Check) to make sure everything is working:
   Security:
   ✅ UFW firewall active
   ✅ Fail2ban active
-  ✅ Auto security updates enabled
+  ✅ Auto security patches enabled
+  ✅ No reboot pending
 
   ✅ All checks passed! Server is healthy.
 ```

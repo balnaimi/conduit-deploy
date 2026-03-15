@@ -76,6 +76,8 @@ The script saved credentials to `/opt/conduit/CREDENTIALS.txt`. Copy them somewh
 sudo rm /opt/conduit/CREDENTIALS.txt
 ```
 
+> **Don't worry if you lose it** — your registration token is also stored in `/opt/conduit/.env` and can be viewed anytime from the Health Check menu.
+
 ### Set up SSH keys (optional but recommended)
 
 If you're still using passwords to log into your server, consider switching to SSH keys. It's much more secure.

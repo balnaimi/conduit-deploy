@@ -98,9 +98,16 @@
     </div>
 
     <div class="option-card">
+      <h3>Health Check says "reboot required"</h3>
+      <p>A kernel or security update was installed. Your server is still running fine — nothing is broken. Reboot when it's convenient:</p>
+      <pre class="code-block"><span class="cmd">sudo</span> reboot</pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">Services restart automatically after reboot. The server <strong>never reboots on its own</strong>.</p>
+    </div>
+
+    <div class="option-card">
       <h3>Forgot registration token</h3>
       <pre class="code-block"><span class="cmd">sudo</span> grep REGISTRATION_TOKEN /opt/conduit/.env</pre>
-      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">Or use the script: <code>sudo ./conduit-deploy.sh</code> → Registration → Show token</p>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">Or use the script: <code>sudo ./conduit-deploy.sh</code> → Registration → Show token. Your token is always stored in <code>.env</code> — even if you delete <code>CREDENTIALS.txt</code>.</p>
     </div>
 
     <div class="option-card">

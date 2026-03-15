@@ -100,7 +100,7 @@ sudo docker compose up -d
 ### Monitor disk usage
 
 Media files can grow over time. The `conduit.toml` has retention policies:
-- Remote media: cleaned after 30 days unused
+- Cached files (from other servers): cleaned after 30 days unused
 - Local media: cleaned after 365 days unused
 - Thumbnails: capped at 1GB
 - Total media: capped at 10GB

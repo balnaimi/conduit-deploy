@@ -123,11 +123,27 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
+### "Health Check says reboot required"
+
+This means a kernel or critical security update was installed. Your server is still running fine on the old kernel — nothing is broken.
+
+Reboot when it's convenient for you (during low activity):
+
+```bash
+sudo reboot
+```
+
+Your Matrix services will restart automatically after the reboot. The server **never reboots on its own** — you decide when.
+
 ### "I forgot my registration token"
+
+Your token is always stored in the `.env` file:
 
 ```bash
 sudo grep REGISTRATION_TOKEN /opt/conduit/.env
 ```
+
+Or use the menu: Choose **4** (Registration) → **4** (Show registration token).
 
 ### "I want to start over"
 
@@ -137,7 +153,7 @@ sudo docker compose down -v   # -v removes data volumes!
 sudo rm -rf /opt/conduit
 ```
 
-> **⚠️ Warning:** This deletes ALL messages and accounts permanently!
+> **⚠️ Warning:** This deletes ALL messages and accounts permanently! The script auto-creates a backup when you choose Reinstall, but `rm -rf` does not.
 
 ---
 

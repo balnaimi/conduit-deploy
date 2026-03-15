@@ -28,6 +28,35 @@
   --radius-lg: 16px;
 }
 
+/* ─── Preview Banner ─── */
+.preview-banner {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #fff;
+  text-align: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  position: relative;
+  z-index: 1001;
+  box-shadow: 0 2px 8px rgba(180,83,9,0.3);
+}
+.preview-banner .banner-icon {
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
+}
+.preview-banner .banner-text {
+  display: inline;
+}
+.preview-banner a {
+  color: #fef3c7;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.preview-banner a:hover {
+  color: #fff;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 

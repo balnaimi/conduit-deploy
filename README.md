@@ -1,5 +1,7 @@
 # 🏠 Conduit Deploy
 
+> ⚠️ **Early Preview** — This project is under active development and live testing. The script is functional but has not been fully validated across all environments yet. **Not recommended for production use at this time.** A stable release is coming soon.
+
 > Deploy your own private Matrix messaging server in minutes.
 
 <p align="center">
@@ -9,6 +11,7 @@
 One interactive script that sets up a complete, secure Matrix server with **end-to-end encryption**, **voice/video calls**, and **federation** — on any Debian/Ubuntu machine.
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Status-Early_Preview-orange?style=for-the-badge" alt="Early Preview">
   <img src="https://img.shields.io/badge/Matrix-Conduit-6c63ff?style=for-the-badge" alt="Matrix Conduit">
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License">
   <img src="https://img.shields.io/badge/Rust-Lightweight-orange?style=for-the-badge" alt="Rust">

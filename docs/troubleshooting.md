@@ -92,10 +92,13 @@ sudo ufw status | grep 8448
 
 Visit: `https://federationtester.matrix.org/api/report?server_name=yourdomain.com`
 
-**Check 3: SRV record**
+**Check 3: .well-known delegation (Clean Username mode only)**
 ```bash
-dig SRV _matrix._tcp.yourdomain.com
+curl -s https://yourdomain.com/.well-known/matrix/server
+# Should return: {"m.server": "matrix.yourdomain.com:443"}
 ```
+
+> **Note:** If you're using `.well-known` delegation (the default), you do NOT need an SRV record. The `.well-known` method takes priority. SRV is only a fallback for rare cases where you cannot serve `.well-known` files.
 
 ### "Registration token doesn't work"
 

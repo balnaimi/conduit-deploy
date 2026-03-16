@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────
+# Caddy Reverse Proxy for Conduit Matrix Server
+# Auto Let's Encrypt TLS certificates
+# ─────────────────────────────────────────────
+
+# Main HTTPS (port 443) - clients + federation
+{$SERVER_NAME}:443 {
+	# Allow large file uploads (1 GB)
+	request_body {
+		max_size 1GB
+	}
+
+	# Matrix client and federation endpoints
+	reverse_proxy /_matrix/* conduit:6167
+
+	# Well-known delegation (handled by Conduit)
+	reverse_proxy /.well-known/matrix/* conduit:6167
+
+	# Optional: block everything else
+	respond "Majlis Matrix Server" 200
+}
+
+# Federation port (8448) - some servers expect this
+{$SERVER_NAME}:8448 {
+	request_body {
+		max_size 1GB
+	}
+	reverse_proxy /_matrix/* conduit:6167
+}

@@ -58,7 +58,7 @@ Goes directly to chat.example.com ✅
 |---|---|---|
 | Your address | `@you:example.com` | `@you:chat.example.com` |
 | Setup time | 10 minutes | 5 minutes |
-| DNS records | 2-3 | 1 |
+| DNS records | 2 (A + A) | 1 (A only) |
 | Difficulty | Easy | Easiest |
 | Looks professional? | ✅ Yes | ⚠️ Okay |
 
@@ -83,9 +83,20 @@ Go to wherever you bought your domain:
 
 ## Option 1 Setup: Clean Username
 
-You need **2-3 DNS records**:
+You need **2-3 DNS records** (no SRV record needed!):
 
-### Record 1: Point `matrix` to your server
+### Record 1: Point your root domain to the server
+
+| Field | Value |
+|-------|-------|
+| **Type** | A |
+| **Name** | `@` (root) |
+| **Value** | Your server's IP (e.g. `123.45.67.89`) |
+| **Proxy** | OFF / DNS Only |
+
+> This makes `example.com` serve the `.well-known` delegation files
+
+### Record 2: Point `matrix` to your server
 
 | Field | Value |
 |-------|-------|
@@ -94,39 +105,31 @@ You need **2-3 DNS records**:
 | **Value** | Your server's IP (e.g. `123.45.67.89`) |
 | **Proxy** | OFF / DNS Only |
 
-> This creates `matrix.example.com` → your server
-
-### Record 2: Federation (lets other servers find you)
-
-| Field | Value |
-|-------|-------|
-| **Type** | SRV |
-| **Name** | `_matrix._tcp` |
-| **Target** | `matrix.example.com` |
-| **Port** | `443` |
-| **Priority** | `0` |
-| **Weight** | `1` |
-
-> This tells other Matrix servers how to connect to you
+> This creates `matrix.example.com` → your server (where Conduit runs)
 
 ### Record 3: IPv6 (optional but recommended)
 
-| Field | Value |
-|-------|-------|
-| **Type** | AAAA |
-| **Name** | `matrix` |
-| **Value** | Your server's IPv6 address |
-| **Proxy** | OFF / DNS Only |
-
-> Only if your server has IPv6
+Add AAAA records for both `@` and `matrix` if your server has IPv6.
 
 ### The "pointer" (.well-known)
 
 Since your username uses `example.com` but the server is at `matrix.example.com`, you need a small pointer. **The script handles this for you!** During installation, it will ask:
 
 - **"Does your root domain have an existing website?"**
-  - **No** → The script sets everything up automatically. Just add an A record for `@` pointing to your server IP.
-  - **Yes** → The script shows you exactly what to add to your existing web server.
+  - **No** → The script sets everything up automatically via Caddy. Just point the `@` A record to your server IP (Record 1 above).
+  - **Yes** → The script shows you exactly what `.well-known` JSON files to add to your existing web server. See the note below.
+
+> **⚠️ Existing website scenario:** If `example.com` already hosts a website on a **different server**, you'll choose Option B during install. The script will give you the exact JSON to serve at `example.com/.well-known/matrix/server` and `example.com/.well-known/matrix/client` on your existing web server. **Note:** This scenario has not been fully tested yet — it should work but please report any issues.
+
+### What about SRV records?
+
+You might see other guides mention an `SRV` record (`_matrix._tcp`). **You don't need one!** Here's why:
+
+- The `.well-known` delegation that the script sets up is the **recommended** method per the Matrix spec
+- `.well-known` takes priority over SRV records — if `.well-known` is working, SRV is ignored
+- SRV records are only useful as a **fallback** if you absolutely cannot serve `.well-known` files on your root domain (e.g., your domain has no web server at all and you can't add one)
+
+**TL;DR:** The script uses `.well-known` → no SRV needed. ✅
 
 ---
 

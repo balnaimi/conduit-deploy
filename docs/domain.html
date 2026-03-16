@@ -93,17 +93,34 @@
         <table>
           <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>TTL</th></tr></thead>
           <tbody>
+            <tr><td><strong>A</strong></td><td><code>@</code> (root domain)</td><td>Your server IP</td><td>3600</td></tr>
             <tr><td><strong>A</strong></td><td><code>matrix.example.com</code></td><td>Your server IP</td><td>3600</td></tr>
-            <tr><td><strong>SRV</strong></td><td><code>_matrix._tcp.example.com</code></td><td><code>10 0 8448 matrix.example.com.</code></td><td>3600</td></tr>
           </tbody>
         </table>
       </div>
+      <div class="callout callout-info" style="margin-top:0.75rem;">
+        <div class="callout-icon">💡</div>
+        <div><strong>No SRV record needed!</strong> The script uses <code>.well-known</code> delegation (the recommended method). SRV records are only needed as a fallback if you absolutely cannot serve <code>.well-known</code> files on your root domain.</div>
+      </div>
 
-      <h3 class="subtitle">Delegation File</h3>
-      <p style="color:var(--text-dim);font-size:0.92rem;margin-bottom:0.75rem;">Your main domain must serve this at <code>/.well-known/matrix/server</code>:</p>
+      <h3 class="subtitle">Delegation (.well-known)</h3>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-bottom:0.75rem;">Your root domain must serve delegation files — <strong>the script sets this up automatically.</strong></p>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-bottom:0.5rem;">At <code>example.com/.well-known/matrix/server</code>:</p>
       <pre class="code-block">{
   "m.server": "matrix.example.com:443"
 }</pre>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.75rem;margin-bottom:0.5rem;">At <code>example.com/.well-known/matrix/client</code>:</p>
+      <pre class="code-block">{
+  "m.homeserver": {
+    "base_url": "https://matrix.example.com"
+  }
+}</pre>
+
+      <h3 class="subtitle">If Your Root Domain Has an Existing Website</h3>
+      <div class="callout callout-warn" style="margin-top:0.5rem;">
+        <div class="callout-icon">⚠️</div>
+        <div>If <code>example.com</code> already hosts a website on a <strong>different server</strong>, choose <strong>Option B</strong> during install. The script will show you exactly what <code>.well-known</code> JSON files to add to your existing web server. <strong>Note:</strong> This scenario has not been fully tested yet.</div>
+      </div>
     </div>
 
     <div id="mode-subdomain" class="tab-panel">
@@ -155,7 +172,7 @@
         <thead><tr><th>Feature</th><th>Delegation</th><th>Subdomain</th></tr></thead>
         <tbody>
           <tr><td><strong>Matrix ID</strong></td><td><code>@user:example.com</code></td><td><code>@user:matrix.example.com</code></td></tr>
-          <tr><td><strong>DNS Records</strong></td><td>2 (A + SRV)</td><td>1 (A only)</td></tr>
+          <tr><td><strong>DNS Records</strong></td><td>2 (A + A)</td><td>1 (A only)</td></tr>
           <tr><td><strong>Delegation</strong></td><td>Required</td><td>Not needed</td></tr>
           <tr><td><strong>Complexity</strong></td><td>Medium</td><td>Easy</td></tr>
           <tr><td><strong>Best For</strong></td><td>Public / business</td><td>Personal / private</td></tr>

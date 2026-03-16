@@ -96,7 +96,7 @@
 <span class="comment"># The script handles opening/closing registration automatically</span></pre>
           <p style="color:var(--text-dim);font-size:0.85rem;margin-top:0.5rem;">
             The script collects your input first, then briefly opens registration, creates the account via the Matrix API, 
-            and closes registration again — all in one step. A token is still required even while open.
+            and closes registration again — all in one step. A token is still required even while open. The temporary session is automatically cleaned up so no ghost sessions are left on the account.
           </p>
         </div>
         <div style="margin-top:1.5rem;">

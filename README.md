@@ -109,7 +109,7 @@ The script automatically installs missing dependencies. Here's exactly what it a
 | **iptables-persistent** | Persists firewall rules across reboots |
 | curl, openssl, dnsutils, iproute2, tar, procps, gawk | System utilities for checks, backups, and config |
 
-> Most utilities are already on a fresh Debian/Ubuntu install. The script checks each one and only installs what's missing.
+> Most utilities are already on a fresh Debian install. The script checks each one and only installs what's missing.
 
 ## 💾 Backup & Restore
 
@@ -176,7 +176,7 @@ This project was built and tested on a specific setup. It hasn't been tested on 
 
 > **Note:** I have no affiliation with DigitalOcean — I've just been using their service for a long time and it works well for me.
 
-> **Not tested on:** Other Linux distributions, other VPS providers, ARM architectures, or different hardware specs. The script may work on similar Debian/Ubuntu systems, but your mileage may vary.
+> **Not tested on:** Other Linux distributions, other VPS providers, ARM architectures, or different hardware specs. The script may work on similar Debian-based systems, but your mileage may vary.
 
 ## ⚠️ Disclaimer
 

@@ -285,8 +285,8 @@ menu_prepare() {
 
     # ─── VPS Requirements ───
     echo -e "  ${BOLD}*  VPS Requirements:${NC}"
-    echo -e "     • Debian 13 (or Ubuntu 22.04+)"
-    echo -e "     • Minimum 512MB RAM (1GB+ recommended)"
+    echo -e "     • Debian 13 (tested — other Debian/Ubuntu may work but untested)"
+    echo -e "     • 1GB RAM, 1 CPU, 25GB disk (tested on DigitalOcean \$6/mo droplet)"
     echo -e "     • 10GB+ free disk"
     echo -e "     • SSH access with root or sudo privileges"
     echo -e "     • Ports 80, 443, 8448, 3478, 5349 NOT blocked by provider"
@@ -450,8 +450,8 @@ menu_install() {
     TOTAL_RAM=$(free -m | awk '/^Mem:/{print $2}')
     TOTAL_DISK=$(df -BG / | awk 'NR==2{print $4}' | tr -d 'G')
     
-    if [ "$TOTAL_RAM" -lt 512 ]; then
-        error "Need at least 512MB RAM (you have ${TOTAL_RAM}MB)"
+    if [ "$TOTAL_RAM" -lt 900 ]; then
+        error "Need at least 1GB RAM (you have ${TOTAL_RAM}MB). Tested on 1GB — lower specs are untested."
         press_enter
         return
     fi

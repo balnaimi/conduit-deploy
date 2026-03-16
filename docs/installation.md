@@ -3,7 +3,7 @@
 ## Before you begin
 
 Make sure you've completed:
-- [ ] Got a server (VPS) with Debian 13 or Ubuntu 22.04+
+- [ ] Got a server (VPS) with Debian 13 (other Debian/Ubuntu may work but untested)
 - [ ] Got a domain name
 - [ ] Set up DNS records (see [Domain Setup](domain-setup.md))
 - [ ] Waited a few minutes for DNS to propagate
@@ -32,7 +32,7 @@ The script automatically checks for and installs any missing dependencies:
 | `free` | procps | RAM checks |
 | `awk` | gawk | Text processing |
 
-> Most are already pre-installed on Debian/Ubuntu. The script only installs what's missing.
+> Most are already pre-installed on Debian. The script only installs what's missing.
 
 ## Connecting to your server
 

@@ -19,16 +19,16 @@ This project lets you set up your **own private messaging server** — like What
 
 ### Where to get a server?
 
-Any VPS (Virtual Private Server) provider works. Here are some popular ones:
+This project was tested on [DigitalOcean](https://www.digitalocean.com/) ($6/mo Droplet — 1 GB RAM, 1 CPU, 25 GB SSD, Debian 13). Other providers may work but are untested:
 
 | Provider | Cheapest Plan | Notes |
 |----------|--------------|-------|
-| [Hetzner](https://hetzner.com) | ~€4/month | Great performance, EU-based |
-| [DigitalOcean](https://digitalocean.com) | $6/month | Easy to use |
-| [Vultr](https://vultr.com) | $6/month | Many locations |
-| [Oracle Cloud](https://cloud.oracle.com) | **Free tier!** | ARM instance, always free |
+| [DigitalOcean](https://digitalocean.com) | $6/month | **Tested** ✅ |
+| [Hetzner](https://hetzner.com) | ~€4/month | Untested — may work |
+| [Vultr](https://vultr.com) | $6/month | Untested — may work |
+| [Oracle Cloud](https://cloud.oracle.com) | **Free tier!** | Untested — ARM, may need adjustments |
 
-**Tested on:** 1 GB RAM, 1 CPU, 25 GB SSD, Debian 13 ([DigitalOcean](https://www.digitalocean.com/) $6/mo droplet). Not tested on other OS or specs.
+> I have no affiliation with DigitalOcean — just a long-time user who likes their service.
 
 ### Where to get a domain?
 

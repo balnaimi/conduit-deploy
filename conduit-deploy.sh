@@ -1312,7 +1312,7 @@ EOF
                     \"token\": \"${REGISTRATION_TOKEN}\",
                     \"session\": \"${SESSION}\"
                 },
-                \"initial_device_display_name\": \"Admin Account Setup\"
+                \"inhibit_login\": true
             }" 2>/dev/null || true)
     fi
 
@@ -1320,7 +1320,6 @@ EOF
 
     if echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null; then
         USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
-        ACCESS_TOKEN=$(echo "$REGISTER_RESPONSE" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4 || true)
         
         # Close registration immediately
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
@@ -1337,13 +1336,6 @@ EOF
         echo -e "  2. Find the ${BOLD}Admin Room${NC} in your room list"
         echo -e "  3. Type ${CYAN}@conduit:${SERVER_NAME} help${NC} to see available commands"
         echo
-
-        # Clean up the session
-        if [ -n "$ACCESS_TOKEN" ]; then
-            curl -s --connect-timeout 10 --max-time 15 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/logout" \
-                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-                -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
-        fi
     else
         ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
         error "Account creation failed: ${ERROR_MSG:-Unknown error}"

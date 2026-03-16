@@ -28,7 +28,7 @@ Any VPS (Virtual Private Server) provider works. Here are some popular ones:
 | [Vultr](https://vultr.com) | $6/month | Many locations |
 | [Oracle Cloud](https://cloud.oracle.com) | **Free tier!** | ARM instance, always free |
 
-**Minimum specs:** 512MB RAM, 10GB disk, Debian 13 or Ubuntu 22.04+
+**Tested on:** 1 GB RAM, 1 CPU, 25 GB SSD, Debian 13 ([DigitalOcean](https://www.digitalocean.com/) $6/mo droplet). Not tested on other OS or specs.
 
 ### Where to get a domain?
 

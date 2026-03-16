@@ -91,7 +91,7 @@ Conduit has **no port mapping** — only accessible through Caddy's Docker netwo
 
 ## 📋 Requirements
 
-- **Server:** Debian 13 or Ubuntu 22.04+ (512MB RAM, 10GB disk)
+- **Server:** Debian 13 — tested on 1 GB RAM, 1 CPU, 25 GB SSD (DigitalOcean $6/mo). Not tested on other OS or specs.
 - **Domain:** Any provider
 - **Access:** Root or sudo
 - **Time:** ~5 minutes (plus DNS propagation)

@@ -146,8 +146,8 @@ When you restore, the script pulls the **exact same Docker images** (by SHA256 d
 ### Backup & Restore from the menu:
 
 ```
-Services → Backup (with version pinning)    # Create a backup
-Services → Restore from backup              # Restore on same or new server
+Services → Backup (with version pinning)    # Menu → 4 → 3
+Services → Restore from backup              # Menu → 4 → 4
 ```
 
 Backups are stored separately at `/opt/conduit-backups/` — they survive uninstall and are never mixed with your live installation.

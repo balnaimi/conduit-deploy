@@ -93,11 +93,13 @@ sudo bash conduit-deploy.sh
 
 The script will guide you through everything with a friendly menu!
 
-### Step 4: Create your account
+### Step 4: Your admin account
 
 During installation, the script automatically creates your first admin account. This account has access to the **Admin Room** where you can create additional accounts, reset passwords, and manage your server.
 
 For more users, log in to Element and use the Admin Room commands. See the [Admin Room guide](admin-room.md) for details.
+
+If you forget your admin password, use **Services → Password Recovery** (option `p`) from the script menu.
 
 ### Step 5: Download an app and sign in
 

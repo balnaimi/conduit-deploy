@@ -116,6 +116,17 @@ For normal account creation, use the Admin Room instead:
 
 See the [Admin Room guide](admin-room.md) for more details.
 
+### "I forgot my admin password"
+
+Use **Services → Password Recovery** (option `p`) from the script menu:
+
+```bash
+sudo bash conduit-deploy.sh
+# Choose: 4 (Services) → p (Password Recovery)
+```
+
+The script uses Conduit's emergency password feature to securely reset any account — no credentials file needed.
+
 ### "Server is slow / high memory"
 
 **Check resources:**

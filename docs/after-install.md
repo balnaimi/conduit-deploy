@@ -37,7 +37,7 @@ After signing in, the app will ask you to **verify your session**. This sets up 
 
 ### If they'll use your server:
 
-You manage accounts via the **Admin Room** in Element:
+You manage accounts via the **Admin Room** in Element (the first admin account created during install has access):
 
 1. Find the **"Conduit Admin Room"** in your room list (it appears automatically)
 2. Type: `@conduit:yourdomain.com create-user alice SecurePassword123`
@@ -45,6 +45,8 @@ You manage accounts via the **Admin Room** in Element:
 4. They can log in at https://app.element.io
 
 > **See the full guide:** [Admin Room documentation](admin-room.md)
+
+If you forgot your admin password, use **Services → Password Recovery** (option `p`) from the script menu.
 
 ### If they're on another Matrix server:
 

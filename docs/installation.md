@@ -180,9 +180,9 @@ Choose **3** (Health Check) to make sure everything is working:
   ✅ All checks passed! Server is healthy.
 ```
 
-## Step 4: Admin account created
+## Step 4: Your admin account
 
-During installation, the script automatically creates your first admin account. This account has access to the **Admin Room** where you can:
+During installation, the script automatically creates your first admin account. This is the **only account with admin privileges**. It has access to the **Admin Room** where you can:
 
 - Create additional user accounts
 - Reset passwords
@@ -196,6 +196,8 @@ To create more accounts, log in to Element and find the **"Conduit Admin Room"**
 ```
 
 > **See the full guide:** [Admin Room documentation](admin-room.md) for all available commands.
+
+If you forget your admin password, use **Services → Password Recovery** (option `p`) from the script menu. No credentials file needed — it uses Conduit's emergency password feature to securely reset any account.
 
 ## What's next?
 

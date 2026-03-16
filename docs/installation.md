@@ -143,11 +143,19 @@ At the end, you'll see:
   Your Matrix server is running at:
   https://matrix.example.com
 
-  Registration Token:
-  abc123def456...
+═══ Create Your Admin Account ═══
+
+  ⚠  This is the ONLY admin account.
+
+Username: yourname
+Password: ********
+
+✅ Account created: @yourname:example.com
+
+═══ You're All Set! 🎉 ═══
 ```
 
-**Save your registration token!** You'll need it to create accounts.
+**Save your credentials!** They're saved to `/opt/conduit/CREDENTIALS.txt` — copy them somewhere safe, then delete the file. If you ever forget your password, use **Services → Password Recovery** in the script.
 
 ## Step 3: Verify
 

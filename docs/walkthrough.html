@@ -210,7 +210,35 @@ Start installation? [Y/n] <strong>Y</strong></pre>
             <li>Pull Docker images and start services</li>
             <li>Obtain TLS certificates for <strong>both</strong> <code>example.com</code> and <code>matrix.example.com</code></li>
             <li>Set up TURN server for voice/video calls</li>
+            <li><strong>Create your admin account</strong> (you'll be prompted)</li>
           </ol>
+          <pre class="code-block" style="margin-top:1rem;">═══ Create Your Admin Account ═══
+
+  ⚠  This is the ONLY admin account.
+  The first account on the server automatically gets admin privileges.
+  You'll use this account to manage everything from the Admin Room.
+
+Username: <strong>alice</strong>
+Password: <strong>********</strong>
+
+✅ Account created: @alice:example.com
+
+═══ You're All Set! 🎉 ═══
+  Server
+  URL:          https://matrix.example.com
+  Server name:  example.com
+
+  Admin Account
+  Username:     @alice:example.com
+  Role:         Server Administrator
+
+  Admin Room Commands (quick reference)
+  Create user:      @conduit:example.com create-user &lt;name&gt; &lt;pass&gt;
+  List users:       @conduit:example.com list-local-users
+  Reset password:   @conduit:example.com reset-password &lt;user_id&gt; &lt;pass&gt;</pre>
+          <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
+            <strong>⚠️ Save your credentials!</strong> They're saved to <code>/opt/conduit/CREDENTIALS.txt</code> — copy them somewhere safe, then delete the file. If you ever forget your password, use <strong>Services → Password Recovery</strong> in the script.
+          </div>
         </div>
 
         <div class="step">
@@ -395,9 +423,28 @@ Start installation? [Y/n] <strong>Y</strong></pre>
             <li>Pull Docker images and start services</li>
             <li>Obtain a Let's Encrypt TLS certificate</li>
             <li>Set up TURN server (for voice/video calls)</li>
+            <li><strong>Create your admin account</strong> (you'll be prompted)</li>
           </ol>
           <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
             <strong>⏱️ How long?</strong> About 5–10 minutes depending on your server speed.
+          </div>
+          <pre class="code-block" style="margin-top:1rem;">═══ Create Your Admin Account ═══
+
+  ⚠  This is the ONLY admin account.
+
+Username: <strong>alice</strong>
+Password: <strong>********</strong>
+
+✅ Account created: @alice:matrix.example.com
+
+═══ You're All Set! 🎉 ═══
+  Admin Account
+  Username:     @alice:matrix.example.com
+  Role:         Server Administrator
+
+  Forgot your password? Run this script again → Services → Password Recovery</pre>
+          <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
+            <strong>⚠️ Save your credentials!</strong> Copy them from <code>/opt/conduit/CREDENTIALS.txt</code> then delete the file. See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a> for managing users after install.
           </div>
         </div>
 

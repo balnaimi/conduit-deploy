@@ -1237,7 +1237,9 @@ EOF
     # ─── Create first admin account ───
     echo
     step "Create Your Admin Account"
-    echo -e "  ${DIM}This account will have access to the Admin Room for managing users.${NC}"
+    echo -e "  ${YELLOW}⚠  This is the ONLY admin account.${NC}"
+    echo -e "  ${DIM}The first account on the server automatically gets admin privileges.${NC}"
+    echo -e "  ${DIM}You'll use this account to manage everything from the Admin Room.${NC}"
     echo
 
     # Collect username
@@ -1325,25 +1327,65 @@ EOF
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
         cd "$INSTALL_DIR" && _compose_quiet up -d conduit
         
-        success "Account created: ${USER_ID}"
+        # Update credentials file with admin account info
+        $SUDO tee -a "$CREDS_FILE" > /dev/null << EOF
+
+═══════════════════════════════════════════
+  Admin Account (created during install)
+═══════════════════════════════════════════
+
+Admin User:         ${USER_ID}
+Password:           ${NEW_PASS}
+
+[!]  This is the ONLY admin account
+[!]  Save these credentials somewhere safe!
+═══════════════════════════════════════════
+EOF
+
+        # ─── Final Summary ───
         echo
-        echo -e "  ${BOLD}${GREEN}Admin Room Access${NC}"
-        echo -e "  ${DIM}This account has been automatically added to the Admin Room.${NC}"
-        echo -e "  ${DIM}You can manage users, registration, and server settings from there.${NC}"
+        step "You're All Set! 🎉"
+        separator
+        echo -e "  ${BOLD}Server${NC}"
+        echo -e "  URL:          ${GREEN}https://${MATRIX_HOST}${NC}"
+        echo -e "  Server name:  ${BOLD}${SERVER_NAME}${NC}"
+        separator
+        echo -e "  ${BOLD}Admin Account${NC}"
+        echo -e "  Username:     ${GREEN}${USER_ID}${NC}"
+        echo -e "  Password:     ${YELLOW}${NEW_PASS}${NC}"
+        echo -e "  Role:         ${CYAN}Server Administrator${NC}"
+        separator
+        echo -e "  ${BOLD}What You Can Do Now${NC}"
+        echo -e "  1. Open ${GREEN}https://app.element.io${NC} (or any Matrix client)"
+        echo -e "  2. Sign in with the credentials above"
+        echo -e "     Homeserver: ${BOLD}${SERVER_NAME}${NC}"
+        echo -e "  3. Find the ${BOLD}${CYAN}Admin Room${NC} in your room list"
+        echo -e "  4. Type ${CYAN}@conduit:${SERVER_NAME} help${NC} for all commands"
+        separator
+        echo -e "  ${BOLD}Admin Room Commands (quick reference)${NC}"
+        echo -e "  ${DIM}Create user:${NC}      ${CYAN}@conduit:${SERVER_NAME} create-user <name> <pass>${NC}"
+        echo -e "  ${DIM}List users:${NC}       ${CYAN}@conduit:${SERVER_NAME} list-local-users${NC}"
+        echo -e "  ${DIM}Reset password:${NC}   ${CYAN}@conduit:${SERVER_NAME} reset-password <user_id> <pass>${NC}"
+        echo -e "  ${DIM}Deactivate user:${NC}  ${CYAN}@conduit:${SERVER_NAME} deactivate-user <user_id>${NC}"
+        separator
         echo
-        echo -e "  ${BOLD}Next Steps:${NC}"
-        echo -e "  1. Login at: ${GREEN}https://app.element.io${NC}"
-        echo -e "  2. Find the ${BOLD}Admin Room${NC} in your room list"
-        echo -e "  3. Type ${CYAN}@conduit:${SERVER_NAME} help${NC} to see available commands"
+        echo -e "  ${YELLOW}⚠  Credentials saved to: ${CREDS_FILE}${NC}"
+        echo -e "  ${YELLOW}   Save them somewhere safe, then delete that file!${NC}"
         echo
+        echo -e "  ${DIM}Forgot your password? Run this script again → Services → Password Recovery${NC}"
+        echo
+        ADMIN_CREATED=true
     else
         ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
         error "Account creation failed: ${ERROR_MSG:-Unknown error}"
-        echo -e "  ${DIM}You can create accounts later via the Admin Room using the registration token.${NC}"
+        echo
+        echo -e "  ${DIM}Don't worry! You can recover by running this script again:${NC}"
+        echo -e "  ${DIM}Services → Password Recovery (uses emergency password to create an admin)${NC}"
         
         # Close registration
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
         cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+        ADMIN_CREATED=false
     fi
 
     press_enter
@@ -2158,6 +2200,8 @@ menu_services() {
     echo -e "  ${CYAN}8${NC}) Restore from backup"
     if $is_installed; then
         echo -e "  ${CYAN}9${NC}) Show resource usage"
+        separator
+        echo -e "  ${CYAN}p${NC}) ${YELLOW}Password Recovery${NC} (forgot admin password)"
     fi
     echo -e "  ${CYAN}0${NC}) Back to main menu"
     echo
@@ -2165,7 +2209,7 @@ menu_services() {
     read -r choice
 
     # Block options that need installation
-    if ! $is_installed && [[ "$choice" =~ ^[1-7]$ || "$choice" == "9" ]]; then
+    if ! $is_installed && [[ "$choice" =~ ^[1-7]$ || "$choice" == "9" || "$choice" == "p" || "$choice" == "P" ]]; then
         error "Conduit is not installed. Choose Restore (8) or go back (0)."
         press_enter
         continue
@@ -2258,11 +2302,160 @@ menu_services() {
             $SUDO docker stats --no-stream
             press_enter
             ;;
+        p|P)
+            do_password_recovery
+            press_enter
+            ;;
         *)
             return
             ;;
     esac
   done
+}
+
+# ═══════════════════════════════════════════════
+#  PASSWORD RECOVERY (emergency access)
+# ═══════════════════════════════════════════════
+do_password_recovery() {
+    echo
+    step "Password Recovery"
+    echo -e "  ${DIM}This uses Conduit's emergency password feature to reset an admin password.${NC}"
+    echo -e "  ${DIM}It temporarily gives server-level access to the @conduit account,${NC}"
+    echo -e "  ${DIM}resets the password, then removes the emergency access.${NC}"
+    echo
+
+    load_config
+
+    # Ask which user to reset
+    echo -e "  ${BOLD}Which account needs a password reset?${NC}"
+    echo
+    ask "Username (e.g. alice — without @ or :domain):"
+    read -r RESET_USER
+    [ -z "$RESET_USER" ] && { error "Username required"; return; }
+
+    RESET_USER_ID="@${RESET_USER}:${SERVER_NAME}"
+    echo
+    echo -e "  Resetting password for: ${BOLD}${RESET_USER_ID}${NC}"
+
+    # Collect new password
+    while true; do
+        ask "New password (min 8 characters):"
+        if read -rs RESET_PASS 2>/dev/null; then
+            echo
+        else
+            stty -echo 2>/dev/null
+            read -r RESET_PASS
+            stty echo 2>/dev/null
+            echo
+        fi
+        [ -z "$RESET_PASS" ] && { error "Password required"; continue; }
+        if [ ${#RESET_PASS} -lt 8 ]; then
+            error "Password must be at least 8 characters"
+            continue
+        fi
+        break
+    done
+
+    stty sane 2>/dev/null || true
+
+    # Generate a temporary emergency password
+    local EMERGENCY_PASS
+    EMERGENCY_PASS="EmergencyRecovery_$(openssl rand -hex 8)"
+
+    # Step 1: Enable emergency password
+    info "Enabling temporary emergency access..."
+    $SUDO sed -i "/CONDUIT_TURN_SECRET/a\\      CONDUIT_EMERGENCY_PASSWORD: \"${EMERGENCY_PASS}\"" "$COMPOSE_FILE"
+    cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+    sleep 4
+
+    # Step 2: Login as @conduit server account
+    local CONDUIT_IP
+    CONDUIT_IP=$($SUDO docker inspect conduit --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
+
+    local LOGIN_RESP
+    LOGIN_RESP=$(curl -s --connect-timeout 10 --max-time 15 -X POST "http://${CONDUIT_IP}:6167/_matrix/client/v3/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"type\":\"m.login.password\",\"identifier\":{\"type\":\"m.id.user\",\"user\":\"@conduit:${SERVER_NAME}\"},\"password\":\"${EMERGENCY_PASS}\"}" 2>/dev/null || true)
+
+    local CONDUIT_TOKEN
+    CONDUIT_TOKEN=$(echo "$LOGIN_RESP" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4 || true)
+
+    if [ -z "$CONDUIT_TOKEN" ]; then
+        error "Failed to get emergency access. Check server logs."
+        # Clean up
+        $SUDO sed -i "/CONDUIT_EMERGENCY_PASSWORD/d" "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+        return
+    fi
+
+    # Step 3: Find the Admin Room
+    local ROOMS_RESP
+    ROOMS_RESP=$(curl -s --connect-timeout 10 --max-time 15 "http://${CONDUIT_IP}:6167/_matrix/client/v3/joined_rooms" \
+        -H "Authorization: Bearer ${CONDUIT_TOKEN}" 2>/dev/null || true)
+
+    # Find admin room by checking room names
+    local ADMIN_ROOM=""
+    for ROOM_ID in $(echo "$ROOMS_RESP" | grep -o '"![^"]*"' | tr -d '"'); do
+        local ROOM_NAME
+        ROOM_NAME=$(curl -s --connect-timeout 5 --max-time 10 "http://${CONDUIT_IP}:6167/_matrix/client/v3/rooms/${ROOM_ID}/state/m.room.name/" \
+            -H "Authorization: Bearer ${CONDUIT_TOKEN}" 2>/dev/null | grep -o '"name":"[^"]*"' | cut -d'"' -f4 || true)
+        if echo "$ROOM_NAME" | grep -qi "admin"; then
+            ADMIN_ROOM="$ROOM_ID"
+            break
+        fi
+    done
+
+    if [ -z "$ADMIN_ROOM" ]; then
+        error "Admin Room not found. The server may need a restart."
+        # Clean up
+        curl -s -X POST "http://${CONDUIT_IP}:6167/_matrix/client/v3/logout" \
+            -H "Authorization: Bearer ${CONDUIT_TOKEN}" -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
+        $SUDO sed -i "/CONDUIT_EMERGENCY_PASSWORD/d" "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+        return
+    fi
+
+    # Step 4: Send reset-password command in Admin Room
+    local RESET_PASS_ESCAPED
+    RESET_PASS_ESCAPED=$(echo "$RESET_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+    local TXN="reset_$(date +%s)"
+    info "Resetting password for ${RESET_USER_ID}..."
+    local RESET_RESP
+    RESET_RESP=$(curl -s --connect-timeout 10 --max-time 15 -X PUT \
+        "http://${CONDUIT_IP}:6167/_matrix/client/v3/rooms/${ADMIN_ROOM}/send/m.room.message/${TXN}" \
+        -H "Authorization: Bearer ${CONDUIT_TOKEN}" -H "Content-Type: application/json" \
+        -d "{\"msgtype\":\"m.text\",\"body\":\"@conduit:${SERVER_NAME} reset-password ${RESET_USER_ID} ${RESET_PASS_ESCAPED}\"}" 2>/dev/null || true)
+
+    sleep 2
+
+    # Check for response
+    local MESSAGES
+    MESSAGES=$(curl -s --connect-timeout 10 --max-time 15 \
+        "http://${CONDUIT_IP}:6167/_matrix/client/v3/rooms/${ADMIN_ROOM}/messages?dir=b&limit=3" \
+        -H "Authorization: Bearer ${CONDUIT_TOKEN}" 2>/dev/null || true)
+
+    # Step 5: Clean up — logout and remove emergency password
+    curl -s -X POST "http://${CONDUIT_IP}:6167/_matrix/client/v3/logout" \
+        -H "Authorization: Bearer ${CONDUIT_TOKEN}" -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
+
+    $SUDO sed -i "/CONDUIT_EMERGENCY_PASSWORD/d" "$COMPOSE_FILE"
+    cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+
+    if echo "$MESSAGES" | grep -qi "password.*changed\|success"; then
+        success "Password reset for ${RESET_USER_ID}!"
+    else
+        success "Password reset command sent for ${RESET_USER_ID}"
+        echo -e "  ${DIM}(If the user exists, the password has been changed)${NC}"
+    fi
+
+    echo
+    echo -e "  ${BOLD}New credentials:${NC}"
+    echo -e "  User:     ${GREEN}${RESET_USER_ID}${NC}"
+    echo -e "  Password: ${YELLOW}${RESET_PASS}${NC}"
+    echo
+    echo -e "  ${DIM}Emergency access has been removed.${NC}"
+    echo -e "  ${YELLOW}Save these credentials somewhere safe!${NC}"
 }
 
 # ═══════════════════════════════════════════════

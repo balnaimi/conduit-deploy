@@ -182,10 +182,25 @@
 @conduit:yourdomain.com list-rooms</div>
     </div>
 
+    <h3 class="subtitle" style="margin-top:3rem;">Password Recovery</h3>
+    <p style="color:var(--text-dim);font-size:0.92rem;margin-bottom:1rem;">If you forgot your admin password, you can reset it from the server:</p>
+    <pre class="code-block">sudo bash conduit-deploy.sh
+<span class="comment"># Choose: Services → Password Recovery (option p)</span>
+
+<span class="comment"># The script will:</span>
+<span class="comment"># 1. Ask which account to reset</span>
+<span class="comment"># 2. Ask for a new password</span>
+<span class="comment"># 3. Reset the password automatically</span>
+<span class="comment"># 4. Show you the new credentials</span></pre>
+    <div class="callout callout-info" style="margin-top:0.75rem;">
+      <div class="callout-icon">💡</div>
+      <div>This is the <strong>only task that requires SSH access</strong>. Everything else can be done from the Admin Room in your Matrix client.</div>
+    </div>
+
     <h3 class="subtitle" style="margin-top:3rem;">Security Notes</h3>
     <ul style="margin:1rem 0 2rem 1.5rem;color:var(--text-dim);line-height:2;">
-      <li>Only accounts with admin privileges can access the Admin Room</li>
-      <li>The first account created during installation is automatically an admin</li>
+      <li><strong>The first account is the only admin</strong> — it gets automatic access to the Admin Room</li>
+      <li>Additional accounts created via Admin Room are regular users</li>
       <li>All commands are logged in the room history</li>
       <li>Keep your admin account credentials secure</li>
       <li>Consider using a strong, unique password for admin accounts</li>

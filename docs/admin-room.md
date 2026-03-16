@@ -102,10 +102,28 @@ The Admin Room works from **any Matrix client**:
 
 This means you can manage your server from your phone, tablet, or desktop — wherever you have your Matrix client.
 
+## Password Recovery
+
+If you forgot your admin password, you can reset it from the server without needing to log in:
+
+```bash
+sudo bash conduit-deploy.sh
+# Choose: Services → Password Recovery (option p)
+```
+
+The script will:
+1. Ask which account to reset
+2. Ask for a new password
+3. Temporarily enable emergency access
+4. Reset the password via the Admin Room
+5. Remove emergency access automatically
+
+> **This is the only task that requires SSH access.** Everything else can be done from the Admin Room in your Matrix client.
+
 ## Security Notes
 
-- Only accounts explicitly granted admin privileges can access the Admin Room
-- The first account created during installation is automatically an admin
+- **The first account created during installation is the only admin** — it gets automatic access to the Admin Room
+- Additional accounts created via Admin Room are regular users (no admin privileges)
 - Commands are logged in the room history
 - Keep your admin account credentials secure
 - Consider using a strong, unique password for admin accounts

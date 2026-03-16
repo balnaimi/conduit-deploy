@@ -76,7 +76,7 @@ The script saved credentials to `/opt/conduit/CREDENTIALS.txt`. Copy them somewh
 sudo rm /opt/conduit/CREDENTIALS.txt
 ```
 
-> **Don't worry if you lose it** — your registration token is also stored in `/opt/conduit/.env` and can be viewed anytime from the Health Check menu.
+> **Forgot your admin password?** Run the script again → **Services → Password Recovery** (option `p`). This resets any account's password from the server without needing to log in.
 
 ### Set up SSH keys (optional but recommended)
 

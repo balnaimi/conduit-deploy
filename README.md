@@ -48,6 +48,7 @@ That's it. The interactive menu guides you through everything.
 | **[After Install](docs/after-install.md)** | Set up your phone, invite people, secure things |
 | **[FAQ](docs/faq.md)** | Common questions answered |
 | **[Troubleshooting](docs/troubleshooting.md)** | Something not working? Check here |
+| **[Roadmap](TODO.md)** | Future improvements and ideas |
 
 ### Advanced
 

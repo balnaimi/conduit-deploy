@@ -30,6 +30,7 @@
     <a href="domain.html">Domain Setup</a>
     <a href="walkthrough.html">Walkthrough</a>
     <a href="after-install.html">After Install</a>
+    <a href="admin.html">Admin Room</a>
     <a href="faq.html">FAQ</a>
     <a href="architecture.html">Architecture</a>
     <a href="troubleshooting.html" class="active">Troubleshooting</a>
@@ -118,7 +119,20 @@
     <div class="option-card">
       <h3>Forgot registration token</h3>
       <pre class="code-block"><span class="cmd">sudo</span> grep REGISTRATION_TOKEN /opt/conduit/.env</pre>
-      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">Or use the script: <code>sudo ./conduit-deploy.sh</code> → Registration → Show token. Your token is always stored in <code>.env</code> — even if you delete <code>CREDENTIALS.txt</code>.</p>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">Your token is stored in <code>.env</code> and <code>CREDENTIALS.txt</code> (if not deleted). The token is only needed if you enable self-registration via the Admin Room.</p>
+      
+      <h3>Registration token doesn't work</h3>
+      <p style="color:var(--text-dim);font-size:0.92rem;">Registration is <strong>closed by default</strong> for security. The token is only used if you enable self-registration via the Admin Room:</p>
+      <pre class="code-block">@conduit:yourdomain.com allow-registration true</pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">For normal account creation, use the Admin Room instead. See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a>.</p>
+      
+      <h3>Admin Room not showing up</h3>
+      <ol style="color:var(--text-dim);font-size:0.92rem;margin-left:1.25rem;line-height:2;">
+        <li>Log out and log back in to your Matrix client</li>
+        <li>Force refresh (Element Web: <kbd>Ctrl+Shift+R</kbd> or <kbd>Cmd+Shift+R</kbd>)</li>
+        <li>Check that your account was created during installation</li>
+        <li>Check server logs: <code>sudo docker logs conduit</code></li>
+      </ol>
     </div>
 
     <div class="option-card">

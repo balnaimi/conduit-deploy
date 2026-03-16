@@ -1213,10 +1213,14 @@ Matrix URL:         https://${MATRIX_HOST}
 VPS IP:             ${VPS_IP}
 
 Registration Token: ${REGISTRATION_TOKEN}
+  (For self-registration if you enable it via Admin Room)
+
 TURN Secret:        ${TURN_SECRET}
 
 Install directory:  ${INSTALL_DIR}
 
+[!]  Manage users via the Admin Room in Element
+[!]  Type @conduit:${SERVER_NAME} help for commands
 [!]  DELETE THIS FILE after saving credentials!
 ═══════════════════════════════════════════
 EOF
@@ -1227,13 +1231,128 @@ EOF
     echo -e "  ${GREEN}Your Matrix server is running at:${NC}"
     echo -e "  ${BOLD}https://${MATRIX_HOST}${NC}"
     echo
-    echo -e "  ${BOLD}Registration Token:${NC}"
-    echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
-    echo
     echo -e "  ${DIM}Credentials saved to: ${CREDS_FILE}${NC}"
-    echo -e "  ${DIM}Token also stored in: ${ENV_FILE} (always recoverable from menu)${NC}"
     echo
-    warn "Registration is currently OPEN. Use the menu to close it after creating accounts."
+
+    # ─── Create first admin account ───
+    echo
+    step "Create Your Admin Account"
+    echo -e "  ${DIM}This account will have access to the Admin Room for managing users.${NC}"
+    echo
+
+    # Collect username
+    while true; do
+        ask "Username (without @, lowercase letters/numbers/dots/hyphens):"
+        read -r NEW_USER
+        [ -z "$NEW_USER" ] && { error "Username required"; continue; }
+        if [[ ! "$NEW_USER" =~ ^[a-z0-9._-]{1,64}$ ]]; then
+            error "Invalid username: only lowercase a-z, 0-9, dots, hyphens, underscores (max 64 chars)"
+            continue
+        fi
+        break
+    done
+
+    # Collect password
+    while true; do
+        ask "Password (min 8 characters):"
+        # Hide password input
+        if read -rs NEW_PASS 2>/dev/null; then
+            echo
+        else
+            stty -echo 2>/dev/null
+            read -r NEW_PASS
+            stty echo 2>/dev/null
+            echo
+        fi
+        [ -z "$NEW_PASS" ] && { error "Password required"; continue; }
+        if [ ${#NEW_PASS} -lt 8 ]; then
+            error "Password must be at least 8 characters (got ${#NEW_PASS})"
+            continue
+        fi
+        break
+    done
+
+    # Escape special characters for JSON
+    NEW_PASS_ESCAPED=$(echo "$NEW_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    NEW_USER_ESCAPED=$(echo "$NEW_USER" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+    # Restore TTY state
+    stty sane 2>/dev/null || true
+
+    # Create account via Matrix API
+    info "Creating account @${NEW_USER}:${SERVER_NAME}..."
+    echo -e "  ${DIM}Temporarily opening registration...${NC}"
+    
+    # Open registration
+    $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
+    cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+    sleep 5
+
+    set +o pipefail 2>/dev/null
+
+    # Step 1: Get UIAA session
+    REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"username\": \"${NEW_USER_ESCAPED}\",
+            \"password\": \"${NEW_PASS_ESCAPED}\"
+        }" 2>/dev/null || true)
+
+    SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4 || true)
+    
+    if [ -n "$SESSION" ]; then
+        # Step 2: Complete registration with token
+        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"username\": \"${NEW_USER_ESCAPED}\",
+                \"password\": \"${NEW_PASS_ESCAPED}\",
+                \"auth\": {
+                    \"type\": \"m.login.registration_token\",
+                    \"token\": \"${REGISTRATION_TOKEN}\",
+                    \"session\": \"${SESSION}\"
+                },
+                \"initial_device_display_name\": \"Admin Account Setup\"
+            }" 2>/dev/null || true)
+    fi
+
+    set -o pipefail 2>/dev/null
+
+    if echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null; then
+        USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
+        ACCESS_TOKEN=$(echo "$REGISTER_RESPONSE" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4 || true)
+        
+        # Close registration immediately
+        $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+        
+        success "Account created: ${USER_ID}"
+        echo
+        echo -e "  ${BOLD}${GREEN}Admin Room Access${NC}"
+        echo -e "  ${DIM}This account has been automatically added to the Admin Room.${NC}"
+        echo -e "  ${DIM}You can manage users, registration, and server settings from there.${NC}"
+        echo
+        echo -e "  ${BOLD}Next Steps:${NC}"
+        echo -e "  1. Login at: ${GREEN}https://app.element.io${NC}"
+        echo -e "  2. Find the ${BOLD}Admin Room${NC} in your room list"
+        echo -e "  3. Type ${CYAN}@conduit:${SERVER_NAME} help${NC} to see available commands"
+        echo
+
+        # Clean up the session
+        if [ -n "$ACCESS_TOKEN" ]; then
+            curl -s --connect-timeout 10 --max-time 15 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/logout" \
+                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+                -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
+        fi
+    else
+        ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
+        error "Account creation failed: ${ERROR_MSG:-Unknown error}"
+        echo -e "  ${DIM}You can create accounts later via the Admin Room using the registration token.${NC}"
+        
+        # Close registration
+        $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
+        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
+    fi
 
     press_enter
 }
@@ -1462,221 +1581,6 @@ menu_healthcheck() {
 # ═══════════════════════════════════════════════
 #  MENU 4: REGISTRATION MANAGEMENT
 # ═══════════════════════════════════════════════
-menu_registration() {
-  while true; do
-    show_header
-
-    if [ ! -f "$COMPOSE_FILE" ]; then
-        error "Conduit is not installed."
-        press_enter
-        return
-    fi
-
-    load_config
-
-    # Check current status
-    local reg_open=false
-    if grep -q 'ALLOW_REGISTRATION: "true"' "$COMPOSE_FILE" 2>/dev/null; then
-        reg_open=true
-    fi
-
-    step "* Registration Management"
-
-    if $reg_open; then
-        echo -e "  Current status: ${YELLOW}● OPEN${NC}"
-    else
-        echo -e "  Current status: ${GREEN}● CLOSED${NC}"
-    fi
-
-    echo
-    echo -e "  ${CYAN}1${NC}) Open registration"
-    echo -e "  ${CYAN}2${NC}) Close registration"
-    echo -e "  ${CYAN}3${NC}) Create account (via API)"
-    echo -e "  ${CYAN}4${NC}) Show registration token"
-    echo -e "  ${CYAN}0${NC}) Back to main menu"
-    echo
-    ask "Choose [0-4]:"
-    read -r choice
-
-    case $choice in
-        1)
-            if ! grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
-                warn "Registration is already OPEN"
-            else
-                $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-                cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-                success "Registration OPENED"
-            fi
-            echo
-            echo -e "  ${BOLD}Registration Token:${NC}"
-            if [ -z "$REGISTRATION_TOKEN" ]; then
-                error "Token not found in .env (corrupted?)"
-                error "Run Health Check and investigate /opt/conduit/.env"
-            else
-                echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
-                echo
-                echo -e "  ${DIM}Users can register at: https://app.element.io/#/register${NC}"
-                echo -e "  ${DIM}Homeserver: ${SERVER_NAME}${NC}"
-            fi
-            press_enter
-            ;;
-        2)
-            if ! grep -q 'ALLOW_REGISTRATION: "true"' "$COMPOSE_FILE" 2>/dev/null; then
-                warn "Registration is already CLOSED"
-            else
-                $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-                cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-                success "Registration CLOSED"
-            fi
-            press_enter
-            ;;
-        3)
-            menu_create_account
-            ;;
-        4)
-            echo
-            echo -e "  ${BOLD}Registration Token:${NC}"
-            echo -e "  ${YELLOW}${REGISTRATION_TOKEN}${NC}"
-            echo
-            echo -e "  ${BOLD}Register at:${NC}"
-            echo -e "  ${GREEN}https://app.element.io/#/register${NC}"
-            echo -e "  Homeserver: ${GREEN}${DOMAIN}${NC}"
-            press_enter
-            ;;
-        *)
-            return
-            ;;
-    esac
-  done
-}
-
-# Helper: re-close registration if interrupted
-_reclose_registration() {
-    echo
-    warn "Interrupted — closing registration..."
-    $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE" 2>/dev/null
-    cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-    info "Registration closed."
-    trap - INT
-}
-
-# ─── Create account via Conduit admin API ───
-menu_create_account() {
-    echo
-    step "Create New Account"
-
-    load_config
-
-    # ─── Collect input FIRST (before touching registration state) ───
-    ask "Username (without @, lowercase letters/numbers/dots/hyphens):"
-    read -r NEW_USER
-    [ -z "$NEW_USER" ] && { error "Username required"; press_enter; return; }
-    if [[ ! "$NEW_USER" =~ ^[a-z0-9._-]{1,64}$ ]]; then
-        error "Invalid username: only lowercase a-z, 0-9, dots, hyphens, underscores (max 64 chars)"
-        press_enter
-        return
-    fi
-
-    ask "Password (min 8 characters):"
-    # Hide password input (stty fallback for shells where read -s doesn't work)
-    if read -rs NEW_PASS 2>/dev/null; then
-        echo
-    else
-        stty -echo 2>/dev/null
-        read -r NEW_PASS
-        stty echo 2>/dev/null
-        echo
-    fi
-    [ -z "$NEW_PASS" ] && { error "Password required"; press_enter; return; }
-    if [ ${#NEW_PASS} -lt 8 ]; then
-        error "Password must be at least 8 characters (got ${#NEW_PASS})"
-        press_enter
-        return
-    fi
-
-    # Escape special characters for JSON
-    NEW_PASS_ESCAPED=$(echo "$NEW_PASS" | sed 's/\\/\\\\/g; s/"/\\"/g')
-    NEW_USER_ESCAPED=$(echo "$NEW_USER" | sed 's/\\/\\\\/g; s/"/\\"/g')
-
-    # Restore TTY state before docker operations (read -rs may have changed it)
-    stty sane 2>/dev/null || true
-
-    # ─── Now open registration (input already collected, minimal window) ───
-    local was_closed=false
-    if grep -q 'ALLOW_REGISTRATION: "false"' "$COMPOSE_FILE" 2>/dev/null; then
-        was_closed=true
-        trap '_reclose_registration' INT
-        info "Temporarily opening registration..."
-        $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-        # Wait for container to be ready (setsid forks, compose runs in background briefly)
-        sleep 5
-        echo -e "  ${DIM}Registration briefly open (token still required). Will close after account creation.${NC}"
-    fi
-
-    # Register via Matrix client API
-    # Temporarily disable pipefail — grep returns 1 on no-match which kills the script
-    info "Creating account @${NEW_USER}:${SERVER_NAME}..."
-    
-    set +o pipefail 2>/dev/null
-
-    # Step 1: Get UIAA session (send register without auth to get session ID)
-    REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"username\": \"${NEW_USER_ESCAPED}\",
-            \"password\": \"${NEW_PASS_ESCAPED}\"
-        }" 2>/dev/null || true)
-
-    SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4 || true)
-    
-    if [ -n "$SESSION" ]; then
-        # Step 2: Complete registration with token + session
-        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
-            -H "Content-Type: application/json" \
-            -d "{
-                \"username\": \"${NEW_USER_ESCAPED}\",
-                \"password\": \"${NEW_PASS_ESCAPED}\",
-                \"auth\": {
-                    \"type\": \"m.login.registration_token\",
-                    \"token\": \"${REGISTRATION_TOKEN}\",
-                    \"session\": \"${SESSION}\"
-                },
-                \"initial_device_display_name\": \"Registration (auto-logout)\"
-            }" 2>/dev/null || true)
-    fi
-
-    # Re-enable pipefail
-    set -o pipefail 2>/dev/null
-
-    if echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null; then
-        USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
-        ACCESS_TOKEN=$(echo "$REGISTER_RESPONSE" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4 || true)
-        success "Account created: ${USER_ID}"
-
-        # Clean up the session created during registration
-        if [ -n "$ACCESS_TOKEN" ]; then
-            curl -s --connect-timeout 10 --max-time 15 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/logout" \
-                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-                -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
-        fi
-    else
-        ERROR_MSG=$(echo "$REGISTER_RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4 || true)
-        error "Failed: ${ERROR_MSG:-Unknown error}"
-        echo -e "  ${DIM}Response: ${REGISTER_RESPONSE}${NC}"
-    fi
-
-    # Re-close if was closed
-    if $was_closed; then
-        trap - INT
-        $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-        cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-        info "Registration closed again"
-    fi
-
-    press_enter
-}
-
 # ═══════════════════════════════════════════════
 #  BACKUP (with image version pinning)
 # ═══════════════════════════════════════════════
@@ -2479,43 +2383,25 @@ menu_uninstall() {
 #  MAIN MENU
 # ═══════════════════════════════════════════════
 # ─── Safety: check for orphaned open registration on startup ───
-_check_orphaned_registration() {
-    if [ -f "$COMPOSE_FILE" ] && grep -q 'ALLOW_REGISTRATION: "true"' "$COMPOSE_FILE" 2>/dev/null; then
-        echo
-        warn "Registration is currently OPEN!"
-        echo -e "  ${DIM}This may be left over from a previous interrupted session.${NC}"
-        ask "Close registration now? [Y/n]:"
-        read -r close_reg
-        if [[ ! "$close_reg" =~ ^[Nn]$ ]]; then
-            $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"
-            cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-            success "Registration closed"
-        fi
-    fi
-}
-
 main_menu() {
-    _check_orphaned_registration
     while true; do
         show_header
         echo -e "  ${CYAN}1${NC}) ${BOLD}Prepare${NC}      — What you need before installing"
         echo -e "  ${CYAN}2${NC}) ${BOLD}Install${NC}      — Deploy Matrix server"
         echo -e "  ${CYAN}3${NC}) ${BOLD}Health Check${NC} — Verify services & security"
-        echo -e "  ${CYAN}4${NC}) ${BOLD}Registration${NC} — Open/close/create accounts"
-        echo -e "  ${CYAN}5${NC}) ${BOLD}Services${NC}     — Start/stop/restart/update/logs"
-        echo -e "  ${CYAN}6${NC}) ${BOLD}Uninstall${NC}    — Remove everything"
+        echo -e "  ${CYAN}4${NC}) ${BOLD}Services${NC}     — Start/stop/restart/update/logs"
+        echo -e "  ${CYAN}5${NC}) ${BOLD}Uninstall${NC}    — Remove everything"
         echo -e "  ${CYAN}0${NC}) ${BOLD}Exit${NC}"
         echo
-        ask "Choose [0-6]:"
+        ask "Choose [0-5]:"
         read -r choice
 
         case $choice in
             1) menu_prepare ;;
             2) menu_install ;;
             3) menu_healthcheck ;;
-            4) menu_registration ;;
-            5) menu_services ;;
-            6) menu_uninstall ;;
+            4) menu_services ;;
+            5) menu_uninstall ;;
             0|q|Q) echo -e "\n${DIM}Goodbye! ${NC}\n"; exit 0 ;;
             *) warn "Invalid option"; sleep 1 ;;
         esac

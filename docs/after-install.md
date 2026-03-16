@@ -37,11 +37,14 @@ After signing in, the app will ask you to **verify your session**. This sets up 
 
 ### If they'll use your server:
 
-1. Share the **registration token** with them (Menu → Registration → Show token)
-2. They download an app → Sign up → Enter your domain as homeserver
-3. Use the token when asked
+You manage accounts via the **Admin Room** in Element:
 
-> **Tip:** You can also create accounts from the script directly (Menu → Registration → Create account). The script collects the username and password first, then briefly opens registration, creates the account, and closes registration again — all in one step. The temporary session is automatically cleaned up so no ghost sessions are left on the account.
+1. Find the **"Conduit Admin Room"** in your room list (it appears automatically)
+2. Type: `@conduit:yourdomain.com create-user alice SecurePassword123`
+3. Share the username and password with the person
+4. They can log in at https://app.element.io
+
+> **See the full guide:** [Admin Room documentation](admin-room.md)
 
 ### If they're on another Matrix server:
 
@@ -59,16 +62,11 @@ Their address will look like: `@theirname:matrix.org` (or whatever server they'r
 
 ## 6. Secure your server
 
-Now that everything works, do these important steps:
+Your server is already secure by default:
 
-### Close registration
-
-So random people can't create accounts on your server:
-
-```bash
-sudo bash conduit-deploy.sh
-# Choose 4 → 2 (Close registration)
-```
+- ✅ **Registration is closed** — only you can create accounts via the Admin Room
+- ✅ **HTTPS everywhere** — all traffic is encrypted
+- ✅ **Firewall configured** — only necessary ports are open
 
 ### Save your credentials
 

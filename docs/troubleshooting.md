@@ -102,17 +102,19 @@ curl -s https://yourdomain.com/.well-known/matrix/server
 
 ### "Registration token doesn't work"
 
-**Check 1: Is registration open?**
-```bash
-sudo bash conduit-deploy.sh
-# Choose 4 → Check current status
+Registration is **closed by default** for security. The token is only used if you enable self-registration via the Admin Room:
+
+```
+@conduit:yourdomain.com allow-registration true
 ```
 
-**Check 2: Check the token**
-```bash
-sudo bash conduit-deploy.sh
-# Choose 4 → 4 (Show registration token)
+For normal account creation, use the Admin Room instead:
+
 ```
+@conduit:yourdomain.com create-user alice SecurePassword123
+```
+
+See the [Admin Room guide](admin-room.md) for more details.
 
 ### "Server is slow / high memory"
 
@@ -150,7 +152,7 @@ Your token is always stored in the `.env` file:
 sudo grep REGISTRATION_TOKEN /opt/conduit/.env
 ```
 
-Or use the menu: Choose **4** (Registration) → **4** (Show registration token).
+Or check `/opt/conduit/CREDENTIALS.txt` if you haven't deleted it yet.
 
 ### "I want to start over"
 

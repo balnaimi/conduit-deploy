@@ -29,6 +29,7 @@
     <a href="domain.html">Domain Setup</a>
     <a href="walkthrough.html" class="active">Walkthrough</a>
     <a href="after-install.html">After Install</a>
+    <a href="admin.html">Admin Room</a>
     <a href="faq.html">FAQ</a>
     <a href="architecture.html">Architecture</a>
     <a href="troubleshooting.html">Troubleshooting</a>
@@ -247,16 +248,14 @@ Security:
 
         <div class="step">
           <h3>6. Create Accounts</h3>
-          <p class="desc">From the main menu: <strong><code>4</code></strong> → <strong><code>3</code></strong> (Create account via API)</p>
-          <pre class="code-block">Username: <strong>alice</strong>
-Password: <strong>MySecurePass123!</strong>
+          <p class="desc">The first account was created during installation. To add more users, log in to Element and find the <strong>Admin Room</strong>:</p>
+          <pre class="code-block"><span class="comment"># In the Admin Room, type:</span>
+@conduit:example.com create-user alice MySecurePass123!
 
-ℹ Temporarily opening registration...
-ℹ Creating account @alice:example.com...
-✅ Account created: @alice:example.com
-ℹ Session cleaned up (no ghost sessions left)
-ℹ Registration closed again</pre>
+<span class="comment"># Response:</span>
+✅ Account created: @alice:example.com</pre>
           <p class="desc" style="margin-top:0.75rem;">Notice the <strong>clean username</strong>: <code>@alice:example.com</code> — no "matrix" subdomain in the user ID! 🎉</p>
+          <p class="desc" style="margin-top:0.5rem;">See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a> for all available commands (reset password, deactivate user, etc.).</p>
         </div>
 
         <div class="step">
@@ -437,19 +436,16 @@ Registration:
 
         <div class="step">
           <h3>5. Create Accounts</h3>
-          <p class="desc">From the main menu: <strong><code>4</code></strong> (Registration) → <strong><code>3</code></strong> (Create account via API)</p>
-          <pre class="code-block">Username (without @, lowercase letters/numbers/dots/hyphens): <strong>alice</strong>
-Password (min 8 characters): <strong>MySecurePass123!</strong></pre>
-          <pre class="code-block">ℹ Temporarily opening registration...
-  Registration briefly open (token still required). Will close after account creation.
-ℹ Creating account @alice:matrix.example.com...
-✅ Account created: @alice:matrix.example.com
-ℹ Session cleaned up (no ghost sessions left)
-ℹ Registration closed again</pre>
+          <p class="desc">The first account was created during installation. To add more users, log in to Element and find the <strong>Admin Room</strong>:</p>
+          <pre class="code-block"><span class="comment"># In the Admin Room, type:</span>
+@conduit:matrix.example.com create-user alice MySecurePass123!
+
+<span class="comment"># Response:</span>
+✅ Account created: @alice:matrix.example.com</pre>
           <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-            <strong>🔒 Security:</strong> Registration stays closed between account creations. Even while briefly open, a token is required — random signups cannot get in.
+            <strong>🔒 Security:</strong> Registration is closed by default. Only you can create accounts via the Admin Room.
           </div>
-          <p class="desc" style="margin-top:1rem;">Create as many accounts as you need — choose <code>3</code> again for each one.</p>
+          <p class="desc" style="margin-top:1rem;">See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a> for all available commands.</p>
         </div>
 
         <div class="step">

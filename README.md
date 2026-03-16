@@ -46,6 +46,7 @@ That's it. The interactive menu guides you through everything.
 | **[Domain Setup](docs/domain-setup.md)** | How to set up your domain (explained simply) |
 | **[Installation](docs/installation.md)** | Step-by-step installation walkthrough |
 | **[After Install](docs/after-install.md)** | Set up your phone, invite people, secure things |
+| **[Admin Room](docs/admin-room.md)** | Manage users and server settings from your Matrix client |
 | **[FAQ](docs/faq.md)** | Common questions answered |
 | **[Troubleshooting](docs/troubleshooting.md)** | Something not working? Check here |
 | **[Roadmap](TODO.md)** | Future improvements and ideas |

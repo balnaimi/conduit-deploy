@@ -95,7 +95,9 @@ The script will guide you through everything with a friendly menu!
 
 ### Step 4: Create your account
 
-After installation, the script lets you create accounts right away. Or use the **Registration** menu later.
+During installation, the script automatically creates your first admin account. This account has access to the **Admin Room** where you can create additional accounts, reset passwords, and manage your server.
+
+For more users, log in to Element and use the Admin Room commands. See the [Admin Room guide](admin-room.md) for details.
 
 ### Step 5: Download an app and sign in
 

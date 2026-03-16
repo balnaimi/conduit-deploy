@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Room Guide — Conduit Deploy</title>
+<meta name="description" content="Manage your Conduit Matrix server from the Admin Room. Create users, reset passwords, toggle registration, and more — all from your Matrix client.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- PREVIEW BANNER -->
+<div class="preview-banner">
+  <span class="banner-icon">📝</span>
+  <span class="banner-text"><strong>Personal Project</strong> — Built for personal use and friends. Tested on Debian 13 + <a href="https://www.digitalocean.com/" target="_blank">DigitalOcean</a> ($6/mo droplet). Fork it and make it yours!</span>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Conduit Deploy
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="index.html">Home</a>
+    <a href="domain.html">Domain Setup</a>
+    <a href="walkthrough.html">Walkthrough</a>
+    <a href="after-install.html">After Install</a>
+    <a href="admin.html" class="active">Admin Room</a>
+    <a href="faq.html">FAQ</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </div>
+  <a href="https://github.com/balnaimi/conduit-deploy" target="_blank" class="nav-github">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    GitHub
+  </a>
+  <div class="hamburger" id="hamburger" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ADMIN ROOM GUIDE -->
+<section class="section" style="padding-top:7rem;" id="admin">
+  <div class="container-sm">
+    <div class="section-header">
+      <div class="section-label">Server Management</div>
+      <h2 class="section-title">Admin Room Guide</h2>
+      <p class="section-desc">Manage your Conduit server from any Matrix client. No SSH required.</p>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">ℹ️</div>
+      <div><strong>Your first account is automatically an admin.</strong> The Admin Room appears automatically after you log in to Element.</div>
+    </div>
+
+    <h3 class="subtitle">What is the Admin Room?</h3>
+    <p>The <strong>Admin Room</strong> is your control center for managing your Conduit Matrix server. Instead of running commands over SSH, you send messages in a special Matrix room. This means you can manage your server from:</p>
+    <ul style="margin:1rem 0 2rem 1.5rem;color:var(--text-dim);line-height:2;">
+      <li>💻 Element Web (https://app.element.io)</li>
+      <li>📱 Element Mobile (iOS/Android)</li>
+      <li>🖥️ Element Desktop (Windows/Mac/Linux)</li>
+      <li>🎨 Any other Matrix client (FluffyChat, SchildiChat, Nheko, etc.)</li>
+    </ul>
+
+    <h3 class="subtitle">How to Find It</h3>
+    <ol style="margin:1rem 0 2rem 1.5rem;color:var(--text-dim);line-height:2;">
+      <li>Log in to Element with your admin account</li>
+      <li>Look for <strong>"Conduit Admin Room"</strong> in your room list</li>
+      <li>It appears automatically — no need to create or join it</li>
+      <li>If you don't see it, try refreshing or logging out/in again</li>
+    </ol>
+
+    <h3 class="subtitle">Command Reference</h3>
+    <p style="margin-bottom:1.5rem;color:var(--text-dim);">All commands are sent as messages. Replace <code>conduit</code> with your server name and <code>yourdomain.com</code> with your actual domain.</p>
+
+    <div style="overflow-x:auto;">
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>@conduit:yourdomain.com help</code></td>
+            <td>Show all available commands</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com list-local-users</code></td>
+            <td>List all users on your server</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com create-user &lt;username&gt; &lt;password&gt;</code></td>
+            <td>Create a new user account</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com reset-password &lt;user_id&gt; &lt;new_password&gt;</code></td>
+            <td>Reset a user's password</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com deactivate-user &lt;user_id&gt;</code></td>
+            <td>Deactivate a user account</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com allow-registration true/false</code></td>
+            <td>Enable or disable self-registration</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com list-rooms</code></td>
+            <td>List all rooms on your server</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com list-media</code></td>
+            <td>Show media storage statistics</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com purge-media &lt;mxc_uri&gt;</code></td>
+            <td>Delete specific media file</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com show-config</code></td>
+            <td>Display current server configuration</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com memory-usage</code></td>
+            <td>Show server memory usage</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com clear-database-caches</code></td>
+            <td>Clear database caches</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com clear-service-caches</code></td>
+            <td>Clear service caches</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com disable-room &lt;room_id&gt;</code></td>
+            <td>Disable a room</td>
+          </tr>
+          <tr>
+            <td><code>@conduit:yourdomain.com enable-room &lt;room_id&gt;</code></td>
+            <td>Re-enable a disabled room</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subtitle" style="margin-top:3rem;">Common Tasks</h3>
+
+    <div class="task-card">
+      <h4>➕ Add a New User</h4>
+      <div class="code-block">@conduit:yourdomain.com create-user alice SecurePassword123</div>
+      <p style="margin:0.75rem 0 0;color:var(--text-dim);font-size:0.9rem;">The user can then log in at <a href="https://app.element.io" target="_blank">https://app.element.io</a> with <code>@alice:yourdomain.com</code></p>
+    </div>
+
+    <div class="task-card">
+      <h4>🔑 Reset a User's Password</h4>
+      <div class="code-block">@conduit:yourdomain.com reset-password @alice:yourdomain.com NewPassword456</div>
+    </div>
+
+    <div class="task-card">
+      <h4>✅ Enable Self-Registration</h4>
+      <div class="code-block">@conduit:yourdomain.com allow-registration true</div>
+      <p style="margin:0.75rem 0 0;color:var(--text-dim);font-size:0.9rem;">Share your registration token (found in <code>/opt/conduit/CREDENTIALS.txt</code>) with users. <strong>Remember to close registration when done:</strong></p>
+      <div class="code-block" style="margin-top:0.75rem;">@conduit:yourdomain.com allow-registration false</div>
+    </div>
+
+    <div class="task-card">
+      <h4>🚫 Deactivate a User</h4>
+      <div class="code-block">@conduit:yourdomain.com deactivate-user @spam-bot:yourdomain.com</div>
+    </div>
+
+    <div class="task-card">
+      <h4>📊 Check Server Statistics</h4>
+      <div class="code-block">@conduit:yourdomain.com memory-usage
+@conduit:yourdomain.com list-local-users
+@conduit:yourdomain.com list-rooms</div>
+    </div>
+
+    <h3 class="subtitle" style="margin-top:3rem;">Security Notes</h3>
+    <ul style="margin:1rem 0 2rem 1.5rem;color:var(--text-dim);line-height:2;">
+      <li>Only accounts with admin privileges can access the Admin Room</li>
+      <li>The first account created during installation is automatically an admin</li>
+      <li>All commands are logged in the room history</li>
+      <li>Keep your admin account credentials secure</li>
+      <li>Consider using a strong, unique password for admin accounts</li>
+    </ul>
+
+    <h3 class="subtitle">Troubleshooting</h3>
+
+    <div class="callout callout-warning">
+      <div class="callout-icon">⚠️</div>
+      <div>
+        <strong>Admin Room not showing up?</strong>
+        <ol style="margin:0.75rem 0 0 1.25rem;line-height:1.8;">
+          <li>Log out and log back in to your Matrix client</li>
+          <li>Force refresh (Element Web: <kbd>Ctrl+Shift+R</kbd> or <kbd>Cmd+Shift+R</kbd>)</li>
+          <li>Check server logs: <code>sudo docker logs conduit</code></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="callout callout-warning" style="margin-top:1.5rem;">
+      <div class="callout-icon">⚠️</div>
+      <div>
+        <strong>Commands not working?</strong>
+        <ul style="margin:0.75rem 0 0 1.25rem;line-height:1.8;">
+          <li>Type the full command exactly as shown</li>
+          <li>Replace <code>yourdomain.com</code> with your actual domain</li>
+          <li>User IDs must include <code>@</code> prefix and <code>:domain</code> suffix</li>
+          <li>Check that Conduit is running: <code>sudo docker ps</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subtitle" style="margin-top:3rem;">Need Your Registration Token?</h3>
+    <div class="code-block" style="margin-bottom:1rem;">cat /opt/conduit/CREDENTIALS.txt</div>
+    <p style="color:var(--text-dim);font-size:0.9rem;">Or check the <code>.env</code> file:</p>
+    <div class="code-block">sudo cat /opt/conduit/.env | grep REGISTRATION_TOKEN</div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <p style="margin:0;color:var(--text-dim);font-size:0.9rem;">
+      Made by <a href="https://github.com/balnaimi" target="_blank" style="color:var(--primary);">balnaimi</a> • 
+      <a href="https://github.com/balnaimi/conduit-deploy" target="_blank" style="color:var(--primary);">GitHub</a> • 
+      <a href="https://matrix.to/#/@admin:conduit.rs" target="_blank" style="color:var(--primary);">Matrix</a>
+    </p>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// NAVBAR SCROLL
+window.addEventListener('scroll', () => {
+  const navbar = document.getElementById('navbar');
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// MOBILE NAV
+function toggleNav() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// SMOOTH SCROLL
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('navLinks').classList.remove('open');
+  });
+});
+
+// COPY BUTTONS
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '📋 Copy';
+    btn.onclick = () => {
+      const text = block.textContent.replace('📋 Copy', '').replace('✅ Copied!', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+      });
+    };
+    block.appendChild(btn);
+  });
+});
+</script>
+
+<style>
+.command-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.command-table th,
+.command-table td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.command-table th {
+  background: var(--bg-alt);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.command-table tr:last-child td {
+  border-bottom: none;
+}
+
+.command-table td:first-child {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.command-table td:last-child {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.task-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.task-card h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 0.85rem;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+</style>
+</body>
+</html>

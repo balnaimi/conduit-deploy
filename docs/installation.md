@@ -64,8 +64,8 @@ You'll see the main menu:
   1) Prepare      — What you need before installing
   2) Install      — Deploy Matrix server
   3) Health Check — Verify services & security
-  4) Registration — Open/close/create accounts
-  5) Services     — Start/stop/restart/update/logs
+  4) Services     — Start/stop/restart/update/logs
+  5) Uninstall    — Remove everything
   0) Exit
 ```
 
@@ -172,21 +172,22 @@ Choose **3** (Health Check) to make sure everything is working:
   ✅ All checks passed! Server is healthy.
 ```
 
-## Step 4: Create accounts
+## Step 4: Admin account created
 
-Choose **4** (Registration) → **3** (Create account):
+During installation, the script automatically creates your first admin account. This account has access to the **Admin Room** where you can:
+
+- Create additional user accounts
+- Reset passwords
+- Manage registration settings
+- Monitor server statistics
+
+To create more accounts, log in to Element and find the **"Conduit Admin Room"**, then type:
 
 ```
-Username (without @): alice
-Password (min 8 characters): ********
-
-✅ Account created: @alice:example.com
+@conduit:yourdomain.com create-user alice SecurePassword123
 ```
 
-> **Usernames:** lowercase letters, numbers, dots, hyphens, underscores only (max 64 characters).
-> **Passwords:** minimum 8 characters.
->
-> **Tip:** After creating accounts for your family/friends, close registration (option 2) so strangers can't sign up.
+> **See the full guide:** [Admin Room documentation](admin-room.md) for all available commands.
 
 ## What's next?
 

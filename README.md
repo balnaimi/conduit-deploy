@@ -1,19 +1,19 @@
 # 🏠 Conduit Deploy
 
-> ⚠️ **Early Preview** — This project is under active development and live testing. The script is functional but has not been fully validated across all environments yet. **Not recommended for production use at this time.** A stable release is coming soon.
-
 > Deploy your own private Matrix messaging server in minutes.
 
 <p align="center">
   <a href="https://balnaimi.github.io/conduit-deploy/"><strong>🌐 Visit the Website</strong></a>
 </p>
 
-One interactive script that sets up a complete, secure Matrix server with **end-to-end encryption**, **voice/video calls**, and **federation** — on any Debian/Ubuntu machine.
+One interactive script that sets up a complete, secure Matrix server with **end-to-end encryption**, **voice/video calls**, and **federation**.
+
+> **📝 Personal Project** — I built this for myself and my friends as a learning project, covering the scenarios we needed. It may not fit every use case, but you're welcome to fork it and adapt it to yours.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Early_Preview-orange?style=for-the-badge" alt="Early Preview">
   <img src="https://img.shields.io/badge/Matrix-Conduit-6c63ff?style=for-the-badge" alt="Matrix Conduit">
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License">
+  <img src="https://img.shields.io/badge/Debian_13-Tested-blue?style=for-the-badge" alt="Debian 13">
   <img src="https://img.shields.io/badge/Rust-Lightweight-orange?style=for-the-badge" alt="Rust">
 </p>
 
@@ -161,6 +161,32 @@ Restore is a **complete recovery** — it handles everything, even after a full 
 - ✅ Re-adds iptables UDP redirect for TURN-over-TLS
 
 > 📖 Full walkthrough with screenshots: [Backup & Restore Guide](https://balnaimi.github.io/conduit-deploy/walkthrough.html#backup)
+
+## 🖥️ Tested Environment
+
+This project was built and tested on a specific setup. It hasn't been tested on other operating systems or VPS providers:
+
+| Component | Details |
+|---|---|
+| **VPS Provider** | [DigitalOcean](https://www.digitalocean.com/) (Droplet) |
+| **Droplet Type** | Shared CPU — Basic |
+| **CPU/Disk** | Regular SSD |
+| **Plan** | $6/mo — 1 GB RAM, 1 CPU, 25 GB Disk, 1000 GB transfer |
+| **OS** | Debian 13 (Trixie) 64-bit |
+
+> **Note:** I have no affiliation with DigitalOcean — I've just been using their service for a long time and it works well for me.
+
+> **Not tested on:** Other Linux distributions, other VPS providers, ARM architectures, or different hardware specs. The script may work on similar Debian/Ubuntu systems, but your mileage may vary.
+
+## ⚠️ Disclaimer
+
+This is a **personal project** built for my own use and for friends. It's also a learning project — I built it to understand how Matrix servers, Docker, TLS, and server administration work together.
+
+- ✅ It covers the scenarios **I** needed
+- ✅ You're free to use, fork, and modify it (MIT license)
+- ⚠️ It may not cover every edge case or environment
+- ⚠️ No warranty — use at your own risk
+- 🤝 Pull requests and suggestions are welcome
 
 ## License
 

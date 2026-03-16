@@ -99,7 +99,7 @@
             <td>Create a new user account</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com reset-password &lt;user_id&gt; &lt;new_password&gt;</code></td>
+            <td><code>@conduit:yourdomain.com reset-password &lt;user_id&gt;</code></td>
             <td>Reset a user's password</td>
           </tr>
           <tr>
@@ -188,11 +188,12 @@
 <span class="comment"># Choose: Services → Password Recovery (option p)</span>
 
 <span class="comment"># The script will:</span>
-<span class="comment"># 1. Ask which account to reset + new password</span>
-<span class="comment"># 2. Temporarily enable emergency access (~30 seconds)</span>
-<span class="comment"># 3. Reset the password via the Admin Room API</span>
-<span class="comment"># 4. Remove emergency access and clean up</span>
-<span class="comment"># 5. Show you the new credentials</span></pre>
+<span class="comment"># 1. Ask which account to reset</span>
+<span class="comment"># 2. Temporarily enable emergency access</span>
+<span class="comment"># 3. Create a temp account, send reset command in Admin Room</span>
+<span class="comment"># 4. Conduit generates a random new password</span>
+<span class="comment"># 5. Deactivate temp account, remove emergency access</span>
+<span class="comment"># 6. Show you the new credentials</span></pre>
     <div class="callout callout-info" style="margin-top:0.75rem;">
       <div class="callout-icon">💡</div>
       <div>This is the <strong>only task that requires SSH access</strong>. Everything else can be done from the Admin Room in your Matrix client.</div>
@@ -203,13 +204,17 @@
       Conduit has a built-in safety feature called <strong>Emergency Password</strong>. The script:
     </p>
     <ol style="margin:0.5rem 0 1rem 1.5rem;color:var(--text-dim);font-size:0.88rem;line-height:2;">
-      <li>Generates a <strong>random temporary password</strong> and enables it in the server config</li>
-      <li>Logs in as the server's built-in <code>@conduit:yourdomain.com</code> account (which has full admin access)</li>
-      <li>Sends a <code>reset-password</code> command in the Admin Room</li>
-      <li><strong>Removes the emergency password</strong> from the config and restarts the server</li>
+      <li>Generates a <strong>random emergency password</strong> and enables it in the server config</li>
+      <li>Logs in as the server's built-in <code>@conduit:yourdomain.com</code> account</li>
+      <li>Creates a <strong>temporary account</strong> and invites it to the Admin Room</li>
+      <li>Sends <code>reset-password</code> — Conduit generates a <strong>random new password</strong></li>
+      <li><strong>Deactivates the temp account</strong>, removes emergency password, restarts server</li>
     </ol>
     <p style="color:var(--text-dim);font-size:0.88rem;">
-      The emergency password exists for <strong>less than 30 seconds</strong> and is randomly generated each time. After the script finishes, the backdoor is completely gone.
+      The emergency password exists for <strong>less than a minute</strong> and is randomly generated each time. After the script finishes, the backdoor is completely gone and the temp account is deactivated.
+    </p>
+    <p style="color:var(--text-dim);font-size:0.88rem;margin-top:0.5rem;">
+      <strong>Note:</strong> Conduit generates the new password automatically — you can't choose your own. Sign in with the generated password, then change it from your client's settings.
     </p>
 
     <h3 class="subtitle" style="margin-top:3rem;">Security Notes</h3>

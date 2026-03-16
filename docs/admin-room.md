@@ -31,7 +31,7 @@ All commands are sent as messages to the Admin Room. Replace `conduit` with your
 | `@conduit:yourdomain.com help` | Show all available commands |
 | `@conduit:yourdomain.com list-local-users` | List all users on your server |
 | `@conduit:yourdomain.com create-user <username> <password>` | Create a new user account |
-| `@conduit:yourdomain.com reset-password <user_id> <new_password>` | Reset a user's password |
+| `@conduit:yourdomain.com reset-password <user_id>` | Reset a user's password (generates a random one) |
 | `@conduit:yourdomain.com deactivate-user <user_id>` | Deactivate a user account |
 | `@conduit:yourdomain.com allow-registration true/false` | Enable or disable registration |
 | `@conduit:yourdomain.com list-rooms` | List all rooms on your server |
@@ -59,8 +59,10 @@ The user can then log in at https://app.element.io with:
 ### Reset a User's Password
 
 ```
-@conduit:yourdomain.com reset-password @alice:yourdomain.com NewPassword456
+@conduit:yourdomain.com reset-password @alice:yourdomain.com
 ```
+
+Conduit will respond with a randomly generated password. Share it with the user — they can change it from their Matrix client's settings after signing in.
 
 ### Enable Self-Registration
 
@@ -112,10 +114,11 @@ sudo bash conduit-deploy.sh
 ```
 
 The script will:
-1. Ask which account to reset and the new password
+1. Ask which account to reset
 2. Temporarily enable emergency access (see below)
-3. Reset the password via the Admin Room
-4. Remove emergency access and clean up automatically
+3. Create a temporary account, send the reset command in the Admin Room
+4. Conduit generates a **random new password** and shows it to you
+5. Deactivate the temporary account and remove emergency access
 
 > **This is the only task that requires SSH access.** Everything else can be done from the Admin Room in your Matrix client.
 
@@ -125,12 +128,15 @@ Conduit has a built-in safety feature called **Emergency Password**. When enable
 
 Here's what the script does step by step:
 
-1. **Generates a random password** and adds `CONDUIT_EMERGENCY_PASSWORD` to the Docker Compose config
+1. **Generates a random emergency password** and adds `CONDUIT_EMERGENCY_PASSWORD` to the Docker Compose config
 2. **Restarts Conduit** — the server now accepts login for `@conduit:yourdomain.com` with that password
-3. **Logs in as the server account** and sends a `reset-password` command in the Admin Room
-4. **Removes the emergency password** from the config and restarts Conduit again
+3. **Creates a temporary account** (`_recovery_xxx`) and invites it to the Admin Room
+4. **Sends `reset-password`** from the temp account — Conduit generates a new random password
+5. **Deactivates the temp account**, removes emergency password, and restarts Conduit
 
-The emergency password exists for **less than 30 seconds** and is randomly generated each time. After the script finishes, the backdoor is completely gone.
+The emergency password exists for **less than a minute** and is randomly generated each time. After the script finishes, the backdoor is completely gone and the temporary account is deactivated.
+
+> **Note:** Conduit's `reset-password` generates a random password — you cannot choose your own. Sign in with the generated password, then change it from your Matrix client's settings if you want.
 
 > **Why not just edit the database directly?** Conduit uses RocksDB which doesn't have a simple CLI tool. The Admin Room API is the official and safest way to manage accounts.
 

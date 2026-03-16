@@ -68,15 +68,20 @@ Your server is already secure by default:
 - ✅ **HTTPS everywhere** — all traffic is encrypted
 - ✅ **Firewall configured** — only necessary ports are open
 
-### Save your credentials
+### Save and delete your credentials
 
-The script saved credentials to `/opt/conduit/CREDENTIALS.txt`. Copy them somewhere safe (like a password manager), then delete the file:
+The script saved credentials to `/opt/conduit/CREDENTIALS.txt`. This file contains your **admin password in plain text** — anyone with server access can read it.
+
+1. Copy the credentials somewhere safe (password manager recommended)
+2. **Delete the file immediately:**
 
 ```bash
 sudo rm /opt/conduit/CREDENTIALS.txt
 ```
 
-> **Forgot your admin password?** Run the script again → **Services → Password Recovery** (option `p`). This resets any account's password from the server without needing to log in.
+> **⚠️ Security:** The script asks if you want to delete this file right after installation. If you skipped that, delete it now. Your admin password should not sit in a plain text file on the server.
+
+> **Forgot your admin password?** No need to worry — run the script again → **Services → Password Recovery** (option `p`). This securely resets any account's password using Conduit's emergency password feature (a temporary backdoor that self-destructs after use).
 
 ### Set up SSH keys (optional but recommended)
 

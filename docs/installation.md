@@ -155,7 +155,7 @@ Password: ********
 ═══ You're All Set! 🎉 ═══
 ```
 
-**Save your credentials!** They're saved to `/opt/conduit/CREDENTIALS.txt` — copy them somewhere safe, then delete the file. If you ever forget your password, use **Services → Password Recovery** in the script.
+**⚠️ Security:** Your credentials are saved in plain text at `/opt/conduit/CREDENTIALS.txt`. The script will ask if you want to delete this file — **say yes** after you've saved the info above. If you forget your password later, use **Services → Password Recovery** (option `p`) — no credentials file needed, it uses Conduit's emergency password feature to securely reset any account.
 
 ## Step 3: Verify
 

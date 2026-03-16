@@ -112,13 +112,27 @@ sudo bash conduit-deploy.sh
 ```
 
 The script will:
-1. Ask which account to reset
-2. Ask for a new password
-3. Temporarily enable emergency access
-4. Reset the password via the Admin Room
-5. Remove emergency access automatically
+1. Ask which account to reset and the new password
+2. Temporarily enable emergency access (see below)
+3. Reset the password via the Admin Room
+4. Remove emergency access and clean up automatically
 
 > **This is the only task that requires SSH access.** Everything else can be done from the Admin Room in your Matrix client.
+
+### How it works (Emergency Password)
+
+Conduit has a built-in safety feature called **Emergency Password**. When enabled, it creates a temporary "backdoor" login for the server's built-in `@conduit:yourdomain.com` account — which has full admin access.
+
+Here's what the script does step by step:
+
+1. **Generates a random password** and adds `CONDUIT_EMERGENCY_PASSWORD` to the Docker Compose config
+2. **Restarts Conduit** — the server now accepts login for `@conduit:yourdomain.com` with that password
+3. **Logs in as the server account** and sends a `reset-password` command in the Admin Room
+4. **Removes the emergency password** from the config and restarts Conduit again
+
+The emergency password exists for **less than 30 seconds** and is randomly generated each time. After the script finishes, the backdoor is completely gone.
+
+> **Why not just edit the database directly?** Conduit uses RocksDB which doesn't have a simple CLI tool. The Admin Room API is the official and safest way to manage accounts.
 
 ## Security Notes
 

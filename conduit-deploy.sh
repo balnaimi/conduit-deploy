@@ -1369,10 +1369,21 @@ EOF
         echo -e "  ${DIM}Deactivate user:${NC}  ${CYAN}@conduit:${SERVER_NAME} deactivate-user <user_id>${NC}"
         separator
         echo
-        echo -e "  ${YELLOW}⚠  Credentials saved to: ${CREDS_FILE}${NC}"
-        echo -e "  ${YELLOW}   Save them somewhere safe, then delete that file!${NC}"
+        echo -e "  ${RED}${BOLD}⚠  IMPORTANT: Your credentials are saved in plain text at:${NC}"
+        echo -e "  ${YELLOW}   ${CREDS_FILE}${NC}"
+        echo -e "  ${RED}   This file contains your admin password. Anyone with server${NC}"
+        echo -e "  ${RED}   access can read it. Save the info above, then delete the file.${NC}"
         echo
-        echo -e "  ${DIM}Forgot your password? Run this script again → Services → Password Recovery${NC}"
+        echo -e "  ${DIM}Forgot your password later? Run this script → Services → Password Recovery${NC}"
+        echo
+        ask "Delete credentials file now? (make sure you saved the info above!) [y/N]:"
+        read -r del_creds
+        if [[ "$del_creds" =~ ^[Yy]$ ]]; then
+            $SUDO rm -f "$CREDS_FILE"
+            success "Credentials file deleted"
+        else
+            warn "Remember to delete ${CREDS_FILE} after saving your credentials!"
+        fi
         echo
         ADMIN_CREATED=true
     else

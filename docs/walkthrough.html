@@ -237,7 +237,7 @@ Password: <strong>********</strong>
   List users:       @conduit:example.com list-local-users
   Reset password:   @conduit:example.com reset-password &lt;user_id&gt; &lt;pass&gt;</pre>
           <div style="background:var(--bg-warm);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:1rem;">
-            <strong>⚠️ Save your credentials!</strong> They're saved to <code>/opt/conduit/CREDENTIALS.txt</code> — copy them somewhere safe, then delete the file. If you ever forget your password, use <strong>Services → Password Recovery</strong> in the script.
+            <strong>⚠️ Security:</strong> Credentials are saved in plain text at <code>/opt/conduit/CREDENTIALS.txt</code>. The script will ask if you want to delete it — <strong>say yes</strong> after saving the info. If you forget your password later, use <strong>Services → Password Recovery</strong> (no credentials file needed).
           </div>
         </div>
 
@@ -444,7 +444,7 @@ Password: <strong>********</strong>
 
   Forgot your password? Run this script again → Services → Password Recovery</pre>
           <div style="background:var(--bg-cool);padding:1rem 1.25rem;border-radius:var(--radius);margin-top:0.75rem;">
-            <strong>⚠️ Save your credentials!</strong> Copy them from <code>/opt/conduit/CREDENTIALS.txt</code> then delete the file. See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a> for managing users after install.
+            <strong>⚠️ Security:</strong> Credentials are in plain text at <code>/opt/conduit/CREDENTIALS.txt</code>. Delete the file after saving your info! If you forget your password, use <strong>Services → Password Recovery</strong>. See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a> for managing users.
           </div>
         </div>
 

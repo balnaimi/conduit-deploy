@@ -75,7 +75,7 @@
     </ol>
 
     <h3 class="subtitle">Command Reference</h3>
-    <p style="margin-bottom:1.5rem;color:var(--text-dim);">All commands are sent as messages. Replace <code>conduit</code> with your server name and <code>yourdomain.com</code> with your actual domain.</p>
+    <p style="margin-bottom:1.5rem;color:var(--text-dim);">All commands are sent as messages. Replace <code>conduit</code> with your server name and <code>example.com</code> with your actual domain.</p>
 
     <div style="overflow-x:auto;">
       <table class="command-table">
@@ -87,63 +87,63 @@
         </thead>
         <tbody>
           <tr>
-            <td><code>@conduit:yourdomain.com help</code></td>
+            <td><code>@conduit:example.com help</code></td>
             <td>Show all available commands</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com list-local-users</code></td>
+            <td><code>@conduit:example.com list-local-users</code></td>
             <td>List all users on your server</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com create-user &lt;username&gt; &lt;password&gt;</code></td>
+            <td><code>@conduit:example.com create-user &lt;username&gt; &lt;password&gt;</code></td>
             <td>Create a new user account</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com reset-password &lt;user_id&gt;</code></td>
+            <td><code>@conduit:example.com reset-password &lt;user_id&gt;</code></td>
             <td>Reset a user's password</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com deactivate-user &lt;user_id&gt;</code></td>
+            <td><code>@conduit:example.com deactivate-user &lt;user_id&gt;</code></td>
             <td>Deactivate a user account</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com allow-registration true/false</code></td>
+            <td><code>@conduit:example.com allow-registration true/false</code></td>
             <td>Enable or disable self-registration</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com list-rooms</code></td>
+            <td><code>@conduit:example.com list-rooms</code></td>
             <td>List all rooms on your server</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com list-media</code></td>
+            <td><code>@conduit:example.com list-media</code></td>
             <td>Show media storage statistics</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com purge-media &lt;mxc_uri&gt;</code></td>
+            <td><code>@conduit:example.com purge-media &lt;mxc_uri&gt;</code></td>
             <td>Delete specific media file</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com show-config</code></td>
+            <td><code>@conduit:example.com show-config</code></td>
             <td>Display current server configuration</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com memory-usage</code></td>
+            <td><code>@conduit:example.com memory-usage</code></td>
             <td>Show server memory usage</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com clear-database-caches</code></td>
+            <td><code>@conduit:example.com clear-database-caches</code></td>
             <td>Clear database caches</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com clear-service-caches</code></td>
+            <td><code>@conduit:example.com clear-service-caches</code></td>
             <td>Clear service caches</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com disable-room &lt;room_id&gt;</code></td>
+            <td><code>@conduit:example.com disable-room &lt;room_id&gt;</code></td>
             <td>Disable a room</td>
           </tr>
           <tr>
-            <td><code>@conduit:yourdomain.com enable-room &lt;room_id&gt;</code></td>
+            <td><code>@conduit:example.com enable-room &lt;room_id&gt;</code></td>
             <td>Re-enable a disabled room</td>
           </tr>
         </tbody>
@@ -154,32 +154,32 @@
 
     <div class="task-card">
       <h4>➕ Add a New User</h4>
-      <div class="code-block">@conduit:yourdomain.com create-user alice SecurePassword123</div>
-      <p style="margin:0.75rem 0 0;color:var(--text-dim);font-size:0.9rem;">The user can then log in at <a href="https://app.element.io" target="_blank">https://app.element.io</a> with <code>@alice:yourdomain.com</code></p>
+      <div class="code-block">@conduit:example.com create-user alice SecurePassword123</div>
+      <p style="margin:0.75rem 0 0;color:var(--text-dim);font-size:0.9rem;">The user can then log in at <a href="https://app.element.io" target="_blank">https://app.element.io</a> with <code>@alice:example.com</code></p>
     </div>
 
     <div class="task-card">
       <h4>🔑 Reset a User's Password</h4>
-      <div class="code-block">@conduit:yourdomain.com reset-password @alice:yourdomain.com NewPassword456</div>
+      <div class="code-block">@conduit:example.com reset-password @alice:example.com NewPassword456</div>
     </div>
 
     <div class="task-card">
       <h4>✅ Enable Self-Registration</h4>
-      <div class="code-block">@conduit:yourdomain.com allow-registration true</div>
+      <div class="code-block">@conduit:example.com allow-registration true</div>
       <p style="margin:0.75rem 0 0;color:var(--text-dim);font-size:0.9rem;">Share your registration token (found in <code>/opt/conduit/CREDENTIALS.txt</code>) with users. <strong>Remember to close registration when done:</strong></p>
-      <div class="code-block" style="margin-top:0.75rem;">@conduit:yourdomain.com allow-registration false</div>
+      <div class="code-block" style="margin-top:0.75rem;">@conduit:example.com allow-registration false</div>
     </div>
 
     <div class="task-card">
       <h4>🚫 Deactivate a User</h4>
-      <div class="code-block">@conduit:yourdomain.com deactivate-user @spam-bot:yourdomain.com</div>
+      <div class="code-block">@conduit:example.com deactivate-user @spam-bot:example.com</div>
     </div>
 
     <div class="task-card">
       <h4>📊 Check Server Statistics</h4>
-      <div class="code-block">@conduit:yourdomain.com memory-usage
-@conduit:yourdomain.com list-local-users
-@conduit:yourdomain.com list-rooms</div>
+      <div class="code-block">@conduit:example.com memory-usage
+@conduit:example.com list-local-users
+@conduit:example.com list-rooms</div>
     </div>
 
     <h3 class="subtitle" style="margin-top:3rem;">Password Recovery</h3>
@@ -205,7 +205,7 @@
     </p>
     <ol style="margin:0.5rem 0 1rem 1.5rem;color:var(--text-dim);font-size:0.88rem;line-height:2;">
       <li>Generates a <strong>random emergency password</strong> and enables it in the server config</li>
-      <li>Logs in as the server's built-in <code>@conduit:yourdomain.com</code> account</li>
+      <li>Logs in as the server's built-in <code>@conduit:example.com</code> account</li>
       <li>Creates a <strong>temporary account</strong> and invites it to the Admin Room</li>
       <li>Sends <code>reset-password</code> — Conduit generates a <strong>random new password</strong></li>
       <li><strong>Deactivates the temp account</strong>, removes emergency password, restarts server</li>
@@ -246,7 +246,7 @@
         <strong>Commands not working?</strong>
         <ul style="margin:0.75rem 0 0 1.25rem;line-height:1.8;">
           <li>Type the full command exactly as shown</li>
-          <li>Replace <code>yourdomain.com</code> with your actual domain</li>
+          <li>Replace <code>example.com</code> with your actual domain</li>
           <li>User IDs must include <code>@</code> prefix and <code>:domain</code> suffix</li>
           <li>Check that Conduit is running: <code>sudo docker ps</code></li>
         </ul>

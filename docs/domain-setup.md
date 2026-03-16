@@ -5,7 +5,7 @@
 Your domain is your **address** on the Matrix network. When someone wants to message you, they'll use:
 
 ```
-@yourname:yourdomain.com
+@yourname:example.com
 ```
 
 Think of it like an email address — the part after `:` is your domain.

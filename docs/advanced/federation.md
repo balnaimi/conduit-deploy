@@ -43,10 +43,10 @@ cd /opt/conduit && sudo docker compose up -d conduit
 Use the official federation tester:
 
 ```
-https://federationtester.matrix.org/api/report?server_name=yourdomain.com
+https://federationtester.matrix.org/api/report?server_name=example.com
 ```
 
-Replace `yourdomain.com` with your actual domain.
+Replace `example.com` with your actual domain.
 
 ## Trusted servers
 

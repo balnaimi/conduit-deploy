@@ -25,7 +25,7 @@ All 3 services (conduit, caddy, coturn) should show "running".
 
 **Check 2: Is HTTPS working?**
 
-Open this in your browser: `https://matrix.yourdomain.com/_matrix/client/versions`
+Open this in your browser: `https://matrix.example.com/_matrix/client/versions`
 
 You should see a JSON response. If not:
 - DNS might not have propagated yet (wait 10-30 minutes)
@@ -90,12 +90,12 @@ sudo ufw status | grep 8448
 
 **Check 2: Test federation**
 
-Visit: `https://federationtester.matrix.org/api/report?server_name=yourdomain.com`
+Visit: `https://federationtester.matrix.org/api/report?server_name=example.com`
 
 **Check 3: .well-known delegation (Clean Username mode only)**
 ```bash
-curl -s https://yourdomain.com/.well-known/matrix/server
-# Should return: {"m.server": "matrix.yourdomain.com:443"}
+curl -s https://example.com/.well-known/matrix/server
+# Should return: {"m.server": "matrix.example.com:443"}
 ```
 
 > **Note:** If you're using `.well-known` delegation (the default), you do NOT need an SRV record. The `.well-known` method takes priority. SRV is only a fallback for rare cases where you cannot serve `.well-known` files.
@@ -105,13 +105,13 @@ curl -s https://yourdomain.com/.well-known/matrix/server
 Registration is **closed by default** for security. The token is only used if you enable self-registration via the Admin Room:
 
 ```
-@conduit:yourdomain.com allow-registration true
+@conduit:example.com allow-registration true
 ```
 
 For normal account creation, use the Admin Room instead:
 
 ```
-@conduit:yourdomain.com create-user alice SecurePassword123
+@conduit:example.com create-user alice SecurePassword123
 ```
 
 See the [Admin Room guide](admin-room.md) for more details.

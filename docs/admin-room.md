@@ -28,38 +28,38 @@ All commands are sent as messages to the Admin Room. Replace `conduit` with your
 
 | Command | Description |
 |---------|-------------|
-| `@conduit:yourdomain.com help` | Show all available commands |
-| `@conduit:yourdomain.com list-local-users` | List all users on your server |
-| `@conduit:yourdomain.com create-user <username> <password>` | Create a new user account |
-| `@conduit:yourdomain.com reset-password <user_id>` | Reset a user's password (generates a random one) |
-| `@conduit:yourdomain.com deactivate-user <user_id>` | Deactivate a user account |
-| `@conduit:yourdomain.com allow-registration true/false` | Enable or disable registration |
-| `@conduit:yourdomain.com list-rooms` | List all rooms on your server |
-| `@conduit:yourdomain.com list-media` | Show media storage statistics |
-| `@conduit:yourdomain.com purge-media <mxc_uri>` | Delete specific media file |
-| `@conduit:yourdomain.com show-config` | Display current server configuration |
-| `@conduit:yourdomain.com memory-usage` | Show server memory usage |
-| `@conduit:yourdomain.com clear-database-caches` | Clear database caches |
-| `@conduit:yourdomain.com clear-service-caches` | Clear service caches |
-| `@conduit:yourdomain.com disable-room <room_id>` | Disable a room |
-| `@conduit:yourdomain.com enable-room <room_id>` | Re-enable a disabled room |
+| `@conduit:example.com help` | Show all available commands |
+| `@conduit:example.com list-local-users` | List all users on your server |
+| `@conduit:example.com create-user <username> <password>` | Create a new user account |
+| `@conduit:example.com reset-password <user_id>` | Reset a user's password (generates a random one) |
+| `@conduit:example.com deactivate-user <user_id>` | Deactivate a user account |
+| `@conduit:example.com allow-registration true/false` | Enable or disable registration |
+| `@conduit:example.com list-rooms` | List all rooms on your server |
+| `@conduit:example.com list-media` | Show media storage statistics |
+| `@conduit:example.com purge-media <mxc_uri>` | Delete specific media file |
+| `@conduit:example.com show-config` | Display current server configuration |
+| `@conduit:example.com memory-usage` | Show server memory usage |
+| `@conduit:example.com clear-database-caches` | Clear database caches |
+| `@conduit:example.com clear-service-caches` | Clear service caches |
+| `@conduit:example.com disable-room <room_id>` | Disable a room |
+| `@conduit:example.com enable-room <room_id>` | Re-enable a disabled room |
 
 ## Common Tasks
 
 ### Add a New User
 
 ```
-@conduit:yourdomain.com create-user alice SecurePassword123
+@conduit:example.com create-user alice SecurePassword123
 ```
 
 The user can then log in at https://app.element.io with:
-- Username: `@alice:yourdomain.com`
+- Username: `@alice:example.com`
 - Password: `SecurePassword123`
 
 ### Reset a User's Password
 
 ```
-@conduit:yourdomain.com reset-password @alice:yourdomain.com
+@conduit:example.com reset-password @alice:example.com
 ```
 
 Conduit will respond with a randomly generated password. Share it with the user — they can change it from their Matrix client's settings after signing in.
@@ -69,7 +69,7 @@ Conduit will respond with a randomly generated password. Share it with the user 
 If you want to allow people to register themselves using the registration token:
 
 ```
-@conduit:yourdomain.com allow-registration true
+@conduit:example.com allow-registration true
 ```
 
 Then share your registration token (found in `/opt/conduit/CREDENTIALS.txt`) with users.
@@ -77,21 +77,21 @@ Then share your registration token (found in `/opt/conduit/CREDENTIALS.txt`) wit
 **Important:** Remember to close registration when done:
 
 ```
-@conduit:yourdomain.com allow-registration false
+@conduit:example.com allow-registration false
 ```
 
 ### Deactivate a User
 
 ```
-@conduit:yourdomain.com deactivate-user @spam-bot:yourdomain.com
+@conduit:example.com deactivate-user @spam-bot:example.com
 ```
 
 ### Check Server Statistics
 
 ```
-@conduit:yourdomain.com memory-usage
-@conduit:yourdomain.com list-local-users
-@conduit:yourdomain.com list-rooms
+@conduit:example.com memory-usage
+@conduit:example.com list-local-users
+@conduit:example.com list-rooms
 ```
 
 ## Multi-Client Management
@@ -124,12 +124,12 @@ The script will:
 
 ### How it works (Emergency Password)
 
-Conduit has a built-in safety feature called **Emergency Password**. When enabled, it creates a temporary "backdoor" login for the server's built-in `@conduit:yourdomain.com` account — which has full admin access.
+Conduit has a built-in safety feature called **Emergency Password**. When enabled, it creates a temporary "backdoor" login for the server's built-in `@conduit:example.com` account — which has full admin access.
 
 Here's what the script does step by step:
 
 1. **Generates a random emergency password** and adds `CONDUIT_EMERGENCY_PASSWORD` to the Docker Compose config
-2. **Restarts Conduit** — the server now accepts login for `@conduit:yourdomain.com` with that password
+2. **Restarts Conduit** — the server now accepts login for `@conduit:example.com` with that password
 3. **Creates a temporary account** (`_recovery_xxx`) and invites it to the Admin Room
 4. **Sends `reset-password`** from the temp account — Conduit generates a new random password
 5. **Deactivates the temp account**, removes emergency password, and restarts Conduit
@@ -160,8 +160,8 @@ The emergency password exists for **less than a minute** and is randomly generat
 ### Commands Not Working
 
 - Make sure you're typing the full command exactly as shown
-- Replace `yourdomain.com` with your actual server domain
-- User IDs must include the `@` prefix and `:domain` suffix (e.g., `@alice:yourdomain.com`)
+- Replace `example.com` with your actual server domain
+- User IDs must include the `@` prefix and `:domain` suffix (e.g., `@alice:example.com`)
 - Check that the Conduit container is running: `sudo docker ps`
 
 ### Registration Token

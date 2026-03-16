@@ -61,7 +61,7 @@
       <h3>Can't connect from my phone / app</h3>
       <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
         <li>Check all 3 containers are running: <code>cd /opt/conduit && sudo docker compose ps</code></li>
-        <li>Test HTTPS: open <code>https://matrix.yourdomain.com/_matrix/client/versions</code> in a browser</li>
+        <li>Test HTTPS: open <code>https://matrix.example.com/_matrix/client/versions</code> in a browser</li>
         <li>Make sure you entered the right homeserver in your app:
           <ul style="margin:0.25rem 0 0 1.25rem;">
             <li>Delegation mode: enter <code>example.com</code> (not matrix.example.com!)</li>
@@ -105,7 +105,7 @@
       <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
         <li>Check port 8448 is open: <code>sudo ufw status | grep 8448</code></li>
         <li>Test federation: visit <code>https://federationtester.matrix.org</code></li>
-        <li>Verify .well-known delegation (Clean Username mode): <code>curl -s https://yourdomain.com/.well-known/matrix/server</code></li>
+        <li>Verify .well-known delegation (Clean Username mode): <code>curl -s https://example.com/.well-known/matrix/server</code></li>
       </ul>
     </div>
 
@@ -123,7 +123,7 @@
       
       <h3>Registration token doesn't work</h3>
       <p style="color:var(--text-dim);font-size:0.92rem;">Registration is <strong>closed by default</strong> for security. The token is only used if you enable self-registration via the Admin Room:</p>
-      <pre class="code-block">@conduit:yourdomain.com allow-registration true</pre>
+      <pre class="code-block">@conduit:example.com allow-registration true</pre>
       <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.5rem;">For normal account creation, use the Admin Room instead. See the <a href="admin.html" style="color:var(--primary);">Admin Room guide</a>.</p>
       
       <h3>Admin Room not showing up</h3>

@@ -192,7 +192,7 @@ During installation, the script automatically creates your first admin account. 
 To create more accounts, log in to Element and find the **"Conduit Admin Room"**, then type:
 
 ```
-@conduit:yourdomain.com create-user alice SecurePassword123
+@conduit:example.com create-user alice SecurePassword123
 ```
 
 > **See the full guide:** [Admin Room documentation](admin-room.md) for all available commands.

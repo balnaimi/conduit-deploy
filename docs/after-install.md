@@ -40,7 +40,7 @@ After signing in, the app will ask you to **verify your session**. This sets up 
 You manage accounts via the **Admin Room** in Element (the first admin account created during install has access):
 
 1. Find the **"Conduit Admin Room"** in your room list (it appears automatically)
-2. Type: `@conduit:yourdomain.com create-user alice SecurePassword123`
+2. Type: `@conduit:example.com create-user alice SecurePassword123`
 3. Share the username and password with the person
 4. They can log in at https://app.element.io
 

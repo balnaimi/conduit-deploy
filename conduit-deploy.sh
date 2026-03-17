@@ -1419,15 +1419,29 @@ EOF
     $SUDO systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
     success "TLS cert auto-sync active"
 
-    # iptables UDP 443 → 5349
+    # iptables UDP 443 → 5349 (must persist across reboots)
     if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
         $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 || true
-        # Pre-seed debconf to avoid interactive prompts
-        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | $SUDO debconf-set-selections 2>/dev/null || { debug_log "iptables-persistent install failed"; true; }
-        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | $SUDO debconf-set-selections 2>/dev/null || { debug_log "iptables-persistent install failed"; true; }
-        $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1 || { debug_log "iptables-persistent install failed"; true; }
-        $SUDO netfilter-persistent save >/dev/null 2>&1 || true
-        success "UDP 443 → Coturn redirect configured"
+    fi
+    # Ensure iptables rules persist across reboots
+    if ! dpkg -l iptables-persistent 2>/dev/null | grep -q "^ii"; then
+        debug_log "Installing iptables-persistent..."
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | $SUDO debconf-set-selections 2>/dev/null
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | $SUDO debconf-set-selections 2>/dev/null
+        if ! $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent >/dev/null 2>&1; then
+            debug_log "iptables-persistent install failed, retrying after apt update..."
+            $SUDO apt-get update -qq >/dev/null 2>&1
+            $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent >/dev/null 2>&1 || true
+        fi
+    fi
+    if command -v netfilter-persistent &>/dev/null; then
+        $SUDO netfilter-persistent save >/dev/null 2>&1
+        success "UDP 443 → Coturn redirect configured (persistent across reboots)"
+    else
+        error "iptables-persistent could not be installed!"
+        warn "UDP 443 redirect is active NOW but will NOT survive a reboot."
+        echo -e "  ${DIM}Fix manually: apt install -y iptables-persistent \&\& netfilter-persistent save${NC}"
+        echo
     fi
 
     # Save credentials

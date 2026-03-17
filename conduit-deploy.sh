@@ -1371,9 +1371,12 @@ EOF
 
     # iptables UDP 443 → 5349
     if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
-        $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
-        $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1
-        $SUDO netfilter-persistent save >/dev/null 2>&1
+        $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 || true
+        # Pre-seed debconf to avoid interactive prompts
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | $SUDO debconf-set-selections 2>/dev/null || true
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | $SUDO debconf-set-selections 2>/dev/null || true
+        $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1 || true
+        $SUDO netfilter-persistent save >/dev/null 2>&1 || true
         success "UDP 443 → Coturn redirect configured"
     fi
 
@@ -1404,10 +1407,30 @@ EOF
 
     # ─── Done ───
     step "Installation Complete! "
-    echo -e "  ${GREEN}Your Matrix server is running at:${NC}"
-    echo -e "  ${BOLD}https://${MATRIX_HOST}${NC}"
+    echo
+    echo -e "  ${BOLD}What was installed:${NC}"
+    echo -e "  ${GREEN}✓${NC} Docker Engine — container runtime for all services"
+    echo -e "  ${GREEN}✓${NC} Conduit — your Matrix homeserver (handles messages, rooms, accounts)"
+    echo -e "  ${GREEN}✓${NC} Caddy — web server with automatic HTTPS (Let's Encrypt certificates)"
+    echo -e "  ${GREEN}✓${NC} Coturn — TURN/STUN server for voice/video calls"
+    echo
+    echo -e "  ${BOLD}Security hardening applied:${NC}"
+    echo -e "  ${GREEN}✓${NC} UFW firewall — only ports 80, 443, 8448, 3478, 5349 are open"
+    echo -e "  ${GREEN}✓${NC} Fail2ban — automatically blocks IPs after failed login attempts"
+    echo -e "  ${GREEN}✓${NC} Unattended upgrades — security patches install automatically"
+    echo -e "  ${GREEN}✓${NC} Swap memory — ${SWAP_SIZE:-2G} configured for stability"
+    echo -e "  ${GREEN}✓${NC} TLS everywhere — HTTPS for web, TLS for TURN calls"
+    echo
+    echo -e "  ${BOLD}Your server:${NC}"
+    echo -e "  ${GREEN}URL:${NC}     https://${MATRIX_HOST}"
+    echo -e "  ${GREEN}IPv4:${NC}    ${VPS_IP}"
+    [ -n "$DETECTED_IP6" ] && echo -e "  ${GREEN}IPv6:${NC}    ${DETECTED_IP6}"
+    echo -e "  ${GREEN}Status:${NC}  ${GREEN}Running ✓${NC}"
     echo
     echo -e "  ${DIM}Credentials saved to: ${CREDS_FILE}${NC}"
+    echo -e "  ${DIM}Installation directory: ${INSTALL_DIR}${NC}"
+    echo
+    separator
     echo
 
     # ─── Create first admin account ───

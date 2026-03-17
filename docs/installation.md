@@ -138,19 +138,63 @@ All fields accept **numbers only**. If you enter letters or invalid input, the s
 
 ### Then it runs!
 
-The script automatically:
+The script automatically handles everything in this order:
 
-1. ✅ Installs Docker
-2. ✅ Sets up the firewall (only opens needed ports)
-3. ✅ Adds swap memory (for small servers)
-4. ✅ Installs fail2ban (blocks hackers)
-5. ✅ Enables OS security patches (no auto-reboot)
-6. ✅ Creates all configuration files
-7. ✅ Starts the services
-8. ✅ Gets TLS certificates from Let's Encrypt (requires DNS A records to be correct — see [Domain Setup](domain-setup.md))
-9. ✅ Sets up certificate auto-renewal
+#### 1. 📦 Installing Docker
+Installs Docker Engine and Docker Compose — the container runtime that runs all services. If Docker is already installed, this step is skipped.
 
-At the end, you'll see:
+#### 2. 🔒 Configuring Firewall (UFW)
+Opens **only** the ports needed:
+| Port | Purpose |
+|------|---------|
+| 80 | HTTP (redirects to HTTPS, used by Let's Encrypt) |
+| 443 | HTTPS (main traffic — web clients connect here) |
+| 8448 | Matrix federation (server-to-server communication) |
+| 3478 | TURN (voice/video call relay) |
+| 5349 | TURN over TLS |
+
+All other ports are blocked. SSH (port 22) remains open.
+
+#### 3. 🛡️ Server Hardening
+- **Swap memory** — Adds 2GB swap so the server doesn't crash under load (especially important on 1GB VPS)
+- **Fail2ban** — Monitors SSH login attempts and automatically blocks IPs after too many failures
+- **Unattended upgrades** — Security patches are installed automatically (no auto-reboot — you decide when)
+- **Unnecessary services disabled** — e.g. exim4 mail server (not needed)
+
+#### 4. 📝 Creating Configuration Files
+Generates all config files in `/opt/conduit/` based on your choices:
+- `.env` — environment variables (domain, IPs, secrets)
+- `docker-compose.yml` — defines the 3 containers (Conduit, Caddy, Coturn)
+- `Caddyfile` — web server config with automatic HTTPS
+- `turnserver.conf` — TURN/STUN server for calls
+- `conduit.toml` — Conduit settings (upload limits, media cleanup, etc.)
+
+#### 5. 🚀 Starting Services
+- Pulls Docker images for Conduit, Caddy, and Coturn
+- Starts all 3 containers
+- Waits for Let's Encrypt to issue TLS certificates (up to 60 seconds)
+- Syncs TLS certificates to Coturn for secure voice/video calls
+- Sets up automatic certificate renewal
+
+> **⚠️ If this step fails**, the most common cause is DNS not pointing to your server. See [Troubleshooting](troubleshooting.md).
+
+#### 6. ✅ Installation Complete — Summary
+The script shows a full summary of everything that was installed:
+- All services and their status
+- Security hardening applied
+- Your server URL, IP addresses
+- Where credentials are saved
+
+#### 7. 👤 Create Your Admin Account
+The script asks you to create the **first account** — this automatically becomes the server admin. You'll use this account to:
+- Sign in to Element (or any Matrix client)
+- Access the **Admin Room** for server management
+- Create other users, reset passwords, etc.
+
+After the account is created, you'll see:
+- Your full Matrix ID (e.g. `@username:example.com`)
+- Login instructions for Element
+- Quick reference for Admin Room commands
 
 ```
 ═══ Installation Complete! 🎉 ═══

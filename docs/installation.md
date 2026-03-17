@@ -79,7 +79,11 @@ Choose **1** to see a personalized checklist. Enter your domain and the script w
 
 Choose **2** and the script will ask you:
 
-> **Tip:** If you ran **Prepare** first, your domain and mode choices will be pre-filled as defaults — just press Enter to keep them.
+> **Tip:** The script remembers your settings from two sources:
+> - **Prepare step** — if you ran Prepare first, your choices are pre-filled
+> - **Previous installation** — if you've installed before, the old config is loaded as defaults
+>
+> Either way, the script tells you where the defaults came from. Press Enter to keep them, or type a new value to override.
 
 ### Question 1: Username mode
 

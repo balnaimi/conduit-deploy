@@ -911,16 +911,42 @@ menu_install() {
     # ── Decision ──
     if [ "$dns_ok" = false ]; then
         warn "No A record found for $MATRIX_HOST."
-        warn "Make sure you've added the DNS A record before continuing."
-        warn "Without DNS, Let's Encrypt cannot issue a TLS certificate."
+        warn "Let's Encrypt REQUIRES a valid A record to issue a TLS certificate."
         echo
-        echo -e "  ${DIM}To check if DNS is ready, run: ${BOLD}dig $MATRIX_HOST${NC}"
-        echo -e "  ${DIM}If it returns NXDOMAIN, your DNS record is not set up yet.${NC}"
-        echo -e "  ${DIM}DNS propagation takes 5-30 minutes. Use dnschecker.org to verify.${NC}"
+        echo -e "  ${DIM}Fix this before continuing:${NC}"
+        echo -e "  ${DIM}  1. Add an A record for ${BOLD}${MATRIX_HOST}${NC}${DIM} → ${VPS_IP}${NC}"
+        echo -e "  ${DIM}  2. Wait 5-30 minutes for DNS propagation${NC}"
+        echo -e "  ${DIM}  3. Verify with: ${BOLD}dig ${MATRIX_HOST} A +short${NC}"
+        echo -e "  ${DIM}  4. Or check at: ${BOLD}https://dnschecker.org/#A/${MATRIX_HOST}${NC}"
         echo
-        ask "Continue anyway? (Let's Encrypt will retry) [y/N]:"
-        read -r dns_confirm
-        [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
+        echo -e "  ${BOLD}R${NC}) Retry DNS check"
+        echo -e "  ${BOLD}Q${NC}) Quit and fix DNS first ${DIM}(recommended)${NC}"
+        echo
+        ask "Choose [R/Q]:"
+        read -r dns_choice
+        if [[ "$dns_choice" =~ ^[Rr]$ ]]; then
+            # Re-run DNS verification by calling the install function again from this point
+            step "Retrying DNS verification..."
+            RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | grep -E '^[0-9]+\.' | head -1 || true)
+            [ -z "$RESOLVED_IP" ] && RESOLVED_IP=$(host -t A "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1 || true)
+            [ -z "$RESOLVED_IP" ] && RESOLVED_IP=$(getent ahostsv4 "$MATRIX_HOST" 2>/dev/null | awk '{print $1}' | head -1 || true)
+            if [ -z "$RESOLVED_IP" ]; then
+                error "A record still not found. Please fix DNS and run the script again."
+                press_enter
+                return
+            elif [ "$RESOLVED_IP" = "$VPS_IP" ]; then
+                success "$MATRIX_HOST now resolves to $VPS_IP"
+            else
+                warn "$MATRIX_HOST resolves to $RESOLVED_IP (expected $VPS_IP)"
+                ask "Continue anyway? [y/N]:"
+                read -r dns_confirm
+                [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
+            fi
+        else
+            info "Fix your DNS records and run the script again."
+            press_enter
+            return
+        fi
     elif [ "$dns_warn" = true ]; then
         warn "One or more DNS records don't match your VPS IP."
         echo -e "  ${DIM}This could mean:${NC}"
@@ -928,9 +954,31 @@ menu_install() {
         echo -e "  ${DIM}  • There's an old/wrong record pointing elsewhere${NC}"
         echo -e "  ${DIM}  • Cloudflare proxy is enabled (use DNS Only / grey cloud)${NC}"
         echo
-        ask "Continue anyway? [y/N]:"
-        read -r dns_confirm
-        [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
+        echo -e "  ${BOLD}R${NC}) Retry DNS check"
+        echo -e "  ${BOLD}C${NC}) Continue anyway ${DIM}(may cause TLS issues)${NC}"
+        echo -e "  ${BOLD}Q${NC}) Quit and fix DNS first"
+        echo
+        ask "Choose [R/C/Q]:"
+        read -r dns_choice
+        if [[ "$dns_choice" =~ ^[Rr]$ ]]; then
+            step "Retrying DNS verification..."
+            RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | grep -E '^[0-9]+\.' | head -1 || true)
+            [ -z "$RESOLVED_IP" ] && RESOLVED_IP=$(host -t A "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1 || true)
+            if [ -n "$RESOLVED_IP" ] && [ "$RESOLVED_IP" = "$VPS_IP" ]; then
+                success "$MATRIX_HOST now resolves to $VPS_IP"
+            elif [ -n "$RESOLVED_IP" ]; then
+                warn "$MATRIX_HOST resolves to $RESOLVED_IP (expected $VPS_IP) — continuing."
+            else
+                error "A record still not found."
+                press_enter
+                return
+            fi
+        elif [[ "$dns_choice" =~ ^[Qq]$ ]]; then
+            info "Fix your DNS records and run the script again."
+            press_enter
+            return
+        fi
+        # C = continue
     else
         success "DNS looks good! All records match your VPS."
     fi

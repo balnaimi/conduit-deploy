@@ -1599,7 +1599,7 @@ EOF
                     \"type\": \"m.login.registration_token\",
                     \"token\": \"${REGISTRATION_TOKEN}\",
                     \"session\": \"${SESSION}\"
-                },
+                }
             }" 2>/dev/null || true)
         debug_log "Register step 2 response: ${REGISTER_RESPONSE}"
     fi

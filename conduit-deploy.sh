@@ -1107,6 +1107,7 @@ menu_install() {
     $SUDO firewall-cmd --permanent --add-port=5349/udp >/dev/null 2>&1
     $SUDO firewall-cmd --permanent --add-port=49152-65535/udp >/dev/null 2>&1
     $SUDO firewall-cmd --permanent --add-forward-port=port=443:proto=udp:toport=5349 >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-masquerade >/dev/null 2>&1
     $SUDO firewall-cmd --reload >/dev/null 2>&1
     success "Firewall configured"
 
@@ -2370,6 +2371,7 @@ PULLEOF
         $SUDO firewall-cmd --permanent --add-port=5349/udp >/dev/null 2>&1
         $SUDO firewall-cmd --permanent --add-port=49152-65535/udp >/dev/null 2>&1
         $SUDO firewall-cmd --permanent --add-forward-port=port=443:proto=udp:toport=5349 >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-masquerade >/dev/null 2>&1
         $SUDO firewall-cmd --reload >/dev/null 2>&1
         success "Firewall rules verified"
     fi

@@ -60,6 +60,7 @@ Common causes:
 - **DNS not pointing to your server** — The most common issue. Verify with `dig your-subdomain.example.com A +short` — it should return your VPS IP. If not, fix the A record and wait 5-30 minutes
 - **Port 80 blocked** — Let's Encrypt needs port 80 for verification. Check with `sudo firewall-cmd --list-services | grep http`
 - **Cloudflare proxy enabled** — Turn off the orange cloud (proxy) in Cloudflare DNS settings. Use grey cloud (DNS Only)
+- **Docker can't reach the internet** — If Caddy logs show `no route to host` for Let's Encrypt, firewalld masquerading may be missing. Fix: `sudo firewall-cmd --permanent --add-masquerade && sudo firewall-cmd --reload && sudo systemctl restart docker`
 - **Rate limited** — Too many certificate requests. Wait an hour
 - **Wrong domain entered during install** — If you entered the subdomain instead of the root domain, reinstall with the correct value
 

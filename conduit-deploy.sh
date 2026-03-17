@@ -236,7 +236,7 @@ menu_prepare() {
     read -r PREP_MODE
     PREP_MODE=${PREP_MODE:-1}
     if [[ "$PREP_MODE" != "1" && "$PREP_MODE" != "2" ]]; then
-        error "Invalid choice: $PREP_MODE (expected 1 or 2)"
+        error "Please enter 1 or 2 (not your domain name)"
         press_enter
         return
     fi
@@ -477,7 +477,7 @@ menu_install() {
     read -r DOMAIN_MODE
     DOMAIN_MODE=${DOMAIN_MODE:-${SAVED_MODE:-1}}
     if [[ "$DOMAIN_MODE" != "1" && "$DOMAIN_MODE" != "2" ]]; then
-        error "Invalid choice: $DOMAIN_MODE (expected 1 or 2)"
+        error "Please enter 1 or 2 (not your domain name)"
         press_enter
         return
     fi

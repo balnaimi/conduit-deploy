@@ -46,7 +46,10 @@ Common mistakes:
 
 ### "HTTPS certificate error"
 
-Caddy gets certificates automatically from Let's Encrypt. If it fails:
+Caddy gets TLS certificates automatically from **Let's Encrypt**. This requires:
+- **A records** pointing your subdomain (and root domain in Mode 1) to your server's IP
+- **Port 80 open** — Let's Encrypt uses HTTP-01 challenge to verify domain ownership
+- **Cloudflare proxy OFF** — DNS Only (grey cloud), not proxied (orange cloud)
 
 ```bash
 # Check Caddy logs
@@ -54,9 +57,11 @@ cd /opt/conduit && sudo docker compose logs caddy --tail 50
 ```
 
 Common causes:
-- **DNS not ready** — Wait and restart: `sudo docker compose restart caddy`
-- **Port 80 blocked** — Let's Encrypt needs port 80 for verification
+- **DNS not pointing to your server** — The most common issue. Verify with `dig your-subdomain.example.com A +short` — it should return your VPS IP. If not, fix the A record and wait 5-30 minutes
+- **Port 80 blocked** — Let's Encrypt needs port 80 for verification. Check with `sudo ufw status | grep 80`
+- **Cloudflare proxy enabled** — Turn off the orange cloud (proxy) in Cloudflare DNS settings. Use grey cloud (DNS Only)
 - **Rate limited** — Too many certificate requests. Wait an hour
+- **Wrong domain entered during install** — If you entered the subdomain instead of the root domain, reinstall with the correct value
 
 ### "Voice/video calls don't work"
 

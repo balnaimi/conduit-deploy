@@ -117,6 +117,20 @@ Add AAAA records for both `@` and your chosen subdomain if your server has IPv6.
 
 > **Why IPv6?** IPv6 allows clients on modern networks to connect faster. If your VPS provider offers IPv6, enable it — it's future-proof and improves connectivity for users on IPv6-only networks.
 
+### ⚠️ Why DNS records MUST be correct before installing
+
+The script uses **Caddy** as a web server, which automatically gets TLS (HTTPS) certificates from **Let's Encrypt**. For this to work:
+
+1. **Your subdomain** (e.g. `matrix.example.com`) **must resolve to your server's IP** — Let's Encrypt will try to connect to your server via this domain to verify you own it
+2. **Your root domain** (e.g. `example.com`) **must also resolve to your server's IP** (in Mode 1) — Caddy needs to get a certificate for both domains
+3. **Cloudflare proxy must be OFF** (DNS Only / grey cloud) — Let's Encrypt needs to reach your server directly, not Cloudflare's proxy
+
+If DNS is not set up correctly:
+- Let's Encrypt **cannot issue certificates** → your server won't have HTTPS → clients can't connect
+- The script will detect this and ask you to **fix DNS first** or **retry** after you've fixed it
+
+**Tip:** After adding DNS records, verify propagation at [dnschecker.org](https://dnschecker.org) before running the installer. It usually takes 5-30 minutes.
+
 ### The "pointer" (.well-known)
 
 Since your username uses `example.com` but the server is at `matrix.example.com`, you need a small pointer. **The script handles this for you!** During installation, it will ask:

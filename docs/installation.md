@@ -147,7 +147,7 @@ The script automatically:
 5. ✅ Enables OS security patches (no auto-reboot)
 6. ✅ Creates all configuration files
 7. ✅ Starts the services
-8. ✅ Gets TLS certificates (HTTPS)
+8. ✅ Gets TLS certificates from Let's Encrypt (requires DNS A records to be correct — see [Domain Setup](domain-setup.md))
 9. ✅ Sets up certificate auto-renewal
 
 At the end, you'll see:

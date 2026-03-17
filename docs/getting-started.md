@@ -76,7 +76,8 @@ Here's what happens when you run the script:
 
 1. Buy a domain (or use one you already have)
 2. Go to DNS settings → See [Domain Setup](domain-setup.md) for details
-3. Point your domain to your server's IP address
+3. Create A records pointing your subdomain (and root domain for Mode 1) to your server's IP
+4. **Important:** DNS must be working before installation — the script gets HTTPS certificates from Let's Encrypt, which requires valid DNS records. Use the script's **Prepare** option to see exactly which records you need.
 
 ### Step 3: Run the script
 

@@ -620,7 +620,17 @@ menu_install() {
     ask "Max upload size in MB [100]:"
     read -r MAX_UPLOAD_MB
     MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
+    # Strip non-numeric characters (e.g. "1GB" → "1", "500mb" → "500")
+    MAX_UPLOAD_MB=$(echo "$MAX_UPLOAD_MB" | sed 's/[^0-9]//g')
+    MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
+    if [ "$MAX_UPLOAD_MB" -gt 1024 ]; then
+        warn "Max is 1024 MB (1 GB). Setting to 1024."
+        MAX_UPLOAD_MB=1024
+    elif [ "$MAX_UPLOAD_MB" -lt 1 ]; then
+        MAX_UPLOAD_MB=100
+    fi
     MAX_UPLOAD_BYTES=$((MAX_UPLOAD_MB * 1024 * 1024))
+    info "Upload limit: ${MAX_UPLOAD_MB} MB"
 
     echo
     echo -e "  ${DIM}Total disk space allowed for all media files.${NC}"

@@ -251,25 +251,35 @@ menu_prepare() {
         return
     fi
 
+    # Ask for subdomain in both modes
     if [[ "$PREP_MODE" == "2" ]]; then
         ask "Subdomain for the server (e.g. chat, matrix, msg):"
-        read -r PREP_SUB
-        PREP_SUB=${PREP_SUB:-chat}
-        # Warn if subdomain is already part of the domain
-        if [[ "$PREP_DOMAIN" == "${PREP_SUB}."* ]]; then
-            warn "It looks like '${PREP_DOMAIN}' already starts with '${PREP_SUB}'"
-            echo -e "  ${DIM}The domain field should be just the root (e.g. example.com)${NC}"
-            echo -e "  ${DIM}Result would be: ${PREP_SUB}.${PREP_DOMAIN} — is this correct?${NC}"
-            ask "Continue anyway? [y/N]:"
-            read -r confirm_domain
-            if [[ ! "$confirm_domain" =~ ^[Yy]$ ]]; then
-                info "Let's try again"
-                press_enter
-                return
-            fi
-        fi
-        PREP_FULL="${PREP_SUB}.${PREP_DOMAIN}"
+    else
+        echo
+        echo -e "  ${DIM}Your usernames will be @user:${PREP_DOMAIN}${NC}"
+        echo -e "  ${DIM}The server itself needs a subdomain (e.g. matrix, chat, msg).${NC}"
+        echo -e "  ${DIM}You'll need DNS records pointing this subdomain to your VPS.${NC}"
+        echo
+        ask "Server subdomain (e.g. matrix, chat, msg) [matrix]:"
     fi
+    read -r PREP_SUB
+    PREP_SUB=${PREP_SUB:-${PREP_SUB_DEFAULT:-$([ "$PREP_MODE" = "2" ] && echo "chat" || echo "matrix")}}
+    PREP_SUB=$(echo "$PREP_SUB" | sed 's/\.//g' | tr '[:upper:]' '[:lower:]')
+    [ -z "$PREP_SUB" ] && PREP_SUB=$([ "$PREP_MODE" = "2" ] && echo "chat" || echo "matrix")
+    # Warn if subdomain is already part of the domain
+    if [[ "$PREP_DOMAIN" == "${PREP_SUB}."* ]]; then
+        warn "It looks like '${PREP_DOMAIN}' already starts with '${PREP_SUB}'"
+        echo -e "  ${DIM}The domain field should be just the root (e.g. example.com)${NC}"
+        echo -e "  ${DIM}Result would be: ${PREP_SUB}.${PREP_DOMAIN} — is this correct?${NC}"
+        ask "Continue anyway? [y/N]:"
+        read -r confirm_domain
+        if [[ ! "$confirm_domain" =~ ^[Yy]$ ]]; then
+            info "Let's try again"
+            press_enter
+            return
+        fi
+    fi
+    PREP_FULL="${PREP_SUB}.${PREP_DOMAIN}"
 
     # Detect IP
     PREP_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || \
@@ -317,7 +327,7 @@ menu_prepare() {
     else
         # ── Delegation mode (clean usernames) ──
         echo -e "     ${CYAN}1.${NC} ${BOLD}A Record${NC} — Server subdomain"
-        echo -e "        Name:  ${GREEN}matrix${NC}"
+        echo -e "        Name:  ${GREEN}${PREP_SUB}${NC}"
         echo -e "        Value: ${GREEN}${PREP_IP}${NC}"
         echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
         echo
@@ -331,14 +341,14 @@ menu_prepare() {
 
         if [ -n "$PREP_IPV6" ]; then
             echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Records${NC} — IPv6 (detected on this server)"
-            echo -e "        Name: ${GREEN}matrix${NC} → ${GREEN}${PREP_IPV6}${NC}"
+            echo -e "        Name: ${GREEN}${PREP_SUB}${NC} → ${GREEN}${PREP_IPV6}${NC}"
             echo -e "        Name: ${GREEN}@${NC}      → ${GREEN}${PREP_IPV6}${NC}"
             echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
             echo
         else
             echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Records${NC} — IPv6 (optional, 2 records)"
             echo -e "        ${DIM}Enable IPv6 on your VPS first, then add:${NC}"
-            echo -e "        ${DIM}Name: ${NC}matrix${DIM} → your IPv6 address${NC}"
+            echo -e "        ${DIM}Name: ${NC}${PREP_SUB}${DIM} → your IPv6 address${NC}"
             echo -e "        ${DIM}Name: ${NC}@${DIM}      → your IPv6 address${NC}"
             echo
         fi
@@ -527,8 +537,28 @@ menu_install() {
         SERVER_NAME="$MATRIX_HOST"    # username = @user:chat.example.com
         WELLKNOWN_MODE="NONE"
     else
-        MATRIX_HOST="matrix.${DOMAIN}"
+        echo
+        echo -e "  ${DIM}Your usernames will be @user:${DOMAIN}${NC}"
+        echo -e "  ${DIM}The server itself needs a subdomain (e.g. matrix, chat, msg).${NC}"
+        echo -e "  ${DIM}You'll need a DNS A record pointing this subdomain to your VPS.${NC}"
+        echo
+        if [ -n "$SAVED_SUB" ]; then
+            ask "Server subdomain [${GREEN}${SAVED_SUB}${NC}]:"
+        else
+            ask "Server subdomain (e.g. matrix, chat, msg) [matrix]:"
+        fi
+        read -r SUBDOMAIN
+        SUBDOMAIN=${SUBDOMAIN:-${SAVED_SUB:-matrix}}
+        # Strip dots and validate
+        SUBDOMAIN=$(echo "$SUBDOMAIN" | sed 's/\.//g' | tr '[:upper:]' '[:lower:]')
+        if [ -z "$SUBDOMAIN" ]; then
+            SUBDOMAIN="matrix"
+        fi
+        MATRIX_HOST="${SUBDOMAIN}.${DOMAIN}"
         SERVER_NAME="$DOMAIN"          # username = @user:example.com
+        info "Server will run at: ${BOLD}${MATRIX_HOST}${NC}"
+        info "Usernames will be:  ${BOLD}@user:${DOMAIN}${NC}"
+        echo
     fi
 
     DETECTED_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || \

@@ -205,7 +205,7 @@ Choose [A/B]: <strong>A</strong></pre>
 Start installation? [Y/n] <strong>Y</strong></pre>
           <p class="desc" style="margin-top:0.75rem;">Installation takes about 5–10 minutes. The script will:</p>
           <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-            <li>Install dependencies (Docker, UFW, Fail2ban)</li>
+            <li>Install dependencies (Docker, firewalld, Fail2ban)</li>
             <li>Verify ports and DNS</li>
             <li>Generate config files with <code>.well-known</code> delegation</li>
             <li>Pull Docker images and start services</li>
@@ -270,7 +270,7 @@ Connectivity:
   ✅ IPv6 working
 
 Security:
-  ✅ UFW firewall active
+  ✅ firewalld firewall active
   ✅ Fail2ban active
   ✅ SSH password auth disabled</pre>
         </div>
@@ -417,7 +417,7 @@ VPS public IP [203.0.113.10]: <strong>↵ (press Enter to accept)</strong></pre>
 Start installation? [Y/n] <strong>Y</strong></pre>
           <p class="desc" style="margin-top:0.75rem;">The installer will:</p>
           <ol style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-            <li>Install missing dependencies (Docker, UFW, Fail2ban, etc.)</li>
+            <li>Install missing dependencies (Docker, firewalld, Fail2ban, etc.)</li>
             <li>Verify ports 80, 443, and 8448 are available</li>
             <li>Verify DNS resolves to your IP</li>
             <li>Optionally set your timezone</li>
@@ -464,7 +464,7 @@ Connectivity:
   ✅ IPv6 working
 
 Security:
-  ✅ UFW firewall active
+  ✅ firewalld firewall active
   ✅ Fail2ban active
   ✅ SSH password auth disabled
 
@@ -682,7 +682,7 @@ Type 'RESTORE' to confirm: <strong>RESTORE</strong>
 ℹ Starting services...
 ✅ Restore complete! Services are running.
 
-<span class="comment"># Re-creates infrastructure (firewall, TLS sync, iptables)</span>
+<span class="comment"># Re-creates infrastructure (firewall, TLS sync)</span>
 ✅ Firewall rules verified
 ✅ TLS cert auto-sync restored
 ✅ UDP redirect rule restored</pre>

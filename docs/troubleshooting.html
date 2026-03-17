@@ -90,7 +90,7 @@
     <div class="option-card">
       <h3>Voice / video calls don't work</h3>
       <pre class="code-block"><span class="comment"># Check TURN ports are open</span>
-<span class="cmd">sudo</span> ufw status | grep -E "3478|5349"
+<span class="cmd">sudo</span> firewall-cmd --list-ports | grep -E "3478|5349"
 
 <span class="comment"># Check Coturn is running</span>
 <span class="cmd">cd</span> /opt/conduit && <span class="cmd">sudo</span> docker compose logs coturn --tail 20
@@ -103,7 +103,7 @@
     <div class="option-card">
       <h3>Federation doesn't work</h3>
       <ul style="margin-left:1.25rem;color:var(--text-dim);font-size:0.92rem;line-height:2.2;">
-        <li>Check port 8448 is open: <code>sudo ufw status | grep 8448</code></li>
+        <li>Check port 8448 is open: <code>sudo firewall-cmd --list-ports | grep 8448</code></li>
         <li>Test federation: visit <code>https://federationtester.matrix.org</code></li>
         <li>Verify .well-known delegation (Clean Username mode): <code>curl -s https://example.com/.well-known/matrix/server</code></li>
       </ul>

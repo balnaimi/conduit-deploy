@@ -80,7 +80,7 @@
         <tbody>
           <tr><td><strong>80</strong></td><td>TCP</td><td>Caddy</td><td>HTTP → HTTPS redirect</td></tr>
           <tr><td><strong>443</strong></td><td>TCP</td><td>Caddy</td><td>HTTPS (Client-Server API)</td></tr>
-          <tr><td><strong>443</strong></td><td>UDP</td><td>Coturn (redirected)</td><td>UDP redirect to port 5349 via iptables — allows clients to reach TURN on standard port</td></tr>
+          <tr><td><strong>443</strong></td><td>UDP</td><td>Coturn (redirected)</td><td>UDP redirect to port 5349 via firewalld forward-port — allows clients to reach TURN on standard port</td></tr>
           <tr><td><strong>8448</strong></td><td>TCP</td><td>Caddy</td><td>Matrix federation (S2S)</td></tr>
           <tr><td><strong>3478</strong></td><td>UDP</td><td>Coturn</td><td>STUN (NAT discovery)</td></tr>
           <tr><td><strong>5349</strong></td><td>TCP/UDP</td><td>Coturn</td><td>TURNS (encrypted relay)</td></tr>
@@ -140,10 +140,10 @@
         <thead><tr><th>Package</th><th>What it does</th><th>Why it's needed</th></tr></thead>
         <tbody>
           <tr><td><strong>Docker</strong></td><td>Container runtime</td><td>Runs Conduit, Caddy, and Coturn in isolated containers</td></tr>
-          <tr><td><strong>UFW</strong></td><td>Firewall</td><td>Blocks unauthorized access, opens only needed ports</td></tr>
+          <tr><td><strong>firewalld</strong></td><td>Firewall</td><td>Blocks unauthorized access, opens only needed ports</td></tr>
           <tr><td><strong>Fail2ban</strong></td><td>Brute-force protection</td><td>Automatically bans IPs that try too many failed logins</td></tr>
           <tr><td><strong>unattended-upgrades</strong></td><td>OS security patches</td><td>Downloads and installs security fixes automatically. No auto-reboot — you decide when to restart.</td></tr>
-          <tr><td><strong>conduit-iptables.service</strong></td><td>systemd service</td><td>Applies UDP 443→5349 redirect on boot (avoids UFW conflict)</td></tr>
+          <tr><td><strong>firewalld forward-port</strong></td><td>Firewall rule</td><td>firewalld forward-port rule (UDP 443→5349)</td></tr>
         </tbody>
       </table>
     </div>

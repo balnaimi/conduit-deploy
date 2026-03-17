@@ -24,14 +24,17 @@ for arg in "$@"; do
 done
 
 if [ "$DEBUG_MODE" = true ]; then
-    # Log everything: commands + output + errors
-    exec > >(tee -a "$DEBUG_LOG") 2>&1
+    # Log everything to file ONLY — screen stays clean
+    exec 3>> "$DEBUG_LOG"
+    BASH_XTRACEFD=3
     set -x
-    echo "═══ Debug Log Started: $(date) ═══" >> "$DEBUG_LOG"
-    echo "═══ Script: $0 $* ═══" >> "$DEBUG_LOG"
-    echo "═══ OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2) ═══" >> "$DEBUG_LOG"
-    echo "═══ Bash: ${BASH_VERSION} ═══" >> "$DEBUG_LOG"
-    echo "" >> "$DEBUG_LOG"
+    echo "═══ Debug Log Started: $(date) ═══" >&3
+    echo "═══ Script: $0 $* ═══" >&3
+    echo "═══ OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2) ═══" >&3
+    echo "═══ Bash: ${BASH_VERSION} ═══" >&3
+    echo "" >&3
+    # Also capture stdout/stderr to log (while still showing on screen)
+    exec > >(tee -a "$DEBUG_LOG") 2> >(tee -a "$DEBUG_LOG" >&2)
 fi
 
 debug_log() {
@@ -2861,14 +2864,17 @@ toggle_debug() {
     if [ "$DEBUG_MODE" = true ]; then
         DEBUG_MODE=false
         set +x 2>/dev/null
+        exec 3>/dev/null 2>/dev/null || true
         success "Debug mode OFF"
         echo -e "  ${DIM}Log saved at: ${DEBUG_LOG}${NC}"
     else
         DEBUG_MODE=true
         DEBUG_LOG="/tmp/conduit-deploy-$(date +%Y%m%d-%H%M%S).log"
-        exec > >(tee -a "$DEBUG_LOG") 2>&1
+        exec 3>> "$DEBUG_LOG"
+        BASH_XTRACEFD=3
         set -x
-        echo "═══ Debug Log Started: $(date) ═══" >> "$DEBUG_LOG"
+        echo "═══ Debug Log Started: $(date) ═══" >&3
+        exec > >(tee -a "$DEBUG_LOG") 2> >(tee -a "$DEBUG_LOG" >&2)
         success "Debug mode ON"
         echo -e "  ${DIM}Logging to: ${DEBUG_LOG}${NC}"
     fi

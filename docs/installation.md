@@ -113,13 +113,22 @@ The script auto-detects this. Just press Enter to confirm. The script validates 
   B) Root domain has an existing website — I'll give you instructions
 ```
 
-### Question 6: Upload size
+### Question 6: Media settings
 
 ```
 Max upload size in MB [100]:
 ```
 
-How large files can people send? 100MB is fine for most cases.
+The maximum file size a user can upload (images, videos, documents). Enter a **number in MB only** — do not type "GB" or other units. The maximum allowed value is **1024 MB** (which equals 1 GB). Default is 100 MB, which is fine for most cases.
+
+Examples: `100`, `256`, `512`, `1024`
+
+The script will also ask about:
+- **Media storage** — total disk space for all media files (in GB)
+- **Cleanup policy** — how long to keep cached and user files (in days)
+- **Thumbnail storage** — space for auto-generated previews (in GB)
+
+All fields accept **numbers only**. If you enter letters or invalid input, the script will ask again.
 
 ### Then it runs!
 

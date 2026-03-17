@@ -108,7 +108,6 @@ The script automatically installs missing dependencies. Here's exactly what it a
 | **UFW** | Firewall (opens only ports 80, 443, 8448, 3478, 5349) |
 | **Fail2ban** | Blocks brute-force login attempts |
 | **unattended-upgrades** | Automatic OS security patches |
-| **iptables-persistent** | Persists firewall rules across reboots |
 | curl, openssl, dnsutils, iproute2, tar, procps, gawk | System utilities for checks, backups, and config |
 
 > Most utilities are already on a fresh Debian install. The script checks each one and only installs what's missing.

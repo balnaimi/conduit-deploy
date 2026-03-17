@@ -143,7 +143,7 @@
           <tr><td><strong>UFW</strong></td><td>Firewall</td><td>Blocks unauthorized access, opens only needed ports</td></tr>
           <tr><td><strong>Fail2ban</strong></td><td>Brute-force protection</td><td>Automatically bans IPs that try too many failed logins</td></tr>
           <tr><td><strong>unattended-upgrades</strong></td><td>OS security patches</td><td>Downloads and installs security fixes automatically. No auto-reboot — you decide when to restart.</td></tr>
-          <tr><td><strong>iptables-persistent</strong></td><td>Firewall rules persistence</td><td>Saves the UDP 443→5349 redirect rule across reboots</td></tr>
+          <tr><td><strong>conduit-iptables.service</strong></td><td>systemd service</td><td>Applies UDP 443→5349 redirect on boot (avoids UFW conflict)</td></tr>
         </tbody>
       </table>
     </div>

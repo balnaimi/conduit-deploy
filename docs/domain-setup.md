@@ -125,9 +125,11 @@ Since your username uses `example.com` but the server is at `matrix.example.com`
 
 You might see other guides mention an `SRV` record (`_matrix._tcp`). **You don't need one!** Here's why:
 
-- The `.well-known` delegation that the script sets up is the **recommended** method per the Matrix spec
-- `.well-known` takes priority over SRV records — if `.well-known` is working, SRV is ignored
-- SRV records are only useful as a **fallback** if you absolutely cannot serve `.well-known` files on your root domain (e.g., your domain has no web server at all and you can't add one)
+- **SRV records are an old method.** The script uses `.well-known` (the modern, recommended way per the Matrix spec).
+- `.well-known` takes priority over SRV records — if `.well-known` is working, SRV is ignored by clients.
+- SRV records are only needed if you **absolutely cannot serve files on your root domain** — which is very rare. Most people can serve `.well-known` files easily via Caddy, Nginx, or any web server.
+
+**In simple terms:** `.well-known` is like putting up a sign at your front door. SRV is like putting up a sign down the street. If the front door sign exists, nobody looks at the street sign.
 
 **TL;DR:** The script uses `.well-known` → no SRV needed. ✅
 

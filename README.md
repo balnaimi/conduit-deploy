@@ -26,7 +26,7 @@ One interactive script that sets up a complete, secure Matrix server with **end-
 | 🌐 **Federation** | Talk to anyone on the Matrix network |
 | 🔐 **Auto TLS** | Let's Encrypt via Caddy — zero maintenance |
 | 🛡️ **Hardened** | Firewall, fail2ban, OS security patches — all automatic |
-| ⚡ **Lightweight** | ~50MB RAM — runs on a $5/month VPS |
+| ⚡ **Lightweight** | ~50MB RAM — runs on a $6/month VPS |
 
 ## 🚀 Quick Start
 

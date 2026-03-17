@@ -616,7 +616,7 @@ menu_install() {
     fi
 
     echo -e "  ${DIM}Maximum file size a user can upload (images, videos, documents).${NC}"
-    echo -e "  ${DIM}Enter a number in MB. Max: 1024 MB (1 GB). Default: 100 MB.${NC}"
+    echo -e "  ${DIM}Enter a number in MB only (e.g. 100, not 100MB). Max: 1024 MB (1 GB). Default: 100 MB.${NC}"
     while true; do
         ask "Max upload size in MB [100]:"
         read -r MAX_UPLOAD_INPUT
@@ -624,7 +624,7 @@ menu_install() {
         # Strip everything except digits
         MAX_UPLOAD_MB=$(echo "$MAX_UPLOAD_INPUT" | sed 's/[^0-9]//g')
         if [ -z "$MAX_UPLOAD_MB" ]; then
-            warn "Please enter a number in MB (e.g. 100, 256, 512, 1024). Do not include units."
+            warn "Please enter numbers only (e.g. 100, not 100MB)."
             continue
         fi
         if [ "$MAX_UPLOAD_MB" -gt 1024 ]; then
@@ -642,13 +642,14 @@ menu_install() {
     echo
     echo -e "  ${DIM}Total disk space allowed for all media files.${NC}"
     echo -e "  ${DIM}When this limit is reached, oldest files are removed automatically.${NC}"
+    echo -e "  ${DIM}Enter a number in GB only (e.g. 10, 20, 50). Do not include units.${NC}"
     ask "Max media storage in GB [${DEFAULT_MEDIA_GB}]:"
     while true; do
         read -r MEDIA_SPACE_GB
         MEDIA_SPACE_GB=${MEDIA_SPACE_GB:-$DEFAULT_MEDIA_GB}
         MEDIA_SPACE_GB=$(echo "$MEDIA_SPACE_GB" | sed 's/[^0-9]//g')
         if [ -z "$MEDIA_SPACE_GB" ]; then
-            warn "Please enter a number in GB (e.g. 5, 10, 20)."
+            warn "Please enter numbers only (e.g. 10, not 10GB)."
             ask "Max media storage in GB [${DEFAULT_MEDIA_GB}]:"
             continue
         fi

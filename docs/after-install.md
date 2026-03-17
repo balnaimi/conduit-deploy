@@ -111,9 +111,23 @@ Take regular backups from the menu: **Services → Backup (with version pinning)
 
 Each backup exports Docker volume data and saves:
 - All messages, accounts, rooms, and encryption keys (from database volume)
-- Media files — optional, you can exclude to save space (accounts/messages still saved without media)
 - Configuration and TLS certificates
 - **Pinned Docker image versions** (SHA256 digests) — so restoring gives you back the exact same software, not a newer version
+
+### Backup Options: With or Without Media
+
+**With media** (default):
+- Full backup includes all uploaded files (images, videos, documents)
+- Larger file size (~50-80% of your media storage)
+- Complete snapshot of your server
+
+**Without media** (optional):
+- Excludes user uploads and cached federation files
+- Smaller backup (~50% or more reduction in size)
+- Messages, accounts, and encryption keys are still fully saved
+- Media can be re-uploaded by users if needed
+
+The script will prompt you during backup if you want to exclude media.
 
 Backups are stored at `/opt/conduit-backups/` (separate from your installation — survives even uninstall).
 

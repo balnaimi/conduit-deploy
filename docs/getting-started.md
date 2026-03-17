@@ -13,7 +13,7 @@ This project lets you set up your **own private messaging server** — like What
 
 | Thing | Why | Cost |
 |-------|-----|------|
-| A **server** (VPS) | Where your messaging server lives | ~$5/month |
+| A **server** (VPS) | Where your messaging server lives | ~$6/month |
 | A **domain name** | Your address (like `example.com`) | ~$10/year |
 | **30 minutes** | That's how long setup takes | Free 😊 |
 
@@ -26,7 +26,7 @@ This project was tested on [DigitalOcean](https://www.digitalocean.com/) ($6/mo 
 | [DigitalOcean](https://digitalocean.com) | $6/month | **Tested** ✅ |
 | [Hetzner](https://hetzner.com) | ~€4/month | Untested — may work |
 | [Vultr](https://vultr.com) | $6/month | Untested — may work |
-| [Oracle Cloud](https://cloud.oracle.com) | **Free tier!** | Untested — ARM, may need adjustments |
+| [Oracle Cloud](https://cloud.oracle.com) | **Free tier!** | ⚠️ ARM architecture — requires adjustments, not tested |
 
 > I have no affiliation with DigitalOcean — just a long-time user who likes their service.
 

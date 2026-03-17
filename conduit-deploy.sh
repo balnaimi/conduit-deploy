@@ -1423,24 +1423,28 @@ EOF
     if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
         $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 || true
     fi
-    # Ensure iptables rules persist across reboots
-    if ! dpkg -l iptables-persistent 2>/dev/null | grep -q "^ii"; then
-        debug_log "Installing iptables-persistent..."
-        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | $SUDO debconf-set-selections 2>/dev/null
-        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | $SUDO debconf-set-selections 2>/dev/null
-        if ! $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent >/dev/null 2>&1; then
-            debug_log "iptables-persistent install failed, retrying after apt update..."
-            $SUDO apt-get update -qq >/dev/null 2>&1
-            $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent >/dev/null 2>&1 || true
-        fi
-    fi
-    if command -v netfilter-persistent &>/dev/null; then
-        $SUDO netfilter-persistent save >/dev/null 2>&1
-        success "UDP 443 → Coturn redirect configured (persistent across reboots)"
+    # Persist the rule via systemd service (avoids conflict with UFW)
+    $SUDO tee /etc/systemd/system/conduit-iptables.service > /dev/null << 'EOUNIT'
+[Unit]
+Description=Conduit TURN iptables redirect (UDP 443 → 5349)
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/sbin/iptables -t nat -C PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null || /sbin/iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
+ExecStop=/sbin/iptables -t nat -D PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null ; true
+
+[Install]
+WantedBy=multi-user.target
+EOUNIT
+    $SUDO systemctl daemon-reload
+    $SUDO systemctl enable --now conduit-iptables.service >/dev/null 2>&1
+    if $SUDO systemctl is-active conduit-iptables.service >/dev/null 2>&1; then
+        success "UDP 443 → Coturn redirect configured (persistent via systemd)"
     else
-        error "iptables-persistent could not be installed!"
-        warn "UDP 443 redirect is active NOW but will NOT survive a reboot."
-        echo -e "  ${DIM}Fix manually: apt install -y iptables-persistent \&\& netfilter-persistent save${NC}"
+        warn "UDP 443 redirect is active but systemd service failed to enable."
+        echo -e "  ${DIM}Fix manually: systemctl enable --now conduit-iptables.service${NC}"
         echo
     fi
 
@@ -2326,7 +2330,7 @@ EOF
     # Post-restore: ensure iptables UDP redirect
     if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
         $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
-        $SUDO netfilter-persistent save >/dev/null 2>&1 || true
+        $SUDO systemctl restart conduit-iptables.service 2>/dev/null || true
         success "UDP redirect rule restored"
     fi
 
@@ -2835,7 +2839,7 @@ menu_uninstall() {
     # Remove iptables rule
     if $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
         $SUDO iptables -t nat -D PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null || true
-        $SUDO netfilter-persistent save 2>/dev/null || true
+        $SUDO systemctl restart conduit-iptables.service 2>/dev/null || true
         success "iptables UDP redirect removed"
     fi
 

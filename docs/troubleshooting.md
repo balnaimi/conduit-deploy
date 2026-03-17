@@ -71,12 +71,12 @@ sudo iptables -t nat -L PREROUTING -n | grep 5349
 ```
 If nothing shows up, the redirect is missing. Fix:
 ```bash
+sudo systemctl restart conduit-iptables.service
+# Or if the service doesn't exist:
 sudo iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
-sudo apt install -y iptables-persistent
-sudo netfilter-persistent save
 ```
 
-> **Why this matters:** Some networks block port 5349 but allow 443. This redirect lets TURN traffic come in on UDP 443 and reach Coturn on 5349. Without `iptables-persistent`, this rule is **lost on reboot**.
+> **Why this matters:** Some networks block port 5349 but allow 443. This redirect lets TURN traffic come in on UDP 443 and reach Coturn on 5349. The script creates a systemd service (`conduit-iptables.service`) that applies this rule automatically on every boot — no conflict with UFW.
 
 **Check 2: Are TURN ports open?**
 ```bash

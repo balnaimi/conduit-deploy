@@ -19,7 +19,6 @@ The script automatically checks for and installs any missing dependencies:
 | UFW | Firewall — blocks unauthorized access |
 | Fail2ban | Bans IPs after too many failed login attempts |
 | unattended-upgrades | OS security patches (no auto-reboot — you decide when) |
-| iptables-persistent | Saves firewall rules across reboots |
 
 **Utilities (if missing):**
 | Command | Package | Used for |
@@ -176,9 +175,9 @@ Generates all config files in `/opt/conduit/` based on your choices:
 - Syncs TLS certificates to Coturn for secure voice/video calls
 - Sets up automatic certificate renewal
 - Configures UDP 443 → 5349 redirect for TURN (voice/video calls on restricted networks)
-- Installs `iptables-persistent` to ensure the redirect survives reboots
+- Creates a systemd service (`conduit-iptables.service`) to apply the redirect on every boot
 
-> **Note:** If `iptables-persistent` fails to install, the script will show a clear error with manual fix instructions. This is critical — without it, voice/video calls may break after a server reboot.
+> **Note:** The redirect is managed via systemd instead of `iptables-persistent` to avoid conflicts with UFW (the firewall). This means the rule persists across reboots without removing UFW.
 
 > **⚠️ If this step fails**, the most common cause is DNS not pointing to your server. See [Troubleshooting](troubleshooting.md).
 

@@ -336,8 +336,10 @@ menu_prepare() {
             echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
             echo
         else
-            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (optional)"
-            echo -e "        ${DIM}Enable IPv6 on your VPS first, then add this record${NC}"
+            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Records${NC} — IPv6 (optional, 2 records)"
+            echo -e "        ${DIM}Enable IPv6 on your VPS first, then add:${NC}"
+            echo -e "        ${DIM}Name: ${NC}matrix${DIM} → your IPv6 address${NC}"
+            echo -e "        ${DIM}Name: ${NC}@${DIM}      → your IPv6 address${NC}"
             echo
         fi
 

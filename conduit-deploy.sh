@@ -845,18 +845,18 @@ menu_install() {
     local dns_warn=false
 
     # ── Resolve A record (IPv4) ──
-    RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | grep -E '^[0-9]+\.' | head -1)
+    RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | grep -E '^[0-9]+\.' | head -1 || true)
     if [ -z "$RESOLVED_IP" ]; then
-        RESOLVED_IP=$(host -t A "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1)
+        RESOLVED_IP=$(host -t A "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1 || true)
     fi
     if [ -z "$RESOLVED_IP" ]; then
-        RESOLVED_IP=$(getent ahostsv4 "$MATRIX_HOST" 2>/dev/null | awk '{print $1}' | head -1)
+        RESOLVED_IP=$(getent ahostsv4 "$MATRIX_HOST" 2>/dev/null | awk '{print $1}' | head -1 || true)
     fi
 
     # ── Resolve AAAA record (IPv6) ──
-    RESOLVED_IP6=$(dig +short "$MATRIX_HOST" AAAA 2>/dev/null | grep -E '^[0-9a-f:]+$' | head -1)
+    RESOLVED_IP6=$(dig +short "$MATRIX_HOST" AAAA 2>/dev/null | grep -E '^[0-9a-f:]+$' | head -1 || true)
     if [ -z "$RESOLVED_IP6" ]; then
-        RESOLVED_IP6=$(host -t AAAA "$MATRIX_HOST" 2>/dev/null | awk '/IPv6 address/{print $NF}' | head -1)
+        RESOLVED_IP6=$(host -t AAAA "$MATRIX_HOST" 2>/dev/null | awk '/IPv6 address/{print $NF}' | head -1 || true)
     fi
 
     # ── Display results ──

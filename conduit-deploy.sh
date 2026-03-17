@@ -1868,6 +1868,56 @@ menu_healthcheck() {
     RAM_TOTAL=$(free -h | awk '/^Mem:/{print $2}')
     success "  RAM: ${RAM_USED} / ${RAM_TOTAL}"
 
+    # ─── TURN/Voice Calls ───
+    echo
+    echo -e "  ${BOLD}Voice/Video Calls (TURN):${NC}"
+
+    # Check iptables redirect rule
+    if $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
+        success "  UDP 443 → 5349 redirect active"
+    else
+        error "  UDP 443 → 5349 redirect MISSING"
+        all_ok=false
+        issues+=("TURN UDP redirect missing — voice/video calls may fail on some networks")
+    fi
+
+    # Check systemd persistence service
+    if systemctl is-enabled conduit-iptables.service &>/dev/null; then
+        if systemctl is-active conduit-iptables.service &>/dev/null; then
+            success "  conduit-iptables.service active (persistent across reboots)"
+        else
+            warn "  conduit-iptables.service enabled but not active"
+            issues+=("TURN redirect service not active")
+        fi
+    else
+        error "  conduit-iptables.service not found — redirect will be lost on reboot!"
+        all_ok=false
+        issues+=("TURN redirect not persistent — will break after reboot")
+    fi
+
+    # ─── .well-known Delegation ───
+    if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "$MATRIX_HOST" ]; then
+        echo
+        echo -e "  ${BOLD}Delegation (.well-known):${NC}"
+        WK_SERVER=$(curl -s --connect-timeout 5 "https://${DOMAIN}/.well-known/matrix/server" 2>/dev/null || true)
+        WK_CLIENT=$(curl -s --connect-timeout 5 "https://${DOMAIN}/.well-known/matrix/client" 2>/dev/null || true)
+
+        if echo "$WK_SERVER" | grep -q "m.server"; then
+            success "  .well-known/matrix/server responding"
+        else
+            error "  .well-known/matrix/server not found"
+            all_ok=false
+            issues+=(".well-known delegation missing — federation won't work")
+        fi
+
+        if echo "$WK_CLIENT" | grep -q "m.homeserver"; then
+            success "  .well-known/matrix/client responding"
+        else
+            warn "  .well-known/matrix/client not found"
+            issues+=(".well-known client config missing — some clients may not auto-discover")
+        fi
+    fi
+
     # ─── Registration Status ───
     echo
     echo -e "  ${BOLD}Registration:${NC}"

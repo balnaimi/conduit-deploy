@@ -1374,6 +1374,14 @@ EOF
     debug_log "Starting services: INSTALL_DIR=$INSTALL_DIR"
     info "Pulling Docker images (this may take a minute)..."
     _compose_visible pull
+    # Clear any stale ACME cache (from previous failed installs) so Caddy
+    # requests fresh certificates immediately instead of waiting on old retry timers
+    local CADDY_VOL_PATH
+    CADDY_VOL_PATH=$($SUDO docker volume inspect conduit_caddy-data --format '{{.Mountpoint}}' 2>/dev/null || true)
+    if [ -n "$CADDY_VOL_PATH" ] && [ -d "$CADDY_VOL_PATH/caddy" ]; then
+        debug_log "Clearing stale ACME cache from previous installs"
+        $SUDO rm -rf "$CADDY_VOL_PATH/caddy/acme" "$CADDY_VOL_PATH/caddy/certificates" "$CADDY_VOL_PATH/caddy/locks" 2>/dev/null || true
+    fi
     info "Starting containers..."
     if ! _compose_visible up -d; then
         error "Failed to start services. Check: sudo docker compose -f $COMPOSE_FILE logs"

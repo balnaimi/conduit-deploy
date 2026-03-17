@@ -1600,7 +1600,6 @@ EOF
                     \"token\": \"${REGISTRATION_TOKEN}\",
                     \"session\": \"${SESSION}\"
                 },
-                \"inhibit_login\": true
             }" 2>/dev/null || true)
         debug_log "Register step 2 response: ${REGISTER_RESPONSE}"
     fi
@@ -1616,8 +1615,7 @@ EOF
                 \"auth\": {
                     \"type\": \"m.login.dummy\",
                     \"session\": \"${SESSION}\"
-                },
-                \"inhibit_login\": true
+                }
             }" 2>/dev/null || true)
         debug_log "Register dummy response: ${REGISTER_RESPONSE}"
     fi
@@ -1626,6 +1624,26 @@ EOF
 
     if echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null; then
         USER_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"user_id":"[^"]*"' | cut -d'"' -f4 || true)
+        
+        # Logout + delete the registration session immediately (no lingering sessions)
+        local REG_TOKEN_RESP
+        REG_TOKEN_RESP=$(echo "$REGISTER_RESPONSE" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4 || true)
+        local REG_DEVICE_ID
+        REG_DEVICE_ID=$(echo "$REGISTER_RESPONSE" | grep -o '"device_id":"[^"]*"' | cut -d'"' -f4 || true)
+        if [ -n "$REG_TOKEN_RESP" ]; then
+            debug_log "Cleaning up registration session (device: ${REG_DEVICE_ID})..."
+            # Logout this session
+            curl -s --connect-timeout 5 --max-time 10 -X POST "${LOCAL_API}/_matrix/client/v3/logout" \
+                -H "Authorization: Bearer ${REG_TOKEN_RESP}" \
+                -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
+            # Delete the device to remove all traces
+            if [ -n "$REG_DEVICE_ID" ]; then
+                curl -s --connect-timeout 5 --max-time 10 -X DELETE "${LOCAL_API}/_matrix/client/v3/devices/${REG_DEVICE_ID}" \
+                    -H "Authorization: Bearer ${REG_TOKEN_RESP}" \
+                    -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || true
+            fi
+            debug_log "Registration session cleaned up"
+        fi
         
         # Close registration immediately
         $SUDO sed -i 's/ALLOW_REGISTRATION: "true"/ALLOW_REGISTRATION: "false"/' "$COMPOSE_FILE"

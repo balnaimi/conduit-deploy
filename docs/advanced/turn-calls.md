@@ -41,9 +41,11 @@ UDP is faster and uses less bandwidth — perfect for real-time audio/video. TCP
 
 You might notice we don't include `turns:` URIs. This is intentional:
 
-> Element and other clients **prefer TURNS over plain TURN** when both are available, forcing all traffic through TCP even when UDP works fine. This causes unnecessary latency for calls.
+> Element and other clients **prefer TURNS over plain TURN** when both are available, forcing all traffic through TCP even when UDP works fine. This adds **100-200ms latency** to your calls — noticeable delays in real-time conversations.
 
 Since the TURN authentication uses a shared secret (not passwords sent in clear text), the security benefit of TLS for TURN is minimal, while the performance cost is significant.
+
+**In simple terms:** TURNS forces TCP (slower, higher latency) instead of UDP (fast, low latency). For real-time voice/video, UDP is much better.
 
 ## Certificates
 

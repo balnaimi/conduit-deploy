@@ -80,6 +80,7 @@
         <tbody>
           <tr><td><strong>80</strong></td><td>TCP</td><td>Caddy</td><td>HTTP → HTTPS redirect</td></tr>
           <tr><td><strong>443</strong></td><td>TCP</td><td>Caddy</td><td>HTTPS (Client-Server API)</td></tr>
+          <tr><td><strong>443</strong></td><td>UDP</td><td>Coturn (redirected)</td><td>UDP redirect to port 5349 via iptables — allows clients to reach TURN on standard port</td></tr>
           <tr><td><strong>8448</strong></td><td>TCP</td><td>Caddy</td><td>Matrix federation (S2S)</td></tr>
           <tr><td><strong>3478</strong></td><td>UDP</td><td>Coturn</td><td>STUN (NAT discovery)</td></tr>
           <tr><td><strong>5349</strong></td><td>TCP/UDP</td><td>Coturn</td><td>TURNS (encrypted relay)</td></tr>

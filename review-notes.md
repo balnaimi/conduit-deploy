@@ -9,7 +9,7 @@
 
 ## 🔴 مشاكل مهمة (High Priority)
 
-### 1. تناقض في وحدة القياس - السكريبت
+### 1. ✅ تناقض في وحدة القياس - السكريبت
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~550  
 **المشكلة:** السكريبت يقول للمستخدم "Enter a number in MB" بس التعليق في الكود يقول "Max: 1024 MB (1 GB)"، والـ validation يسمح بـ 1024 MB كحد أقصى. المشكلة: الـ default في السكريبت هو 100 MB، بس الـ code hardcoded فيه `104857600` bytes (100 MB) ومو واضح للمستخدم إنه يقدر يغيره.
@@ -20,7 +20,7 @@
 
 ---
 
-### 2. خلط وحدات في معلومات Media Storage
+### 2. ✅ خلط وحدات في معلومات Media Storage
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~560-580  
 **المشكلة:** السكريبت يسأل عن "Max media storage in GB" بس المستخدم ممكن يدخل رقم + حرف (مثل "10GB") والسكريبت بيمسحها ويستخدم الرقم بس - مو واضح للمستخدم إنه ما يحتاج يكتب الوحدة.
@@ -31,7 +31,7 @@
 
 ---
 
-### 3. تناقض بين README وملفات MD
+### 3. ✅ تناقض بين README وملفات MD
 **الملف:** `README.md` vs `docs/getting-started.md`  
 **السطر:** README line ~90, getting-started line ~30  
 **المشكلة:** الـ README يقول "~50MB RAM" بس getting-started يقول "runs on a $5/month VPS" - الأرقام مختلفة شوي (README يقول $6/mo في أماكن ثانية).
@@ -42,7 +42,7 @@
 
 ---
 
-### 4. معلومات قديمة - VPS Providers
+### 4. ✅ معلومات قديمة - VPS Providers
 **الملف:** `docs/getting-started.md`  
 **السطر:** ~20-30  
 **المشكلة:** الجدول يقول Oracle Cloud "Free tier!" بس ما فيه تحذير إنها ARM architecture ومو متوافقة بدون تعديلات (السكريبت tested على x86 Debian 13 فقط).
@@ -53,7 +53,7 @@
 
 ---
 
-### 5. SRV Record Confusion
+### 5. ✅ SRV Record Confusion
 **الملف:** `docs/domain-setup.md`  
 **السطر:** ~85  
 **المشكلة:** الملف يقول "You don't need an SRV record" بس ما يشرح ليش بوضوح - المستخدم العادي ما بيفهم الفرق بين .well-known و SRV.
@@ -63,7 +63,7 @@
 
 ---
 
-### 6. تناقض في Media Backup
+### 6. ✅ تناقض في Media Backup
 **الملف:** `conduit-deploy.sh` + `docs/after-install.md`  
 **السطر:** السكريبت line ~1450, after-install line ~60  
 **المشكلة:** السكريبت يسأل "Include media files in backup?" بس الـ docs ما تذكر هالخيار - المستخدم بيفاجأ لما يشوف الخيار بدون توضيح مسبق.
@@ -76,7 +76,7 @@
 
 ## 🟡 مشاكل متوسطة (Medium Priority)
 
-### 7. روابط داخلية مكسورة
+### 7. ⏭️ روابط داخلية مكسورة (skipped - not found)
 **الملف:** `docs/walkthrough.html`  
 **السطر:** ~100  
 **المشكلة:** فيه رابط لـ `docs/backup-restore.md` بس الملف ما موجود - المعلومات موجودة في `walkthrough.html` بس.
@@ -86,7 +86,7 @@
 
 ---
 
-### 8. مصطلحات مو واضحة
+### 8. ✅ مصطلحات مو واضحة
 **الملف:** `docs/advanced/turn-calls.md`  
 **السطر:** ~40  
 **المشكلة:** الملف يقول "TURNS (TLS) not recommended" بس ما يشرح ليش بشكل مفهوم للمبتدئ - يقول "performance cost" بس ما يوضح كم التأثير.
@@ -96,7 +96,7 @@
 
 ---
 
-### 9. أخطاء إملائية
+### 9. ⏭️ أخطاء إملائية (skipped - not found)
 **الملف:** `docs/installation.md`  
 **السطر:** ~120  
 **المشكلة:** "Debain" بدل "Debian" (typo)
@@ -105,7 +105,7 @@
 
 ---
 
-### 10. تناقض في الـ HTML vs MD - Admin Room
+### 10. ✅ تناقض في الـ HTML vs MD - Admin Room
 **الملف:** `docs/admin-room.md` vs `docs/admin.html`  
 **السطر:** MD line ~80, HTML line ~120  
 **المشكلة:** الـ MD يقول `reset-password` يستقبل `<user_id> <password>` بس الـ HTML يقول إنه يولد رقم سري عشوائي (مو يستقبل واحد من المستخدم).
@@ -116,7 +116,7 @@
 
 ---
 
-### 11. معلومات ناقصة - Firewall Rules
+### 11. ✅ معلومات ناقصة - Firewall Rules
 **الملف:** `docs/architecture.html`  
 **السطر:** ~150  
 **المشكلة:** الملف يذكر UFW ports بس ما يذكر الـ iptables UDP redirect (443 → 5349) اللي السكريبت يسويه.
@@ -126,7 +126,7 @@
 
 ---
 
-### 12. تناقض في Password Recovery
+### 12. ✅ تناقض في Password Recovery
 **الملف:** `docs/admin-room.md` vs السكريبت  
 **السطر:** MD line ~100, السكريبت line ~2200  
 **المشكلة:** الـ MD يقول إن `reset-password` يولد رقم سري عشوائي، بس السكريبت في بعض الأماكن يستخدم `<password>` parameter - مو واضح أي الاثنين صح.
@@ -137,7 +137,7 @@
 
 ---
 
-### 13. ملف setup.sh مو موثق
+### 13. ✅ ملف setup.sh مو موثق
 **الملف:** `setup.sh`  
 **المشكلة:** فيه سكريبت `setup.sh` في الـ root بس مو مذكور في أي documentation - مو واضح وش وظيفته.
 

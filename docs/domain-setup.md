@@ -18,11 +18,13 @@ The script gives you two options. Here's the difference in plain English:
 
 ```
 Your address:  @alice:example.com
-Server lives:  matrix.example.com
+Server lives:  matrix.example.com  (or chat.example.com — you choose the subdomain!)
 ```
 
 **The good:** Your username is short and clean
 **The catch:** You need to set up a small "pointer" on your root domain
+
+> **Note:** The script will ask you to choose a subdomain (default: `matrix`). You can pick any name: `matrix`, `chat`, `msg`, `im`, etc.
 
 **How it works:**
 ```
@@ -30,9 +32,9 @@ Someone tries to reach @alice:example.com
         ↓
 Goes to example.com and asks "where's the Matrix server?"
         ↓
-example.com replies "it's at matrix.example.com"
+example.com replies "it's at matrix.example.com" (or whatever subdomain you chose)
         ↓
-Connects to matrix.example.com ✅
+Connects to the server ✅
 ```
 
 ### Option 2: Subdomain Only (Simple)
@@ -98,20 +100,20 @@ You need **2-3 DNS records** (no SRV record needed!):
 
 > This makes `example.com` serve the `.well-known` delegation files
 
-### Record 2: Point `matrix` to your server
+### Record 2: Point your chosen subdomain to your server
 
 | Field | Value |
 |-------|-------|
 | **Type** | A |
-| **Name** | `matrix` |
+| **Name** | Your chosen subdomain (e.g. `matrix`, `chat`, `msg`) |
 | **Value** | Your server's IP (e.g. `123.45.67.89`) |
 | **Proxy** | OFF / DNS Only |
 
-> This creates `matrix.example.com` → your server (where Conduit runs)
+> This creates `{subdomain}.example.com` → your server (where Conduit runs). The script will ask you to choose a subdomain during setup — default is `matrix`.
 
 ### Record 3: IPv6 (optional but recommended)
 
-Add AAAA records for both `@` and `matrix` if your server has IPv6.
+Add AAAA records for both `@` and your chosen subdomain if your server has IPv6.
 
 > **Why IPv6?** IPv6 allows clients on modern networks to connect faster. If your VPS provider offers IPv6, enable it — it's future-proof and improves connectivity for users on IPv6-only networks.
 

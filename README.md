@@ -65,7 +65,7 @@ Choose how your usernames look:
 
 | Mode | Username | Setup |
 |------|----------|-------|
-| **Clean** (delegation) | `@user:example.com` | 2 DNS records + .well-known (auto) |
+| **Clean** (delegation) | `@user:example.com` | Server at a subdomain you choose (e.g. `matrix`, `chat`) + .well-known (auto) |
 | **Simple** (subdomain) | `@user:chat.example.com` | 1 DNS record, done |
 
 > ⚠️ Your server name is **permanent** — choose carefully!

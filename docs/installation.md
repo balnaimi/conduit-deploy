@@ -96,11 +96,13 @@ Choose **2** and the script will ask you:
 Your domain name: example.com
 ```
 
-### Question 3: Subdomain (Mode 2 only)
+### Question 3: Server subdomain
 
 ```
-Subdomain for the server (e.g. chat, matrix, msg): chat
+Server subdomain (e.g. matrix, chat, msg) [matrix]:
 ```
+
+In **both modes**, you choose the subdomain where the server will run. Default is `matrix`, but you can pick any name (e.g. `chat`, `msg`, `im`). This determines the DNS A record you need to create.
 
 ### Question 4: Server IP
 

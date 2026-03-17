@@ -469,7 +469,7 @@ menu_install() {
     # ─── Domain Mode ───
     echo -e "  ${BOLD}* How do you want your usernames to look?${NC}"
     echo
-    echo -e "  ${CYAN}1${NC}) ${BOLD}Clean username${NC} — @user:${BOLD}example.com${NC} (server at matrix.example.com)"
+    echo -e "  ${CYAN}1${NC}) ${BOLD}Clean username${NC} — @user:${BOLD}example.com${NC} (server at a subdomain you choose)"
     echo -e "  ${CYAN}2${NC}) ${BOLD}Subdomain only${NC} — @user:${BOLD}chat.example.com${NC} (simpler, no delegation)"
     echo
     echo -e "  ${YELLOW}[!]  This is permanent — you cannot change it later!${NC}"

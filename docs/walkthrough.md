@@ -61,7 +61,7 @@ Move everything to a different machine:
 1. ☐ Create backup on old server
 2. ☐ Copy backup file to new server (`/opt/conduit-backups/`)
 3. ☐ Update DNS records to new server's IP
-4. ☐ Verify DNS propagation (`dig matrix.example.com +short`)
+4. ☐ Verify DNS propagation (`dig your-subdomain.example.com +short`)
 5. ☐ Download script on new server
 6. ☐ Restore from backup (Services → Restore)
 7. ☐ Run Health Check — all green?

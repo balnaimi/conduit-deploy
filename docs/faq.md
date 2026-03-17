@@ -139,9 +139,13 @@ sudo docker compose pull
 sudo docker compose up -d
 ```
 
+### Why firewalld? What if I have UFW?
+
+The script uses **firewalld** because it handles both regular port rules and NAT forwarding in one place. If your server already has UFW or iptables-persistent installed, the script **automatically removes them** before installing firewalld to avoid conflicts.
+
 ### How is the UDP 443 → 5349 redirect managed?
 
-The script uses **firewalld** for all firewall rules, including the UDP 443 → 5349 forward-port for TURN. This is a single `--add-forward-port` rule that persists across reboots automatically — no separate systemd service needed.
+The script uses firewalld's `--add-forward-port` rule — a single command that persists across reboots automatically. No separate systemd service or iptables workarounds needed.
 
 You can check the rule with:
 ```bash

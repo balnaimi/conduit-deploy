@@ -1072,6 +1072,27 @@ menu_install() {
     # ─── Firewall ───
     step "Configuring Firewall"
     debug_log "Starting firewall configuration"
+    # Remove UFW if present (conflicts with firewalld)
+    if command -v ufw &>/dev/null; then
+        debug_log "UFW detected — disabling and removing"
+        $SUDO ufw disable >/dev/null 2>&1 || true
+        $SUDO systemctl stop ufw >/dev/null 2>&1 || true
+        $SUDO systemctl disable ufw >/dev/null 2>&1 || true
+        $SUDO apt-get purge -y -qq ufw >/dev/null 2>&1 || true
+    fi
+    # Remove iptables-persistent if present (conflicts with firewalld)
+    if dpkg -l iptables-persistent &>/dev/null 2>&1; then
+        debug_log "iptables-persistent detected — removing"
+        $SUDO apt-get purge -y -qq iptables-persistent netfilter-persistent >/dev/null 2>&1 || true
+    fi
+    # Remove legacy conduit-iptables.service if present (from older installs)
+    if [ -f /etc/systemd/system/conduit-iptables.service ]; then
+        debug_log "Legacy conduit-iptables.service detected — removing"
+        $SUDO systemctl stop conduit-iptables.service >/dev/null 2>&1 || true
+        $SUDO systemctl disable conduit-iptables.service >/dev/null 2>&1 || true
+        $SUDO rm -f /etc/systemd/system/conduit-iptables.service
+        $SUDO systemctl daemon-reload >/dev/null 2>&1
+    fi
     if ! command -v firewall-cmd &>/dev/null; then
         $SUDO apt-get install -y -qq firewalld >/dev/null 2>&1
     fi

@@ -232,7 +232,7 @@ Choose **3** (Health Check) to make sure everything is working:
   ✅ Federation port 8448 working
 
   Security:
-  ✅ UFW firewall active
+  ✅ firewalld active
   ✅ Fail2ban active
   ✅ Auto security patches enabled
   ✅ No reboot pending

@@ -534,17 +534,20 @@ menu_install() {
     DETECTED_IP=$(curl -s -4 --connect-timeout 5 ifconfig.me 2>/dev/null || \
                   curl -s -4 --connect-timeout 5 api.ipify.org 2>/dev/null || \
                   curl -s -4 --connect-timeout 5 icanhazip.com 2>/dev/null || echo "")
+    DETECTED_IP6=$(curl -s -6 --connect-timeout 5 ifconfig.me 2>/dev/null || \
+                   curl -s -6 --connect-timeout 5 api.ipify.org 2>/dev/null || \
+                   curl -s -6 --connect-timeout 5 icanhazip.com 2>/dev/null || echo "")
     if [ -n "$DETECTED_IP" ]; then
-        ask "VPS public IP [${GREEN}${DETECTED_IP}${NC}]:"
+        ask "VPS public IPv4 [${GREEN}${DETECTED_IP}${NC}]:"
         read -r VPS_IP
         VPS_IP=${VPS_IP:-$DETECTED_IP}
     else
-        ask "VPS public IP:"
+        ask "VPS public IPv4:"
         read -r VPS_IP
     fi
     [ -z "$VPS_IP" ] && { error "VPS IP is required"; press_enter; return; }
     if [[ ! "$VPS_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        error "Invalid IP address format: $VPS_IP"
+        error "Invalid IPv4 address format: $VPS_IP"
         press_enter
         return
     fi
@@ -711,7 +714,8 @@ menu_install() {
     echo -e "  Server name: ${GREEN}${SERVER_NAME}${NC}"
     echo -e "  Usernames:   ${GREEN}@user:${SERVER_NAME}${NC}"
     echo -e "  Matrix URL:  ${GREEN}https://${MATRIX_HOST}${NC}"
-    echo -e "  VPS IP:      ${GREEN}${VPS_IP}${NC}"
+    echo -e "  VPS IPv4:    ${GREEN}${VPS_IP}${NC}"
+    [ -n "$DETECTED_IP6" ] && echo -e "  VPS IPv6:    ${GREEN}${DETECTED_IP6}${NC}"
     echo -e "  Max upload:  ${GREEN}${MAX_UPLOAD_MB}MB${NC}"
     echo -e "  Media space: ${GREEN}${MEDIA_SPACE_GB}GB${NC} (thumbnails: ${THUMB_SPACE_GB}GB)"
     echo -e "  Cached files:${GREEN} delete after ${REMOTE_ACCESS_DAYS}d idle / ${REMOTE_CREATED_DAYS}d max${NC}"
@@ -808,36 +812,79 @@ menu_install() {
     # ─── DNS Check ───
     step "Verifying DNS"
     local dns_ok=true
-    RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | head -1)
+    local dns_warn=false
+
+    # ── Resolve A record (IPv4) ──
+    RESOLVED_IP=$(dig +short "$MATRIX_HOST" A 2>/dev/null | grep -E '^[0-9]+\.' | head -1)
     if [ -z "$RESOLVED_IP" ]; then
-        # dig might not be installed, try host command
-        RESOLVED_IP=$(host "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1)
+        RESOLVED_IP=$(host -t A "$MATRIX_HOST" 2>/dev/null | awk '/has address/{print $NF}' | head -1)
     fi
     if [ -z "$RESOLVED_IP" ]; then
-        # Last resort: getent
-        RESOLVED_IP=$(getent hosts "$MATRIX_HOST" 2>/dev/null | awk '{print $1}' | head -1)
+        RESOLVED_IP=$(getent ahostsv4 "$MATRIX_HOST" 2>/dev/null | awk '{print $1}' | head -1)
     fi
 
+    # ── Resolve AAAA record (IPv6) ──
+    RESOLVED_IP6=$(dig +short "$MATRIX_HOST" AAAA 2>/dev/null | grep -E '^[0-9a-f:]+$' | head -1)
+    if [ -z "$RESOLVED_IP6" ]; then
+        RESOLVED_IP6=$(host -t AAAA "$MATRIX_HOST" 2>/dev/null | awk '/IPv6 address/{print $NF}' | head -1)
+    fi
+
+    # ── Display results ──
+    echo
+    echo -e "  ${BOLD}DNS Records for ${MATRIX_HOST}:${NC}"
+    echo
+
+    # IPv4 (A record)
     if [ -z "$RESOLVED_IP" ]; then
-        warn "$MATRIX_HOST does not resolve to any IP address."
+        echo -e "  ${RED}✗${NC} A    (IPv4): ${RED}not found${NC}"
+        dns_ok=false
+    elif [ "$RESOLVED_IP" = "$VPS_IP" ]; then
+        echo -e "  ${GREEN}✓${NC} A    (IPv4): ${GREEN}${RESOLVED_IP}${NC} — matches your VPS IP"
+    else
+        echo -e "  ${YELLOW}!${NC} A    (IPv4): ${YELLOW}${RESOLVED_IP}${NC} — expected ${VPS_IP}"
+        dns_warn=true
+    fi
+
+    # IPv6 (AAAA record)
+    if [ -n "$RESOLVED_IP6" ]; then
+        if [ -n "$DETECTED_IP6" ] && [ "$RESOLVED_IP6" = "$DETECTED_IP6" ]; then
+            echo -e "  ${GREEN}✓${NC} AAAA (IPv6): ${GREEN}${RESOLVED_IP6}${NC} — matches your VPS IP"
+        elif [ -n "$DETECTED_IP6" ]; then
+            echo -e "  ${YELLOW}!${NC} AAAA (IPv6): ${YELLOW}${RESOLVED_IP6}${NC} — expected ${DETECTED_IP6}"
+            dns_warn=true
+        else
+            echo -e "  ${CYAN}i${NC} AAAA (IPv6): ${CYAN}${RESOLVED_IP6}${NC} — found (VPS IPv6 not detected for comparison)"
+        fi
+    else
+        echo -e "  ${DIM}-  AAAA (IPv6): not set (optional)${NC}"
+    fi
+    echo
+
+    # ── Decision ──
+    if [ "$dns_ok" = false ]; then
+        warn "No A record found for $MATRIX_HOST."
         warn "Make sure you've added the DNS A record before continuing."
         warn "Without DNS, Let's Encrypt cannot issue a TLS certificate."
         echo
         echo -e "  ${DIM}To check if DNS is ready, run: ${BOLD}dig $MATRIX_HOST${NC}"
         echo -e "  ${DIM}If it returns NXDOMAIN, your DNS record is not set up yet.${NC}"
+        echo -e "  ${DIM}DNS propagation takes 5-30 minutes. Use dnschecker.org to verify.${NC}"
         echo
         ask "Continue anyway? (Let's Encrypt will retry) [y/N]:"
         read -r dns_confirm
         [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
-    elif [ "$RESOLVED_IP" != "$VPS_IP" ]; then
-        warn "$MATRIX_HOST resolves to $RESOLVED_IP (expected $VPS_IP)"
-        warn "DNS might not have propagated yet, or the A record points elsewhere."
+    elif [ "$dns_warn" = true ]; then
+        warn "One or more DNS records don't match your VPS IP."
+        echo -e "  ${DIM}This could mean:${NC}"
+        echo -e "  ${DIM}  • DNS hasn't fully propagated yet (wait 5-30 minutes)${NC}"
+        echo -e "  ${DIM}  • There's an old/wrong record pointing elsewhere${NC}"
+        echo -e "  ${DIM}  • Cloudflare proxy is enabled (use DNS Only / grey cloud)${NC}"
         echo
         ask "Continue anyway? [y/N]:"
         read -r dns_confirm
         [[ "$dns_confirm" =~ ^[Yy]$ ]] || return
     else
-        success "$MATRIX_HOST resolves to $VPS_IP"
+        success "DNS looks good! All records match your VPS."
     fi
 
     # ─── Timezone ───

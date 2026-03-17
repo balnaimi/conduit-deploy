@@ -149,7 +149,7 @@
 
 ## 🟢 تحسينات (Improvements)
 
-### 14. مو واضح للمبتدئ - DNS Propagation
+### 14. ✅ مو واضح للمبتدئ - DNS Propagation
 **الملف:** `docs/domain-setup.md`  
 **السطر:** ~60  
 **المشكلة:** الملف يقول "wait a few minutes" بس ما يحدد كم - المبتدئ بيستعجل ويقول "ما اشتغل".
@@ -159,7 +159,7 @@
 
 ---
 
-### 15. أمثلة أكثر وضوحاً
+### 15. ✅ أمثلة أكثر وضوحاً
 **الملف:** `docs/faq.md`  
 **السطر:** ~80  
 **المشكلة:** الـ FAQ يقول "How many users?" بس ما فيه أمثلة واقعية - مثلاً كم رسالة في اليوم، كم غرفة، إلخ.
@@ -169,7 +169,7 @@
 
 ---
 
-### 16. تحسين الـ Error Messages
+### 16. ✅ تحسين الـ Error Messages
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~400  
 **المشكلة:** لما DNS validation يفشل، السكريبت يقول "does not resolve" بس ما يعطي خطوات واضحة للمستخدم يسويها.
@@ -179,7 +179,7 @@
 
 ---
 
-### 17. أشياء ناقصة - Backup Location
+### 17. ⏭️ أشياء ناقصة - Backup Location
 **الملف:** `README.md`  
 **السطر:** ~200  
 **المشكلة:** الـ README يقول "Backups are stored separately" بس ما يقول وين بالضبط - المستخدم لازم يدور.
@@ -189,7 +189,7 @@
 
 ---
 
-### 18. تحسين الـ Comparison Table
+### 18. ⏭️ تحسين الـ Comparison Table
 **الملف:** `docs/getting-started.md`  
 **السطر:** ~50  
 **المشكلة:** الجدول يقارن Matrix مع WhatsApp/Telegram بس ما يذكر Discord (شعبي في المجموعات).
@@ -199,7 +199,7 @@
 
 ---
 
-### 19. وضوح أكثر - Subdomain Mode
+### 19. ✅ وضوح أكثر - Subdomain Mode
 **الملف:** `docs/domain-setup.md`  
 **السطر:** ~100  
 **المشكلة:** الملف يقول "Subdomain mode is easier" بس ما يحذر إن الـ username بيكون أطول - المستخدم ممكن يندم بعدين.
@@ -209,7 +209,7 @@
 
 ---
 
-### 20. تحسين الـ Health Check Output
+### 20. ✅ تحسين الـ Health Check Output
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~1100  
 **المشكلة:** لما Health Check يقول "Services need restart", ما يقول كيف المستخدم يسويها.
@@ -219,7 +219,7 @@
 
 ---
 
-### 21. ملف TODO.md مو مربوط بالـ docs
+### 21. ⏭️ ملف TODO.md مو مربوط بالـ docs
 **الملف:** `TODO.md`  
 **المشكلة:** الـ TODO فيه أفكار حلوة بس ما في رابط ليه من الـ docs الرئيسية - المستخدم العادي ما بيعرف عنه.
 
@@ -228,7 +228,7 @@
 
 ---
 
-### 22. تناقض بسيط - Default Values
+### 22. ✅ تناقض بسيط - Default Values
 **الملف:** السكريبت  
 **السطر:** ~570  
 **المشكلة:** السكريبت يحسب defaults بناءً على disk size بس ما يشرح الحسبة للمستخدم - ممكن يتفاجأ لما يشوف 50GB suggested.
@@ -238,7 +238,7 @@
 
 ---
 
-### 23. وضوح أكثر - .well-known Option B
+### 23. ✅ وضوح أكثر - .well-known Option B
 **الملف:** `docs/installation.md` + `conduit-deploy.sh`  
 **السطر:** MD line ~90, السكريبت line ~630  
 **المشكلة:** Option B (existing website) مو fully tested بس السكريبت ما يحذر بشكل واضح - المستخدم ممكن يختاره ويفشل.
@@ -248,7 +248,7 @@
 
 ---
 
-### 24. تحسين الـ Backup Prompt
+### 24. ✅ تحسين الـ Backup Prompt
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~1450  
 **المشكلة:** لما السكريبت يسأل "Include media files?", ما يوضح كم الفرق في الحجم - المستخدم ما يعرف إذا يستحق أو لا.
@@ -258,7 +258,7 @@
 
 ---
 
-### 25. تحذير مهم مفقود - Reinstall
+### 25. ✅ تحذير مهم مفقود - Reinstall
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~400  
 **المشكلة:** لما المستخدم يختار Reinstall, السكريبت يسوي auto-backup بس ما يقول للمستخدم وين راح يحفظها - ممكن يضيع.
@@ -268,7 +268,7 @@
 
 ---
 
-### 26. تحسين الـ Error Handling - Port Conflicts
+### 26. ⏭️ تحسين الـ Error Handling - Port Conflicts
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~700  
 **المشكلة:** لما يلاقي port conflict، السكريبت يقول "Port XX is in use by: unknown" - مو مفيد.
@@ -278,7 +278,7 @@
 
 ---
 
-### 27. تناقض بسيط - IPv6 في الـ docs
+### 27. ✅ تناقض بسيط - IPv6 في الـ docs
 **الملف:** `docs/domain-setup.md`  
 **السطر:** ~70  
 **المشكلة:** الملف يقول "optional but recommended" بس ما يشرح الفايدة - المبتدئ ما بيعرف ليش يحتاجها.
@@ -288,7 +288,7 @@
 
 ---
 
-### 28. وضوح أكثر - Disk Space Check
+### 28. ⏭️ وضوح أكثر - Disk Space Check
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~1300  
 **المشكلة:** السكريبت يقول "Not enough disk space" بس ما يقول كم محتاج بالضبط.
@@ -298,7 +298,7 @@
 
 ---
 
-### 29. معلومات ناقصة - Update Process
+### 29. ✅ معلومات ناقصة - Update Process
 **الملف:** `docs/faq.md`  
 **السطر:** ~150  
 **المشكلة:** الـ FAQ يقول "update containers" بس ما يشرح وش بيحصل للـ data - المستخدم بيخاف يخسر الرسائل.
@@ -308,7 +308,7 @@
 
 ---
 
-### 30. تحسين الـ Success Messages
+### 30. ✅ تحسين الـ Success Messages
 **الملف:** `conduit-deploy.sh`  
 **السطر:** ~900  
 **المشكلة:** لما التثبيت ينتهي، السكريبت يقول "Installation Complete!" بس ما يعطي next step واضح.

@@ -423,6 +423,7 @@ menu_install() {
         [[ "$reply" =~ ^[Yy]$ ]] || return
         # Auto-backup before reinstall
         info "Creating backup before reinstall..."
+        echo -e "  ${DIM}Auto-backup will be saved to: /opt/conduit-backups/${NC}"
         do_backup "pre-reinstall" || true
     fi
 
@@ -558,6 +559,8 @@ menu_install() {
         echo -e "  ${CYAN}A${NC}) Root domain (${DOMAIN}) has ${BOLD}NO existing website${NC} — Caddy handles it"
         echo -e "  ${CYAN}B${NC}) Root domain (${DOMAIN}) has ${BOLD}an existing website${NC} — I'll give you instructions"
         echo
+        warn "⚠️ Option B has not been fully tested. Choose Option A if possible."
+        echo
         ask "Choose [A/B]:"
         read -r WELLKNOWN_MODE
         WELLKNOWN_MODE=${WELLKNOWN_MODE:-A}
@@ -642,6 +645,7 @@ menu_install() {
     echo
     echo -e "  ${DIM}Total disk space allowed for all media files.${NC}"
     echo -e "  ${DIM}When this limit is reached, oldest files are removed automatically.${NC}"
+    echo -e "  ${DIM}Suggested default (${DEFAULT_MEDIA_GB}GB) is based on your available disk space.${NC}"
     echo -e "  ${DIM}Enter a number in GB only (e.g. 10, 20, 50). Do not include units.${NC}"
     ask "Max media storage in GB [${DEFAULT_MEDIA_GB}]:"
     while true; do
@@ -818,6 +822,9 @@ menu_install() {
         warn "$MATRIX_HOST does not resolve to any IP address."
         warn "Make sure you've added the DNS A record before continuing."
         warn "Without DNS, Let's Encrypt cannot issue a TLS certificate."
+        echo
+        echo -e "  ${DIM}To check if DNS is ready, run: ${BOLD}dig $MATRIX_HOST${NC}"
+        echo -e "  ${DIM}If it returns NXDOMAIN, your DNS record is not set up yet.${NC}"
         echo
         ask "Continue anyway? (Let's Encrypt will retry) [y/N]:"
         read -r dns_confirm
@@ -1382,11 +1389,12 @@ EOF
         echo -e "  Role:         ${CYAN}Server Administrator${NC}"
         separator
         echo -e "  ${BOLD}What You Can Do Now${NC}"
-        echo -e "  1. Open ${GREEN}https://app.element.io${NC} (or any Matrix client)"
-        echo -e "  2. Sign in with the credentials above"
+        echo -e "  1. ${CYAN}Run Health Check${NC} (Main Menu → 3) to verify everything is working"
+        echo -e "  2. Open ${GREEN}https://app.element.io${NC} (or any Matrix client)"
+        echo -e "  3. Sign in with the credentials above"
         echo -e "     Homeserver: ${BOLD}${SERVER_NAME}${NC}"
-        echo -e "  3. Find the ${BOLD}${CYAN}Admin Room${NC} in your room list"
-        echo -e "  4. Type ${CYAN}@conduit:${SERVER_NAME} help${NC} for all commands"
+        echo -e "  4. Find the ${BOLD}${CYAN}Admin Room${NC} in your room list"
+        echo -e "  5. Type ${CYAN}@conduit:${SERVER_NAME} help${NC} for all commands"
         separator
         echo -e "  ${BOLD}Admin Room Commands (quick reference)${NC}"
         echo -e "  ${DIM}Create user:${NC}      ${CYAN}@conduit:${SERVER_NAME} create-user <name> <pass>${NC}"
@@ -1554,6 +1562,7 @@ menu_healthcheck() {
                 local svc=$(echo "$line" | awk '{print $2}')
                 echo -e "     ${DIM}• $svc${NC}"
             done
+            echo -e "  ${DIM}To restart services, run: ${BOLD}sudo systemctl restart <service-name>${NC}"
             issues+=("Services need restart")
         fi
     elif [ -d /run/needrestart ] || [ -f /var/run/needrestart ]; then
@@ -1776,7 +1785,7 @@ do_backup() {
             echo
             echo -e "  ${BOLD}Media files:${NC} ${media_size}"
             echo -e "  ${DIM}Media includes user uploads (images, videos, documents) and cached federation files.${NC}"
-            echo -e "  ${DIM}Without media, the backup will be much smaller but messages/accounts are still saved.${NC}"
+            echo -e "  ${DIM}Without media, the backup will be ~50-70% smaller but messages/accounts are still fully saved.${NC}"
             echo
             ask "Include media files in backup? [Y/n]:"
             read -r media_confirm

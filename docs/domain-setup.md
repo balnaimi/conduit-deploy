@@ -45,6 +45,8 @@ Server lives:  chat.example.com
 **The good:** Easiest to set up — just one DNS record
 **The catch:** Your username is a bit longer
 
+> ⚠️ **Note:** Your username will be `@user:chat.example.com` instead of `@user:example.com` — longer but simpler setup. Choose based on whether you prefer shorter usernames (Option 1) or easier DNS configuration (Option 2).
+
 **How it works:**
 ```
 Someone tries to reach @alice:chat.example.com
@@ -111,6 +113,8 @@ You need **2-3 DNS records** (no SRV record needed!):
 
 Add AAAA records for both `@` and `matrix` if your server has IPv6.
 
+> **Why IPv6?** IPv6 allows clients on modern networks to connect faster. If your VPS provider offers IPv6, enable it — it's future-proof and improves connectivity for users on IPv6-only networks.
+
 ### The "pointer" (.well-known)
 
 Since your username uses `example.com` but the server is at `matrix.example.com`, you need a small pointer. **The script handles this for you!** During installation, it will ask:
@@ -160,17 +164,19 @@ That's it! No pointer needed. 🎉
 
 ## How to verify it's working
 
-After adding DNS records, wait a few minutes, then check:
+After adding DNS records, **wait 5-30 minutes** for DNS propagation, then check:
 
 ```bash
 # On Linux/Mac:
 ping matrix.example.com
 
-# Or use an online tool:
+# Or use an online tool to verify globally:
 # https://dnschecker.org
 ```
 
-If it shows your server's IP, you're good to go!
+If it shows your server's IP in multiple locations, you're good to go!
+
+> **Note:** DNS propagation time varies by provider. Some are fast (5 minutes), others take longer (up to an hour). Use dnschecker.org to see if your DNS has propagated worldwide.
 
 ---
 

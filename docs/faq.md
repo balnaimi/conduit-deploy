@@ -72,6 +72,8 @@ Conduit is a Matrix **homeserver** written in Rust. It's lightweight and fast �
 
 Conduit can easily handle **hundreds of users** on a small VPS. For a family or small team (5-50 people), even the cheapest VPS is more than enough.
 
+**Real-world example:** A family of 5 people sending ~100 messages/day, with a few voice calls per week, will use less than 100 MB of RAM. The default 1 GB RAM VPS has plenty of headroom.
+
 ### What ports does it use?
 
 | Port | What it's for |
@@ -127,6 +129,8 @@ The script will:
 2. Pull new images
 3. Restart containers
 4. **Verify all 3 services are running** after the update
+
+> **Is my data safe during updates?** Yes! Updates only replace the software (Docker images). Your data — messages, accounts, encryption keys, and uploaded files — is stored in Docker volumes, which are never touched during updates.
 
 Or manually:
 ```bash

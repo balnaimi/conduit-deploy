@@ -618,11 +618,18 @@ menu_install() {
     echo -e "  ${DIM}Maximum file size a user can upload (images, videos, documents).${NC}"
     echo -e "  ${DIM}Matrix supports up to 1GB. Default: 100MB.${NC}"
     ask "Max upload size in MB [100]:"
-    read -r MAX_UPLOAD_MB
-    MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
-    # Strip non-numeric characters (e.g. "1GB" → "1", "500mb" → "500")
-    MAX_UPLOAD_MB=$(echo "$MAX_UPLOAD_MB" | sed 's/[^0-9]//g')
-    MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
+    read -r MAX_UPLOAD_INPUT
+    MAX_UPLOAD_INPUT=${MAX_UPLOAD_INPUT:-100}
+    # Handle GB input: "1GB", "1gb", "1g", "1 GB" → convert to MB
+    if echo "$MAX_UPLOAD_INPUT" | grep -qi 'g'; then
+        local GB_VAL=$(echo "$MAX_UPLOAD_INPUT" | sed 's/[^0-9.]//g')
+        GB_VAL=${GB_VAL:-1}
+        MAX_UPLOAD_MB=$(printf '%.0f' "$(echo "$GB_VAL * 1024" | bc 2>/dev/null || echo "$((${GB_VAL%.*} * 1024))")")
+        info "Converted: ${GB_VAL} GB → ${MAX_UPLOAD_MB} MB"
+    else
+        MAX_UPLOAD_MB=$(echo "$MAX_UPLOAD_INPUT" | sed 's/[^0-9]//g')
+        MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
+    fi
     if [ "$MAX_UPLOAD_MB" -gt 1024 ]; then
         warn "Max is 1024 MB (1 GB). Setting to 1024."
         MAX_UPLOAD_MB=1024

@@ -2738,6 +2738,13 @@ do_password_recovery() {
         REG_RESP=$(curl -s --connect-timeout 10 --max-time 15 -X POST "http://${CONDUIT_IP}:6167/_matrix/client/v3/register" \
             -H "Content-Type: application/json" \
             -d "{\"username\":\"${TEMP_USER}\",\"password\":\"${EMERGENCY_PASS}\",\"auth\":{\"type\":\"m.login.registration_token\",\"token\":\"${REG_TOKEN}\",\"session\":\"${SESSION}\"}}" 2>/dev/null || true)
+        # Fallback: try m.login.dummy if token auth failed
+        if ! echo "$REG_RESP" | grep -q "access_token" 2>/dev/null; then
+            debug_log "Recovery: token auth failed, trying m.login.dummy..."
+            REG_RESP=$(curl -s --connect-timeout 10 --max-time 15 -X POST "http://${CONDUIT_IP}:6167/_matrix/client/v3/register" \
+                -H "Content-Type: application/json" \
+                -d "{\"username\":\"${TEMP_USER}\",\"password\":\"${EMERGENCY_PASS}\",\"auth\":{\"type\":\"m.login.dummy\",\"session\":\"${SESSION}\"}}" 2>/dev/null || true)
+        fi
     fi
 
     TEMP_TOKEN=$(echo "$REG_RESP" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4 || true)

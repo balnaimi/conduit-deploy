@@ -152,6 +152,20 @@ You can check the rule with:
 sudo firewall-cmd --list-forward-ports
 ```
 
+### How does admin account creation work?
+
+During installation, the script creates your admin account via Conduit's **local API** (direct container connection on port 6167) — it never goes through the public HTTPS endpoint. The process:
+
+1. Registration is temporarily opened
+2. Account is created with `inhibit_login: true` — **no session or access token is generated on the server**
+3. Registration is immediately closed
+
+This means the account is created safely without leaving any active sessions. You log in yourself afterwards using Element or any Matrix client.
+
+### Why does it temporarily open registration?
+
+Conduit requires registration to be enabled for the Matrix `/register` API to work — even for the first admin account. The script opens it for a few seconds, creates the account via the local (non-public) API, and closes it immediately. Public registration is **never exposed** during this process since the request goes directly to the container, not through the web.
+
 ---
 
 ## Problems?

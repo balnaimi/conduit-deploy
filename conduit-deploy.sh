@@ -304,15 +304,8 @@ menu_prepare() {
         echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
         echo
 
-        echo -e "     ${CYAN}2.${NC} ${BOLD}SRV Record${NC} — Federation discovery"
-        echo -e "        Name:     ${GREEN}_matrix._tcp.${PREP_SUB}${NC}"
-        echo -e "        Target:   ${GREEN}${PREP_FULL}${NC}"
-        echo -e "        Port:     ${GREEN}443${NC}"
-        echo -e "        Priority: 0  Weight: 1"
-        echo
-
         if [ -n "$PREP_IPV6" ]; then
-            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (detected on this server)"
+            echo -e "     ${CYAN}2.${NC} ${BOLD}AAAA Record${NC} — IPv6 (detected on this server)"
             echo -e "        Name:  ${GREEN}${PREP_SUB}${NC}"
             echo -e "        Value: ${GREEN}${PREP_IPV6}${NC}"
             echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
@@ -322,24 +315,24 @@ menu_prepare() {
         echo -e "  ${DIM}That's it! No .well-known needed for subdomain mode.${NC}"
 
     else
-        # ── Delegation mode ──
-        echo -e "     ${CYAN}1.${NC} ${BOLD}A Record${NC} — Points to your server"
+        # ── Delegation mode (clean usernames) ──
+        echo -e "     ${CYAN}1.${NC} ${BOLD}A Record${NC} — Server subdomain"
         echo -e "        Name:  ${GREEN}matrix${NC}"
         echo -e "        Value: ${GREEN}${PREP_IP}${NC}"
         echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
         echo
 
-        echo -e "     ${CYAN}2.${NC} ${BOLD}SRV Record${NC} — Federation discovery"
-        echo -e "        Name:     ${GREEN}_matrix._tcp${NC}"
-        echo -e "        Target:   ${GREEN}matrix.${PREP_DOMAIN}${NC}"
-        echo -e "        Port:     ${GREEN}443${NC}"
-        echo -e "        Priority: 0  Weight: 1"
+        echo -e "     ${CYAN}2.${NC} ${BOLD}A Record${NC} — Root domain (for .well-known delegation)"
+        echo -e "        Name:  ${GREEN}@${NC}  ${DIM}(or leave blank — means root domain)${NC}"
+        echo -e "        Value: ${GREEN}${PREP_IP}${NC}"
+        echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
+        echo -e "        ${DIM}Skip if root domain already points to this server${NC}"
         echo
 
         if [ -n "$PREP_IPV6" ]; then
-            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Record${NC} — IPv6 (detected on this server)"
-            echo -e "        Name:  ${GREEN}matrix${NC}"
-            echo -e "        Value: ${GREEN}${PREP_IPV6}${NC}"
+            echo -e "     ${CYAN}3.${NC} ${BOLD}AAAA Records${NC} — IPv6 (detected on this server)"
+            echo -e "        Name: ${GREEN}matrix${NC} → ${GREEN}${PREP_IPV6}${NC}"
+            echo -e "        Name: ${GREEN}@${NC}      → ${GREEN}${PREP_IPV6}${NC}"
             echo -e "        Proxy: ${RED}OFF (DNS Only)${NC}"
             echo
         else

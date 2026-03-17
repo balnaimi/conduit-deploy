@@ -616,26 +616,26 @@ menu_install() {
     fi
 
     echo -e "  ${DIM}Maximum file size a user can upload (images, videos, documents).${NC}"
-    echo -e "  ${DIM}Matrix supports up to 1GB. Default: 100MB.${NC}"
-    ask "Max upload size in MB [100]:"
-    read -r MAX_UPLOAD_INPUT
-    MAX_UPLOAD_INPUT=${MAX_UPLOAD_INPUT:-100}
-    # Handle GB input: "1GB", "1gb", "1g", "1 GB" → convert to MB
-    if echo "$MAX_UPLOAD_INPUT" | grep -qi 'g'; then
-        local GB_VAL=$(echo "$MAX_UPLOAD_INPUT" | sed 's/[^0-9.]//g')
-        GB_VAL=${GB_VAL:-1}
-        MAX_UPLOAD_MB=$(printf '%.0f' "$(echo "$GB_VAL * 1024" | bc 2>/dev/null || echo "$((${GB_VAL%.*} * 1024))")")
-        info "Converted: ${GB_VAL} GB → ${MAX_UPLOAD_MB} MB"
-    else
+    echo -e "  ${DIM}Enter a number in MB. Max: 1024 MB (1 GB). Default: 100 MB.${NC}"
+    while true; do
+        ask "Max upload size in MB [100]:"
+        read -r MAX_UPLOAD_INPUT
+        MAX_UPLOAD_INPUT=${MAX_UPLOAD_INPUT:-100}
+        # Strip everything except digits
         MAX_UPLOAD_MB=$(echo "$MAX_UPLOAD_INPUT" | sed 's/[^0-9]//g')
-        MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-100}
-    fi
-    if [ "$MAX_UPLOAD_MB" -gt 1024 ]; then
-        warn "Max is 1024 MB (1 GB). Setting to 1024."
-        MAX_UPLOAD_MB=1024
-    elif [ "$MAX_UPLOAD_MB" -lt 1 ]; then
-        MAX_UPLOAD_MB=100
-    fi
+        if [ -z "$MAX_UPLOAD_MB" ]; then
+            warn "Please enter a number in MB (e.g. 100, 256, 512, 1024). Do not include units."
+            continue
+        fi
+        if [ "$MAX_UPLOAD_MB" -gt 1024 ]; then
+            warn "Max is 1024 MB (1 GB). Setting to 1024."
+            MAX_UPLOAD_MB=1024
+        elif [ "$MAX_UPLOAD_MB" -lt 1 ]; then
+            warn "Value too small. Setting to default: 100 MB."
+            MAX_UPLOAD_MB=100
+        fi
+        break
+    done
     MAX_UPLOAD_BYTES=$((MAX_UPLOAD_MB * 1024 * 1024))
     info "Upload limit: ${MAX_UPLOAD_MB} MB"
 
@@ -643,8 +643,17 @@ menu_install() {
     echo -e "  ${DIM}Total disk space allowed for all media files.${NC}"
     echo -e "  ${DIM}When this limit is reached, oldest files are removed automatically.${NC}"
     ask "Max media storage in GB [${DEFAULT_MEDIA_GB}]:"
-    read -r MEDIA_SPACE_GB
-    MEDIA_SPACE_GB=${MEDIA_SPACE_GB:-$DEFAULT_MEDIA_GB}
+    while true; do
+        read -r MEDIA_SPACE_GB
+        MEDIA_SPACE_GB=${MEDIA_SPACE_GB:-$DEFAULT_MEDIA_GB}
+        MEDIA_SPACE_GB=$(echo "$MEDIA_SPACE_GB" | sed 's/[^0-9]//g')
+        if [ -z "$MEDIA_SPACE_GB" ]; then
+            warn "Please enter a number in GB (e.g. 5, 10, 20)."
+            ask "Max media storage in GB [${DEFAULT_MEDIA_GB}]:"
+            continue
+        fi
+        break
+    done
 
     if [ "$MEDIA_SPACE_GB" -ge "$AVAIL_DISK_GB" ]; then
         warn "Media limit (${MEDIA_SPACE_GB}GB) is larger than available disk (${AVAIL_DISK_GB}GB)!"
@@ -667,21 +676,25 @@ menu_install() {
     echo -e "  ${DIM}Delete cached files if nobody opened them for X days [30]:${NC}"
     ask "Cached files idle expiry in days [30]:"
     read -r REMOTE_ACCESS_DAYS
+    REMOTE_ACCESS_DAYS=$(echo "${REMOTE_ACCESS_DAYS:-30}" | sed 's/[^0-9]//g')
     REMOTE_ACCESS_DAYS=${REMOTE_ACCESS_DAYS:-30}
 
     echo -e "  ${DIM}Delete cached files older than X days, even if still accessed [90]:${NC}"
     ask "Cached files max age in days [90]:"
     read -r REMOTE_CREATED_DAYS
+    REMOTE_CREATED_DAYS=$(echo "${REMOTE_CREATED_DAYS:-90}" | sed 's/[^0-9]//g')
     REMOTE_CREATED_DAYS=${REMOTE_CREATED_DAYS:-90}
 
     echo -e "  ${DIM}Delete your users' files if nobody opened them for X days [365]:${NC}"
     ask "User files idle expiry in days [365]:"
     read -r LOCAL_ACCESS_DAYS
+    LOCAL_ACCESS_DAYS=$(echo "${LOCAL_ACCESS_DAYS:-365}" | sed 's/[^0-9]//g')
     LOCAL_ACCESS_DAYS=${LOCAL_ACCESS_DAYS:-365}
 
-    echo -e "  ${DIM}Max space for thumbnails (auto-generated previews) [${DEFAULT_THUMB_GB}GB]:${NC}"
+    echo -e "  ${DIM}Max space for thumbnails (auto-generated previews). Enter a number in GB [${DEFAULT_THUMB_GB}]:${NC}"
     ask "Thumbnail storage in GB [${DEFAULT_THUMB_GB}]:"
     read -r THUMB_SPACE_GB
+    THUMB_SPACE_GB=$(echo "${THUMB_SPACE_GB:-$DEFAULT_THUMB_GB}" | sed 's/[^0-9]//g')
     THUMB_SPACE_GB=${THUMB_SPACE_GB:-$DEFAULT_THUMB_GB}
 
     REGISTRATION_TOKEN=$(openssl rand -hex 32)

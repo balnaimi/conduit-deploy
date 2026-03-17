@@ -2645,6 +2645,16 @@ main_menu() {
 }
 
 # ─── Entry point ───
+# ─── Pipe detection: curl|bash can't read user input ───
+if [ ! -t 0 ]; then
+    echo -e "\n${RED}[X]${NC} ${BOLD}Interactive mode requires a terminal.${NC}"
+    echo -e "    This script needs keyboard input and can't run via ${DIM}curl | bash${NC}.\n"
+    echo -e "    ${BOLD}Run it like this instead:${NC}"
+    echo -e "    ${GREEN}curl -fsSL https://raw.githubusercontent.com/balnaimi/conduit-deploy/main/conduit-deploy.sh -o conduit-deploy.sh${NC}"
+    echo -e "    ${GREEN}sudo bash conduit-deploy.sh${NC}\n"
+    exit 1
+fi
+
 if [ "$EUID" -ne 0 ]; then
     # Not root — check if sudo is available
     if ! command -v sudo &>/dev/null; then

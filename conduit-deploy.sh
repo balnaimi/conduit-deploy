@@ -1543,28 +1543,53 @@ EOF
 
     # Create account via Matrix API
     info "Creating account @${NEW_USER}:${SERVER_NAME}..."
+
+    # Get Conduit container IP for direct local API access (bypasses TLS/Caddy)
+    local CONDUIT_IP
+    CONDUIT_IP=$($SUDO docker inspect conduit --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
+    if [ -z "$CONDUIT_IP" ]; then
+        error "Could not find Conduit container IP"
+        ADMIN_CREATED=false
+        press_enter
+        return
+    fi
+    local LOCAL_API="http://${CONDUIT_IP}:6167"
+    debug_log "Using local API: ${LOCAL_API}"
+
+    # Temporarily open registration
     echo -e "  ${DIM}Temporarily opening registration...${NC}"
-    
-    # Open registration
     $SUDO sed -i 's/ALLOW_REGISTRATION: "false"/ALLOW_REGISTRATION: "true"/' "$COMPOSE_FILE"
     cd "$INSTALL_DIR" && _compose_quiet up -d conduit
-    sleep 5
+
+    # Wait for Conduit to be ready (up to 30s)
+    local wait_count=0
+    while [ $wait_count -lt 30 ]; do
+        if curl -sf "${LOCAL_API}/_matrix/client/versions" >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+        wait_count=$((wait_count + 1))
+    done
+    if [ $wait_count -ge 30 ]; then
+        warn "Conduit took too long to start, attempting registration anyway..."
+    fi
 
     set +o pipefail 2>/dev/null
 
-    # Step 1: Get UIAA session
-    REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+    # Step 1: Get UIAA session (via local API — no TLS needed)
+    REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "${LOCAL_API}/_matrix/client/v3/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"username\": \"${NEW_USER_ESCAPED}\",
             \"password\": \"${NEW_PASS_ESCAPED}\"
         }" 2>/dev/null || true)
 
+    debug_log "Register step 1 response: ${REGISTER_RESPONSE}"
     SESSION=$(echo "$REGISTER_RESPONSE" | grep -o '"session":"[^"]*"' | cut -d'"' -f4 || true)
-    
+
     if [ -n "$SESSION" ]; then
         # Step 2: Complete registration with token
-        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "https://${MATRIX_HOST}/_matrix/client/v3/register" \
+        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "${LOCAL_API}/_matrix/client/v3/register" \
             -H "Content-Type: application/json" \
             -d "{
                 \"username\": \"${NEW_USER_ESCAPED}\",
@@ -1576,6 +1601,24 @@ EOF
                 },
                 \"inhibit_login\": true
             }" 2>/dev/null || true)
+        debug_log "Register step 2 response: ${REGISTER_RESPONSE}"
+    fi
+
+    # If token auth failed, try dummy auth (Conduit may accept it locally)
+    if ! echo "$REGISTER_RESPONSE" | grep -q "user_id" 2>/dev/null && [ -n "$SESSION" ]; then
+        debug_log "Token auth failed, trying m.login.dummy..."
+        REGISTER_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "${LOCAL_API}/_matrix/client/v3/register" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"username\": \"${NEW_USER_ESCAPED}\",
+                \"password\": \"${NEW_PASS_ESCAPED}\",
+                \"auth\": {
+                    \"type\": \"m.login.dummy\",
+                    \"session\": \"${SESSION}\"
+                },
+                \"inhibit_login\": true
+            }" 2>/dev/null || true)
+        debug_log "Register dummy response: ${REGISTER_RESPONSE}"
     fi
 
     set -o pipefail 2>/dev/null

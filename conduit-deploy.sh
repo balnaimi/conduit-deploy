@@ -23,24 +23,36 @@ for arg in "$@"; do
     esac
 done
 
-if [ "$DEBUG_MODE" = true ]; then
-    # Log everything to file ONLY — screen stays clean
-    exec 3>> "$DEBUG_LOG"
-    BASH_XTRACEFD=3
-    set -x
-    echo "═══ Debug Log Started: $(date) ═══" >&3
-    echo "═══ Script: $0 $* ═══" >&3
-    echo "═══ OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2) ═══" >&3
-    echo "═══ Bash: ${BASH_VERSION} ═══" >&3
-    echo "" >&3
-    # Also capture stdout/stderr to log (while still showing on screen)
+start_debug() {
+    {
+        echo "═══ Debug Log Started: $(date) ═══"
+        echo "═══ Script: $0 $* ═══"
+        echo "═══ OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2) ═══"
+        echo "═══ Bash: ${BASH_VERSION} ═══"
+        echo "═══ User: $(whoami) | PID: $$ ═══"
+        echo ""
+    } >> "$DEBUG_LOG"
+    # Capture screen output to log (screen stays clean)
     exec > >(tee -a "$DEBUG_LOG") 2> >(tee -a "$DEBUG_LOG" >&2)
+}
+
+if [ "$DEBUG_MODE" = true ]; then
+    start_debug
 fi
 
 debug_log() {
     # Silent log — doesn't print to screen, only to log file
     if [ "$DEBUG_MODE" = true ]; then
-        echo "[$(date '+%H:%M:%S')] $*" >> "$DEBUG_LOG"
+        echo "[$(date '+%H:%M:%S')] $*" >> "$DEBUG_LOG" 2>/dev/null || true
+    fi
+}
+
+# Capture command output to debug log (runs command, logs result)
+debug_cmd() {
+    if [ "$DEBUG_MODE" = true ]; then
+        echo "[$(date '+%H:%M:%S')] CMD: $*" >> "$DEBUG_LOG" 2>/dev/null || true
+        eval "$@" >> "$DEBUG_LOG" 2>&1 || true
+        echo "" >> "$DEBUG_LOG"
     fi
 }
 
@@ -2863,18 +2875,12 @@ menu_uninstall() {
 toggle_debug() {
     if [ "$DEBUG_MODE" = true ]; then
         DEBUG_MODE=false
-        set +x 2>/dev/null
-        exec 3>/dev/null 2>/dev/null || true
         success "Debug mode OFF"
         echo -e "  ${DIM}Log saved at: ${DEBUG_LOG}${NC}"
     else
         DEBUG_MODE=true
         DEBUG_LOG="/tmp/conduit-deploy-$(date +%Y%m%d-%H%M%S).log"
-        exec 3>> "$DEBUG_LOG"
-        BASH_XTRACEFD=3
-        set -x
-        echo "═══ Debug Log Started: $(date) ═══" >&3
-        exec > >(tee -a "$DEBUG_LOG") 2> >(tee -a "$DEBUG_LOG" >&2)
+        start_debug
         success "Debug mode ON"
         echo -e "  ${DIM}Logging to: ${DEBUG_LOG}${NC}"
     fi

@@ -474,11 +474,29 @@ menu_install() {
     echo
     echo -e "  ${YELLOW}[!]  This is permanent — you cannot change it later!${NC}"
     echo
-    # Load defaults from Prepare step (if run previously)
-    local SAVED_MODE="" SAVED_DOMAIN="" SAVED_SUB=""
+    # Load defaults from Prepare step or previous installation
+    local SAVED_MODE="" SAVED_DOMAIN="" SAVED_SUB="" DEFAULTS_SOURCE=""
     [ -f /tmp/conduit-prepare/mode ] && SAVED_MODE=$(cat /tmp/conduit-prepare/mode)
     [ -f /tmp/conduit-prepare/domain ] && SAVED_DOMAIN=$(cat /tmp/conduit-prepare/domain)
     [ -f /tmp/conduit-prepare/subdomain ] && SAVED_SUB=$(cat /tmp/conduit-prepare/subdomain)
+
+    # Fall back to existing installation config
+    if [ -z "$SAVED_DOMAIN" ] && [ -n "$DOMAIN" ]; then
+        SAVED_DOMAIN="$DOMAIN"
+        DEFAULTS_SOURCE="previous install"
+    elif [ -n "$SAVED_DOMAIN" ]; then
+        DEFAULTS_SOURCE="Prepare step"
+    fi
+    if [ -z "$SAVED_SUB" ] && [ -n "$MATRIX_HOST" ] && [ -n "$DOMAIN" ]; then
+        # Extract subdomain from MATRIX_HOST (e.g. matrix.example.com → matrix)
+        SAVED_SUB="${MATRIX_HOST%.${DOMAIN}}"
+        [ "$SAVED_SUB" = "$MATRIX_HOST" ] && SAVED_SUB=""
+    fi
+
+    if [ -n "$DEFAULTS_SOURCE" ]; then
+        info "Defaults loaded from ${DEFAULTS_SOURCE}. Press Enter to keep, or type a new value."
+    fi
+    echo
 
     if [ -n "$SAVED_MODE" ]; then
         ask "Choose [1/2] (from Prepare: ${SAVED_MODE}):"
@@ -500,8 +518,8 @@ menu_install() {
     else
         ask "Your domain name:"
     fi
-    read -r DOMAIN
-    DOMAIN=${DOMAIN:-$SAVED_DOMAIN}
+    read -r DOMAIN_INPUT
+    DOMAIN=${DOMAIN_INPUT:-$SAVED_DOMAIN}
     [ -z "$DOMAIN" ] && { error "Domain is required"; press_enter; return; }
     # Basic domain validation
     if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$ ]]; then

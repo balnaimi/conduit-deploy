@@ -175,9 +175,7 @@ Generates all config files in `/opt/conduit/` based on your choices:
 - Syncs TLS certificates to Coturn for secure voice/video calls
 - Sets up automatic certificate renewal
 - Configures UDP 443 → 5349 redirect for TURN (voice/video calls on restricted networks)
-- Creates a systemd service (`conduit-iptables.service`) to apply the redirect on every boot
-
-> **Note:** The redirect is managed via systemd instead of `iptables-persistent` to avoid conflicts with UFW (the firewall). This means the rule persists across reboots without removing UFW.
+- The UDP redirect is managed by firewalld (`--add-forward-port`) and persists across reboots automatically
 
 > **⚠️ If this step fails**, the most common cause is DNS not pointing to your server. See [Troubleshooting](troubleshooting.md).
 

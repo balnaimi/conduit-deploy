@@ -157,9 +157,8 @@ Restore is a **complete recovery** — it handles everything, even after a full 
 
 - ✅ Extracts config files and imports database + certificates into Docker volumes
 - ✅ Pulls pinned Docker images (exact versions from backup time)
-- ✅ Re-creates firewall rules (UFW ports for HTTP, HTTPS, Federation, TURN)
+- ✅ Re-creates firewall rules (firewalld: HTTP, HTTPS, Federation, TURN, UDP forward-port)
 - ✅ Re-creates TLS cert auto-sync (systemd watcher)
-- ✅ Re-adds iptables UDP redirect for TURN-over-TLS
 
 > 📖 Full walkthrough with screenshots: [Backup & Restore Guide](https://balnaimi.github.io/conduit-deploy/walkthrough.html#backup)
 

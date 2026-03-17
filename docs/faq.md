@@ -139,13 +139,13 @@ sudo docker compose pull
 sudo docker compose up -d
 ```
 
-### Why doesn't the script use iptables-persistent?
+### How is the UDP 443 → 5349 redirect managed?
 
-On Debian 13, installing `iptables-persistent` **removes UFW** (the firewall). Since the script relies on UFW to secure your server, we use a small systemd service (`conduit-iptables.service`) instead. It does the same job — applies the UDP 443 → 5349 redirect rule on every boot — without touching UFW.
+The script uses **firewalld** for all firewall rules, including the UDP 443 → 5349 forward-port for TURN. This is a single `--add-forward-port` rule that persists across reboots automatically — no separate systemd service needed.
 
-You can check its status with:
+You can check the rule with:
 ```bash
-sudo systemctl status conduit-iptables.service
+sudo firewall-cmd --list-forward-ports
 ```
 
 ---

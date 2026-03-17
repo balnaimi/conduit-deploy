@@ -62,7 +62,7 @@ You don't need to do anything — it's fully automated.
 
 ### Calls don't connect at all
 - Check if Coturn is running: `sudo docker compose ps coturn`
-- Check if ports are open: `sudo ufw status | grep -E "3478|5349"`
+- Check if ports are open: `sudo firewall-cmd --list-ports | grep -E "3478|5349"`
 
 ### Calls connect but audio is choppy
 - Check server bandwidth

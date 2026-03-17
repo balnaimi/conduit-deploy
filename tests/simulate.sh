@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Simulation harness for conduit-deploy.sh
-# Mocks: sudo, docker, curl, ufw, fail2ban, systemctl, etc.
+# Mocks: sudo, docker, curl, firewall-cmd, fail2ban, systemctl, etc.
 # Tests every menu path without needing a real server.
 #
 
@@ -81,15 +81,19 @@ esac
 MOCK
     chmod +x "$MOCK_DIR/bin/curl"
     
-    # Mock ufw
-    cat > "$MOCK_DIR/bin/ufw" << 'MOCK'
+    # Mock firewall-cmd
+    cat > "$MOCK_DIR/bin/firewall-cmd" << 'MOCK'
 #!/bin/bash
 case "$*" in
-    *"status"*) echo "Status: active" ;;
-    *)          true ;;
+    *"--state"*)              echo "running" ;;
+    *"--list-forward-ports"*) echo "port=443:proto=udp:toport=5349:toaddr=" ;;
+    *"--list-ports"*)         echo "8448/tcp 3478/tcp 3478/udp 5349/tcp 5349/udp 49152-65535/udp" ;;
+    *"--list-services"*)      echo "ssh http https" ;;
+    *"--list-all"*)           echo "public (active)"; echo "  services: ssh http https"; echo "  ports: 8448/tcp 3478/tcp 3478/udp 5349/tcp 5349/udp 49152-65535/udp"; echo "  forward-ports: port=443:proto=udp:toport=5349:toaddr=" ;;
+    *)                        true ;;
 esac
 MOCK
-    chmod +x "$MOCK_DIR/bin/ufw"
+    chmod +x "$MOCK_DIR/bin/firewall-cmd"
     
     # Mock systemctl
     cat > "$MOCK_DIR/bin/systemctl" << 'MOCK'
@@ -150,19 +154,7 @@ true
 MOCK
     chmod +x "$MOCK_DIR/bin/dpkg-reconfigure"
 
-    # Mock netfilter-persistent
-    cat > "$MOCK_DIR/bin/netfilter-persistent" << 'MOCK'
-#!/bin/bash
-true
-MOCK
-    chmod +x "$MOCK_DIR/bin/netfilter-persistent"
 
-    # Mock iptables
-    cat > "$MOCK_DIR/bin/iptables" << 'MOCK'
-#!/bin/bash
-true
-MOCK
-    chmod +x "$MOCK_DIR/bin/iptables"
 
     # Mock tee (write to file)
     cat > "$MOCK_DIR/bin/tee" << 'MOCK'
@@ -728,11 +720,11 @@ test_security() {
     TESTS=$((TESTS+1))
     info "Testing security features..."
     
-    # UFW firewall
-    if grep -q 'ufw' "$SCRIPT"; then
-        pass "  UFW firewall setup present"
+    # firewalld
+    if grep -q 'firewall-cmd' "$SCRIPT"; then
+        pass "  firewalld setup present"
     else
-        fail "  No UFW setup"
+        fail "  No firewalld setup"
     fi
     
     # Fail2ban

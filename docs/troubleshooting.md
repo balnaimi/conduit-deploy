@@ -58,29 +58,28 @@ cd /opt/conduit && sudo docker compose logs caddy --tail 50
 
 Common causes:
 - **DNS not pointing to your server** — The most common issue. Verify with `dig your-subdomain.example.com A +short` — it should return your VPS IP. If not, fix the A record and wait 5-30 minutes
-- **Port 80 blocked** — Let's Encrypt needs port 80 for verification. Check with `sudo ufw status | grep 80`
+- **Port 80 blocked** — Let's Encrypt needs port 80 for verification. Check with `sudo firewall-cmd --list-services | grep http`
 - **Cloudflare proxy enabled** — Turn off the orange cloud (proxy) in Cloudflare DNS settings. Use grey cloud (DNS Only)
 - **Rate limited** — Too many certificate requests. Wait an hour
 - **Wrong domain entered during install** — If you entered the subdomain instead of the root domain, reinstall with the correct value
 
 ### "Voice/video calls don't work"
 
-**Check 1: Is the UDP 443 → 5349 redirect active?**
+**Check 1: Is the UDP 443 → 5349 forward-port active?**
 ```bash
-sudo iptables -t nat -L PREROUTING -n | grep 5349
+sudo firewall-cmd --list-forward-ports | grep 5349
 ```
-If nothing shows up, the redirect is missing. Fix:
+If nothing shows up, the forward-port is missing. Fix:
 ```bash
-sudo systemctl restart conduit-iptables.service
-# Or if the service doesn't exist:
-sudo iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
+sudo firewall-cmd --permanent --add-forward-port=port=443:proto=udp:toport=5349
+sudo firewall-cmd --reload
 ```
 
-> **Why this matters:** Some networks block port 5349 but allow 443. This redirect lets TURN traffic come in on UDP 443 and reach Coturn on 5349. The script creates a systemd service (`conduit-iptables.service`) that applies this rule automatically on every boot — no conflict with UFW.
+> **Why this matters:** Some networks block port 5349 but allow 443. This forward-port lets TURN traffic come in on UDP 443 and reach Coturn on 5349. The rule is managed by firewalld and persists across reboots automatically.
 
 **Check 2: Are TURN ports open?**
 ```bash
-sudo ufw status | grep -E "3478|5349"
+sudo firewall-cmd --list-ports | grep -E "3478|5349"
 ```
 
 **Check 3: Is Coturn running?**
@@ -103,7 +102,7 @@ cd /opt/conduit && sudo docker compose restart
 
 **Check 1: Is port 8448 open?**
 ```bash
-sudo ufw status | grep 8448
+sudo firewall-cmd --list-ports | grep 8448
 ```
 
 **Check 2: Test federation**

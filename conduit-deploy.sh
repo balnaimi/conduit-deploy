@@ -1072,22 +1072,21 @@ menu_install() {
     # ─── Firewall ───
     step "Configuring Firewall"
     debug_log "Starting firewall configuration"
-    if ! command -v ufw &>/dev/null; then
-        $SUDO apt-get install -y -qq ufw >/dev/null 2>&1
+    if ! command -v firewall-cmd &>/dev/null; then
+        $SUDO apt-get install -y -qq firewalld >/dev/null 2>&1
     fi
-    # Only set defaults if UFW is not already active (don't reset existing rules)
-    if ! $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
-        $SUDO ufw default deny incoming >/dev/null 2>&1
-        $SUDO ufw default allow outgoing >/dev/null 2>&1
-    fi
-    $SUDO ufw allow 22/tcp   comment 'SSH' >/dev/null 2>&1
-    $SUDO ufw allow 80/tcp   comment 'HTTP' >/dev/null 2>&1
-    $SUDO ufw allow 443/tcp  comment 'HTTPS' >/dev/null 2>&1
-    $SUDO ufw allow 8448/tcp comment 'Matrix Federation' >/dev/null 2>&1
-    $SUDO ufw allow 3478     comment 'TURN STUN' >/dev/null 2>&1
-    $SUDO ufw allow 5349     comment 'TURN TLS/DTLS' >/dev/null 2>&1
-    $SUDO ufw allow 49152:65535/udp comment 'Media Relay' >/dev/null 2>&1
-    $SUDO ufw --force enable >/dev/null 2>&1
+    $SUDO systemctl enable --now firewalld >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-service=ssh >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-service=http >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-service=https >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-port=8448/tcp >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-port=3478/tcp >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-port=3478/udp >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-port=5349/tcp >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-port=5349/udp >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-port=49152-65535/udp >/dev/null 2>&1
+    $SUDO firewall-cmd --permanent --add-forward-port=port=443:proto=udp:toport=5349 >/dev/null 2>&1
+    $SUDO firewall-cmd --reload >/dev/null 2>&1
     success "Firewall configured"
 
     # ─── Hardening ───
@@ -1159,7 +1158,7 @@ EOF
 #
 # Caddy is the ONLY container with public ports.
 # Conduit has NO port mapping — prevents Docker
-# from bypassing ufw/iptables firewall rules.
+# from bypassing firewall rules.
 ###############################################
 
 services:
@@ -1419,35 +1418,6 @@ EOF
     $SUDO systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
     success "TLS cert auto-sync active"
 
-    # iptables UDP 443 → 5349 (must persist across reboots)
-    if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
-        $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 || true
-    fi
-    # Persist the rule via systemd service (avoids conflict with UFW)
-    $SUDO tee /etc/systemd/system/conduit-iptables.service > /dev/null << 'EOUNIT'
-[Unit]
-Description=Conduit TURN iptables redirect (UDP 443 → 5349)
-After=network.target docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/sbin/iptables -t nat -C PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null || /sbin/iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
-ExecStop=/sbin/iptables -t nat -D PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null ; true
-
-[Install]
-WantedBy=multi-user.target
-EOUNIT
-    $SUDO systemctl daemon-reload
-    $SUDO systemctl enable --now conduit-iptables.service >/dev/null 2>&1
-    if $SUDO systemctl is-active conduit-iptables.service >/dev/null 2>&1; then
-        success "UDP 443 → Coturn redirect configured (persistent via systemd)"
-    else
-        warn "UDP 443 redirect is active but systemd service failed to enable."
-        echo -e "  ${DIM}Fix manually: systemctl enable --now conduit-iptables.service${NC}"
-        echo
-    fi
-
     # Save credentials
     $SUDO tee "$CREDS_FILE" > /dev/null << EOF
 ═══════════════════════════════════════════
@@ -1484,7 +1454,7 @@ EOF
     echo -e "  ${GREEN}✓${NC} Coturn — TURN/STUN server for voice/video calls"
     echo
     echo -e "  ${BOLD}Security hardening applied:${NC}"
-    echo -e "  ${GREEN}✓${NC} UFW firewall — only ports 80, 443, 8448, 3478, 5349 are open"
+    echo -e "  ${GREEN}✓${NC} firewalld — only ports 80, 443, 8448, 3478, 5349 are open"
     echo -e "  ${GREEN}✓${NC} Fail2ban — automatically blocks IPs after failed login attempts"
     echo -e "  ${GREEN}✓${NC} Unattended upgrades — security patches install automatically"
     echo -e "  ${GREEN}✓${NC} Swap memory — ${SWAP_SIZE:-2G} configured for stability"
@@ -1734,11 +1704,11 @@ menu_healthcheck() {
     # ─── Security ───
     echo -e "  ${BOLD}Security:${NC}"
 
-    # UFW
-    if command -v ufw &>/dev/null && $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
-        success "  UFW firewall active"
+    # firewalld
+    if command -v firewall-cmd &>/dev/null && $SUDO firewall-cmd --state 2>/dev/null | grep -q "running"; then
+        success "  firewalld active"
     else
-        warn "  UFW firewall not active"
+        warn "  firewalld not active"
         issues+=("Firewall not active")
     fi
 
@@ -1872,27 +1842,13 @@ menu_healthcheck() {
     echo
     echo -e "  ${BOLD}Voice/Video Calls (TURN):${NC}"
 
-    # Check iptables redirect rule
-    if $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
-        success "  UDP 443 → 5349 redirect active"
+    # Check firewalld forward-port rule
+    if $SUDO firewall-cmd --list-forward-ports 2>/dev/null | grep -q "port=443:proto=udp:toport=5349"; then
+        success "  UDP 443 → 5349 forward-port active (firewalld)"
     else
-        error "  UDP 443 → 5349 redirect MISSING"
+        error "  UDP 443 → 5349 forward-port MISSING"
         all_ok=false
-        issues+=("TURN UDP redirect missing — voice/video calls may fail on some networks")
-    fi
-
-    # Check systemd persistence service
-    if systemctl is-enabled conduit-iptables.service &>/dev/null; then
-        if systemctl is-active conduit-iptables.service &>/dev/null; then
-            success "  conduit-iptables.service active (persistent across reboots)"
-        else
-            warn "  conduit-iptables.service enabled but not active"
-            issues+=("TURN redirect service not active")
-        fi
-    else
-        error "  conduit-iptables.service not found — redirect will be lost on reboot!"
-        all_ok=false
-        issues+=("TURN redirect not persistent — will break after reboot")
+        issues+=("TURN UDP forward-port missing — voice/video calls may fail on some networks")
     fi
 
     # ─── .well-known Delegation ───
@@ -2338,14 +2294,19 @@ PULLEOF
     # Post-restore: ensure firewall rules are in place
     echo
     info "Verifying firewall rules..."
-    if command -v ufw &>/dev/null && $SUDO ufw status | grep -q "active"; then
-        $SUDO ufw allow 22/tcp   comment 'SSH' >/dev/null 2>&1
-        $SUDO ufw allow 80/tcp   comment 'HTTP' >/dev/null 2>&1
-        $SUDO ufw allow 443/tcp  comment 'HTTPS' >/dev/null 2>&1
-        $SUDO ufw allow 8448/tcp comment 'Matrix Federation' >/dev/null 2>&1
-        $SUDO ufw allow 3478     comment 'TURN STUN' >/dev/null 2>&1
-        $SUDO ufw allow 5349     comment 'TURN TLS/DTLS' >/dev/null 2>&1
-        $SUDO ufw allow 49152:65535/udp comment 'Media Relay' >/dev/null 2>&1
+    if command -v firewall-cmd &>/dev/null; then
+        $SUDO systemctl enable --now firewalld >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-service=ssh >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-service=http >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-service=https >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-port=8448/tcp >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-port=3478/tcp >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-port=3478/udp >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-port=5349/tcp >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-port=5349/udp >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-port=49152-65535/udp >/dev/null 2>&1
+        $SUDO firewall-cmd --permanent --add-forward-port=port=443:proto=udp:toport=5349 >/dev/null 2>&1
+        $SUDO firewall-cmd --reload >/dev/null 2>&1
         success "Firewall rules verified"
     fi
 
@@ -2375,13 +2336,6 @@ EOF
         $SUDO systemctl daemon-reload
         $SUDO systemctl enable --now turn-cert-sync.path >/dev/null 2>&1
         success "TLS cert auto-sync restored"
-    fi
-
-    # Post-restore: ensure iptables UDP redirect
-    if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
-        $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
-        $SUDO systemctl restart conduit-iptables.service 2>/dev/null || true
-        success "UDP redirect rule restored"
     fi
 
     echo
@@ -2851,7 +2805,7 @@ menu_uninstall() {
     echo -e "  • Configuration files at ${INSTALL_DIR}/"
     echo -e "  • Firewall rules added by the installer"
     echo -e "  • TLS cert auto-sync service"
-    echo -e "  • iptables UDP redirect rule"
+    echo -e "  • Firewall rules (firewalld)"
     echo
     echo -e "  ${YELLOW}Your accounts, messages, and media will be LOST.${NC}"
     echo
@@ -2886,21 +2840,18 @@ menu_uninstall() {
         success "TLS cert auto-sync removed"
     fi
 
-    # Remove iptables rule
-    if $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
-        $SUDO iptables -t nat -D PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 2>/dev/null || true
-        $SUDO systemctl restart conduit-iptables.service 2>/dev/null || true
-        success "iptables UDP redirect removed"
-    fi
-
-    # Remove firewall rules (reset UFW to deny all, keep SSH)
-    if command -v ufw &>/dev/null && $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
-        $SUDO ufw delete allow 80/tcp 2>/dev/null || true
-        $SUDO ufw delete allow 443/tcp 2>/dev/null || true
-        $SUDO ufw delete allow 8448/tcp 2>/dev/null || true
-        $SUDO ufw delete allow 3478 2>/dev/null || true
-        $SUDO ufw delete allow 5349 2>/dev/null || true
-        $SUDO ufw delete allow 49152:65535/udp 2>/dev/null || true
+    # Remove firewalld rules (keep SSH)
+    if command -v firewall-cmd &>/dev/null && $SUDO firewall-cmd --state 2>/dev/null | grep -q "running"; then
+        $SUDO firewall-cmd --permanent --remove-service=http 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-service=https 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-port=8448/tcp 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-port=3478/tcp 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-port=3478/udp 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-port=5349/tcp 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-port=5349/udp 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-port=49152-65535/udp 2>/dev/null || true
+        $SUDO firewall-cmd --permanent --remove-forward-port=port=443:proto=udp:toport=5349 2>/dev/null || true
+        $SUDO firewall-cmd --reload >/dev/null 2>&1
         success "Firewall rules removed (SSH kept)"
     fi
 
@@ -2911,7 +2862,7 @@ menu_uninstall() {
     echo
     separator
     echo -e "\n  ${GREEN}${BOLD}Uninstall complete.${NC}"
-    echo -e "  Docker, fail2ban, and UFW are still installed (shared system packages)."
+    echo -e "  Docker, fail2ban, and firewalld are still installed (shared system packages)."
     if [[ ! "$backup_confirm" =~ ^[Nn]$ ]] && [ -n "$BACKUP_FILE" ]; then
         echo -e "  Backup saved at: ${BOLD}$BACKUP_FILE${NC}"
     fi

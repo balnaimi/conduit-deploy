@@ -65,17 +65,30 @@ Common causes:
 
 ### "Voice/video calls don't work"
 
-**Check 1: Are TURN ports open?**
+**Check 1: Is the UDP 443 → 5349 redirect active?**
+```bash
+sudo iptables -t nat -L PREROUTING -n | grep 5349
+```
+If nothing shows up, the redirect is missing. Fix:
+```bash
+sudo iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349
+sudo apt install -y iptables-persistent
+sudo netfilter-persistent save
+```
+
+> **Why this matters:** Some networks block port 5349 but allow 443. This redirect lets TURN traffic come in on UDP 443 and reach Coturn on 5349. Without `iptables-persistent`, this rule is **lost on reboot**.
+
+**Check 2: Are TURN ports open?**
 ```bash
 sudo ufw status | grep -E "3478|5349"
 ```
 
-**Check 2: Is Coturn running?**
+**Check 3: Is Coturn running?**
 ```bash
 cd /opt/conduit && sudo docker compose logs coturn --tail 20
 ```
 
-**Check 3: Is the TLS cert synced?**
+**Check 4: Is the TLS cert synced?**
 ```bash
 ls -la /opt/conduit/certs/
 ```

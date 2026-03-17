@@ -175,6 +175,10 @@ Generates all config files in `/opt/conduit/` based on your choices:
 - Waits for Let's Encrypt to issue TLS certificates (up to 60 seconds)
 - Syncs TLS certificates to Coturn for secure voice/video calls
 - Sets up automatic certificate renewal
+- Configures UDP 443 → 5349 redirect for TURN (voice/video calls on restricted networks)
+- Installs `iptables-persistent` to ensure the redirect survives reboots
+
+> **Note:** If `iptables-persistent` fails to install, the script will show a clear error with manual fix instructions. This is critical — without it, voice/video calls may break after a server reboot.
 
 > **⚠️ If this step fails**, the most common cause is DNS not pointing to your server. See [Troubleshooting](troubleshooting.md).
 

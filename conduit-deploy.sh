@@ -11,6 +11,36 @@
 
 set -eo pipefail
 
+# ─── Debug Mode ───
+# Enable with: bash conduit-deploy.sh --debug
+# Or from Main Menu → toggle debug
+DEBUG_MODE=false
+DEBUG_LOG="/tmp/conduit-deploy-$(date +%Y%m%d-%H%M%S).log"
+
+for arg in "$@"; do
+    case "$arg" in
+        --debug|-d) DEBUG_MODE=true ;;
+    esac
+done
+
+if [ "$DEBUG_MODE" = true ]; then
+    # Log everything: commands + output + errors
+    exec > >(tee -a "$DEBUG_LOG") 2>&1
+    set -x
+    echo "═══ Debug Log Started: $(date) ═══" >> "$DEBUG_LOG"
+    echo "═══ Script: $0 $* ═══" >> "$DEBUG_LOG"
+    echo "═══ OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2) ═══" >> "$DEBUG_LOG"
+    echo "═══ Bash: ${BASH_VERSION} ═══" >> "$DEBUG_LOG"
+    echo "" >> "$DEBUG_LOG"
+fi
+
+debug_log() {
+    # Silent log — doesn't print to screen, only to log file
+    if [ "$DEBUG_MODE" = true ]; then
+        echo "[$(date '+%H:%M:%S')] $*" >> "$DEBUG_LOG"
+    fi
+}
+
 # ─── Config ───
 INSTALL_DIR="/opt/conduit"
 COMPOSE_FILE="$INSTALL_DIR/docker-compose.yml"
@@ -859,6 +889,7 @@ menu_install() {
 
     # ─── DNS Check ───
     step "Verifying DNS"
+    debug_log "DNS check: MATRIX_HOST=$MATRIX_HOST VPS_IP=$VPS_IP DETECTED_IP6=$DETECTED_IP6"
     local dns_ok=true
     local dns_warn=false
 
@@ -1000,6 +1031,7 @@ menu_install() {
 
     # ─── Install Docker ───
     step "Installing Docker"
+    debug_log "Starting Docker installation"
     if command -v docker &>/dev/null; then
         success "Docker already installed"
     else
@@ -1024,6 +1056,7 @@ menu_install() {
 
     # ─── Firewall ───
     step "Configuring Firewall"
+    debug_log "Starting firewall configuration"
     if ! command -v ufw &>/dev/null; then
         $SUDO apt-get install -y -qq ufw >/dev/null 2>&1
     fi
@@ -1044,6 +1077,7 @@ menu_install() {
 
     # ─── Hardening ───
     step "Server Hardening"
+    debug_log "Starting server hardening"
 
     # Swap
     if [ "$TOTAL_RAM" -lt 2048 ] && ! swapon --show 2>/dev/null | grep -q "/swapfile"; then
@@ -1301,6 +1335,7 @@ EOF
 
     # ─── Start ───
     step "Starting Services"
+    debug_log "Starting services: INSTALL_DIR=$INSTALL_DIR"
     info "Pulling Docker images (this may take a minute)..."
     _compose_visible pull
     info "Starting containers..."
@@ -1373,9 +1408,9 @@ EOF
     if ! $SUDO iptables -t nat -L PREROUTING -n 2>/dev/null | grep -q "udp dpt:443.*5349"; then
         $SUDO iptables -t nat -A PREROUTING -p udp --dport 443 -j REDIRECT --to-port 5349 || true
         # Pre-seed debconf to avoid interactive prompts
-        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | $SUDO debconf-set-selections 2>/dev/null || true
-        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | $SUDO debconf-set-selections 2>/dev/null || true
-        $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1 || true
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | $SUDO debconf-set-selections 2>/dev/null || { debug_log "iptables-persistent install failed"; true; }
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | $SUDO debconf-set-selections 2>/dev/null || { debug_log "iptables-persistent install failed"; true; }
+        $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1 || { debug_log "iptables-persistent install failed"; true; }
         $SUDO netfilter-persistent save >/dev/null 2>&1 || true
         success "UDP 443 → Coturn redirect configured"
     fi
@@ -1407,6 +1442,7 @@ EOF
 
     # ─── Done ───
     step "Installation Complete! "
+    debug_log "Installation completed successfully"
     echo
     echo -e "  ${BOLD}What was installed:${NC}"
     echo -e "  ${GREEN}✓${NC} Docker Engine — container runtime for all services"
@@ -1436,6 +1472,7 @@ EOF
     # ─── Create first admin account ───
     echo
     step "Create Your Admin Account"
+    debug_log "Starting admin account creation"
     echo -e "  ${YELLOW}⚠  This is the ONLY admin account.${NC}"
     echo -e "  ${DIM}The first account on the server automatically gets admin privileges.${NC}"
     echo -e "  ${DIM}You'll use this account to manage everything from the Admin Room.${NC}"
@@ -2820,6 +2857,24 @@ menu_uninstall() {
 #  MAIN MENU
 # ═══════════════════════════════════════════════
 # ─── Safety: check for orphaned open registration on startup ───
+toggle_debug() {
+    if [ "$DEBUG_MODE" = true ]; then
+        DEBUG_MODE=false
+        set +x 2>/dev/null
+        success "Debug mode OFF"
+        echo -e "  ${DIM}Log saved at: ${DEBUG_LOG}${NC}"
+    else
+        DEBUG_MODE=true
+        DEBUG_LOG="/tmp/conduit-deploy-$(date +%Y%m%d-%H%M%S).log"
+        exec > >(tee -a "$DEBUG_LOG") 2>&1
+        set -x
+        echo "═══ Debug Log Started: $(date) ═══" >> "$DEBUG_LOG"
+        success "Debug mode ON"
+        echo -e "  ${DIM}Logging to: ${DEBUG_LOG}${NC}"
+    fi
+    sleep 2
+}
+
 main_menu() {
     while true; do
         show_header
@@ -2828,9 +2883,15 @@ main_menu() {
         echo -e "  ${CYAN}3${NC}) ${BOLD}Health Check${NC} — Verify services & security"
         echo -e "  ${CYAN}4${NC}) ${BOLD}Services${NC}     — Start/stop/restart/update/logs"
         echo -e "  ${CYAN}5${NC}) ${BOLD}Uninstall${NC}    — Remove everything"
+        echo
+        if [ "$DEBUG_MODE" = true ]; then
+            echo -e "  ${YELLOW}D${NC}) ${BOLD}Debug: ON${NC}    — ${DIM}Logging to ${DEBUG_LOG}${NC}"
+        else
+            echo -e "  ${DIM}D${NC}) ${DIM}Debug: OFF${NC}   — ${DIM}Enable to log all actions for troubleshooting${NC}"
+        fi
         echo -e "  ${CYAN}0${NC}) ${BOLD}Exit${NC}"
         echo
-        ask "Choose [0-5]:"
+        ask "Choose [0-5/D]:"
         read -r choice
 
         case $choice in
@@ -2839,7 +2900,14 @@ main_menu() {
             3) menu_healthcheck ;;
             4) menu_services ;;
             5) menu_uninstall ;;
-            0|q|Q) echo -e "\n${DIM}Goodbye! ${NC}\n"; exit 0 ;;
+            d|D) toggle_debug ;;
+            0|q|Q) 
+                if [ "$DEBUG_MODE" = true ]; then
+                    echo -e "\n${DIM}Debug log saved: ${DEBUG_LOG}${NC}"
+                fi
+                echo -e "\n${DIM}Goodbye! ${NC}\n"
+                exit 0 
+                ;;
             *) warn "Invalid option"; sleep 1 ;;
         esac
     done

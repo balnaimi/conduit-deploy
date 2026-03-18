@@ -4,7 +4,15 @@
 
 The installation script applies several security measures automatically:
 
-### Firewall (UFW)
+### Firewall (firewalld)
+
+The script uses firewalld (not UFW) because it handles both regular port rules and NAT/masquerade in one place — which Docker needs for internet access from containers.
+
+During install, the script:
+- Removes UFW/iptables-persistent if present (to avoid conflicts)
+- Installs and enables firewalld
+- **Binds the primary network interface** to the public zone (without this, rules have no effect)
+- Enables **masquerade** (required for Docker container NAT)
 
 Only these ports are open:
 

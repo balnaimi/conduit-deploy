@@ -64,6 +64,52 @@ Common causes:
 - **Rate limited** — Too many certificate requests. Wait an hour
 - **Wrong domain entered during install** — If you entered the subdomain instead of the root domain, reinstall with the correct value
 
+### "HTTPS failed (HTTP 000000)" / Docker has no internet
+
+If Health Check shows `HTTPS failed (HTTP 000000)` or `Docker has NO internet access`, the root cause is usually **firewalld not routing Docker traffic**.
+
+**Check 1: Is the network interface bound to firewalld?**
+```bash
+firewall-cmd --zone=public --list-interfaces
+```
+If this returns nothing — that's the problem! Firewall rules exist but aren't applied to any interface.
+
+Fix:
+```bash
+# Find your interface name
+ip route show default
+# Look for "dev eth0" (or ens3, enp1s0, etc.)
+
+# Bind it
+sudo firewall-cmd --zone=public --add-interface=eth0 --permanent
+sudo firewall-cmd --reload
+```
+
+**Check 2: Is masquerade enabled?**
+```bash
+firewall-cmd --query-masquerade
+```
+If `no`:
+```bash
+sudo firewall-cmd --permanent --add-masquerade
+sudo firewall-cmd --reload
+```
+
+**Check 3: Test Docker internet access**
+```bash
+docker run --rm alpine wget -qO- --timeout=5 http://ifconfig.me/ip
+```
+If this returns your server's IP — Docker has internet. If it hangs or errors, the firewall is blocking it.
+
+**After fixing**, restart Caddy to trigger new certificate request:
+```bash
+cd /opt/conduit && sudo docker restart caddy
+```
+
+> **Note:** The installer now detects and fixes this automatically. If you hit this issue, update the script: `cd ~/conduit-deploy && git pull`
+
+---
+
 ### "Voice/video calls don't work"
 
 **Check 1: Is the UDP 443 → 5349 forward-port active?**

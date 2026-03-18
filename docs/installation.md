@@ -16,7 +16,7 @@ The script automatically checks for and installs any missing dependencies:
 | Package | Purpose |
 |---------|---------|
 | Docker | Runs Conduit, Caddy, and Coturn in containers |
-| UFW | Firewall — blocks unauthorized access |
+| firewalld | Firewall — blocks unauthorized access, handles NAT for Docker |
 | Fail2ban | Bans IPs after too many failed login attempts |
 | unattended-upgrades | OS security patches (no auto-reboot — you decide when) |
 
@@ -142,8 +142,8 @@ The script automatically handles everything in this order:
 #### 1. 📦 Installing Docker
 Installs Docker Engine and Docker Compose — the container runtime that runs all services. If Docker is already installed, this step is skipped.
 
-#### 2. 🔒 Configuring Firewall (UFW)
-Opens **only** the ports needed:
+#### 2. 🔒 Configuring Firewall (firewalld)
+The script installs firewalld (removing UFW/iptables-persistent if present to avoid conflicts), binds the primary network interface to the public zone, enables masquerade for Docker NAT, and opens **only** the ports needed:
 | Port | Purpose |
 |------|---------|
 | 80 | HTTP (redirects to HTTPS, used by Let's Encrypt) |

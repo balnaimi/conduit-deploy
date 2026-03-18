@@ -88,6 +88,30 @@
     </div>
 
     <div class="option-card">
+      <h3>HTTPS failed (HTTP 000000) / Docker has no internet</h3>
+      <p class="desc">If Health Check shows <code>HTTPS failed (HTTP 000000)</code>, Docker containers likely can't reach the internet — so Caddy can't get TLS certificates.</p>
+      <pre class="code-block"><span class="comment"># Check if network interface is bound to firewalld</span>
+<span class="cmd">sudo</span> firewall-cmd --zone=public --list-interfaces
+<span class="comment"># If empty — that's the problem! Fix:</span>
+<span class="cmd">sudo</span> firewall-cmd --zone=public --add-interface=<span class="comment">$(ip route show default | awk '{print $5}')</span> --permanent
+
+<span class="comment"># Check masquerade (Docker needs this for NAT)</span>
+<span class="cmd">sudo</span> firewall-cmd --query-masquerade
+<span class="comment"># If "no":</span>
+<span class="cmd">sudo</span> firewall-cmd --permanent --add-masquerade
+
+<span class="comment"># Apply changes</span>
+<span class="cmd">sudo</span> firewall-cmd --reload
+
+<span class="comment"># Test Docker internet access</span>
+<span class="cmd">docker</span> run --rm alpine wget -qO- --timeout=5 http://ifconfig.me/ip
+
+<span class="comment"># If it works — restart Caddy to get certificates</span>
+<span class="cmd">sudo</span> docker restart caddy</pre>
+      <p style="color:var(--text-dim);font-size:0.92rem;margin-top:0.75rem;">The latest version of the installer detects and fixes this automatically. Update: <code>cd ~/conduit-deploy && git pull</code></p>
+    </div>
+
+    <div class="option-card">
       <h3>Voice / video calls don't work</h3>
       <pre class="code-block"><span class="comment"># Check TURN ports are open</span>
 <span class="cmd">sudo</span> firewall-cmd --list-ports | grep -E "3478|5349"

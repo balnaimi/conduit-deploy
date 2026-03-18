@@ -152,6 +152,14 @@ You can check the rule with:
 sudo firewall-cmd --list-forward-ports
 ```
 
+### Health Check says "HTTPS failed (HTTP 000000)" — what does that mean?
+
+`000000` means "no response at all" — the server didn't even reply. This is almost always a **firewall/networking issue**, not a Caddy or Conduit problem.
+
+The most common cause: firewalld has no network interface bound to the public zone, so Docker containers can't reach the internet to get TLS certificates.
+
+Run the Health Check again — the latest version now checks for this specifically and tells you exactly what to fix. If you're on an older version: `cd ~/conduit-deploy && git pull`
+
 ### How does admin account creation work?
 
 During installation, the script creates your admin account via Conduit's **local API** (direct container connection on port 6167) — it never goes through the public HTTPS endpoint. The process:

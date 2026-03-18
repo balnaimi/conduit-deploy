@@ -233,6 +233,9 @@ Choose **3** (Health Check) to make sure everything is working:
 
   Security:
   ✅ firewalld active
+  ✅ firewalld interface bound (eth0)
+  ✅ firewalld masquerade enabled
+  ✅ Docker internet access OK
   ✅ Fail2ban active
   ✅ Auto security patches enabled
   ✅ No reboot pending

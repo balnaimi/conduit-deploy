@@ -1097,6 +1097,23 @@ menu_install() {
         $SUDO apt-get install -y -qq firewalld >/dev/null 2>&1
     fi
     $SUDO systemctl enable --now firewalld >/dev/null 2>&1
+
+    # Ensure primary network interface is bound to the public zone
+    # Without this, firewalld rules have no effect and Docker cannot reach the internet
+    PRIMARY_IF=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+    if [ -n "$PRIMARY_IF" ]; then
+        BOUND_IF=$(firewall-cmd --zone=public --list-interfaces 2>/dev/null || true)
+        if ! echo "$BOUND_IF" | grep -qw "$PRIMARY_IF"; then
+            debug_log "Binding interface $PRIMARY_IF to firewalld public zone"
+            $SUDO firewall-cmd --zone=public --add-interface="$PRIMARY_IF" --permanent >/dev/null 2>&1
+            info "  Bound interface $PRIMARY_IF to firewalld public zone"
+        else
+            debug_log "Interface $PRIMARY_IF already bound to public zone"
+        fi
+    else
+        warn "Could not detect primary network interface — firewall rules may not work"
+    fi
+
     $SUDO firewall-cmd --permanent --add-service=ssh >/dev/null 2>&1
     $SUDO firewall-cmd --permanent --add-service=http >/dev/null 2>&1
     $SUDO firewall-cmd --permanent --add-service=https >/dev/null 2>&1
@@ -1110,6 +1127,30 @@ menu_install() {
     $SUDO firewall-cmd --permanent --add-masquerade >/dev/null 2>&1
     $SUDO firewall-cmd --reload >/dev/null 2>&1
     success "Firewall configured"
+
+    # ─── Docker Internet Connectivity Test ───
+    debug_log "Testing Docker internet connectivity"
+    info "Verifying Docker can reach the internet..."
+    DOCKER_IP=$(docker run --rm alpine wget -qO- --timeout=10 http://ifconfig.me/ip 2>/dev/null || echo "")
+    if [ -z "$DOCKER_IP" ]; then
+        echo
+        error "Docker cannot reach the internet!"
+        echo -e "  ${DIM}This will prevent TLS certificate acquisition — HTTPS won't work.${NC}"
+        echo
+        echo -e "  ${YELLOW}Troubleshooting:${NC}"
+        echo -e "  • Check masquerade: ${BOLD}firewall-cmd --query-masquerade${NC}"
+        echo -e "  • Check interface:  ${BOLD}firewall-cmd --zone=public --list-interfaces${NC}"
+        echo -e "  • Restart Docker:   ${BOLD}systemctl restart docker${NC}"
+        echo
+        ask "Continue anyway? (HTTPS will likely fail) [y/N]:"
+        read -r cont_anyway
+        if [[ ! "$cont_anyway" =~ ^[Yy]$ ]]; then
+            press_enter
+            return
+        fi
+    else
+        success "Docker internet access verified (IP: $DOCKER_IP)"
+    fi
 
     # ─── Hardening ───
     step "Server Hardening"
@@ -1798,9 +1839,40 @@ menu_healthcheck() {
     # firewalld
     if command -v firewall-cmd &>/dev/null && $SUDO firewall-cmd --state 2>/dev/null | grep -q "running"; then
         success "  firewalld active"
+        # Check interface binding (critical for Docker internet access)
+        FW_INTERFACES=$(firewall-cmd --zone=public --list-interfaces 2>/dev/null || true)
+        if [ -n "$FW_INTERFACES" ]; then
+            success "  firewalld interface bound ($FW_INTERFACES)"
+        else
+            error "  firewalld has NO interface bound!"
+            echo -e "     ${DIM}Docker cannot reach the internet without a bound interface.${NC}"
+            echo -e "     ${DIM}Fix: firewall-cmd --zone=public --add-interface=\$(ip route show default | awk '{print \$5}') --permanent && firewall-cmd --reload${NC}"
+            all_ok=false
+            issues+=("firewalld has no interface — Docker can't reach internet, TLS certs will fail")
+        fi
+        # Check masquerade (required for Docker NAT)
+        if firewall-cmd --query-masquerade &>/dev/null; then
+            success "  firewalld masquerade enabled"
+        else
+            warn "  firewalld masquerade disabled — Docker NAT may not work"
+            issues+=("firewalld masquerade disabled")
+        fi
     else
         warn "  firewalld not active"
         issues+=("Firewall not active")
+    fi
+
+    # Docker internet connectivity
+    DOCKER_INET=$($SUDO docker exec caddy wget -qO- --timeout=5 http://ifconfig.me/ip 2>/dev/null || echo "")
+    if [ -n "$DOCKER_INET" ]; then
+        success "  Docker internet access OK"
+    else
+        error "  Docker has NO internet access!"
+        echo -e "     ${DIM}TLS certificates cannot be obtained or renewed.${NC}"
+        echo -e "     ${DIM}Check: firewall-cmd --zone=public --list-interfaces${NC}"
+        echo -e "     ${DIM}Check: firewall-cmd --query-masquerade${NC}"
+        all_ok=false
+        issues+=("Docker has no internet — TLS certs will fail")
     fi
 
     # Fail2ban
@@ -2387,6 +2459,11 @@ PULLEOF
     info "Verifying firewall rules..."
     if command -v firewall-cmd &>/dev/null; then
         $SUDO systemctl enable --now firewalld >/dev/null 2>&1
+        # Ensure interface is bound (critical fix)
+        PRIMARY_IF=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+        if [ -n "$PRIMARY_IF" ]; then
+            $SUDO firewall-cmd --zone=public --add-interface="$PRIMARY_IF" --permanent >/dev/null 2>&1
+        fi
         $SUDO firewall-cmd --permanent --add-service=ssh >/dev/null 2>&1
         $SUDO firewall-cmd --permanent --add-service=http >/dev/null 2>&1
         $SUDO firewall-cmd --permanent --add-service=https >/dev/null 2>&1
